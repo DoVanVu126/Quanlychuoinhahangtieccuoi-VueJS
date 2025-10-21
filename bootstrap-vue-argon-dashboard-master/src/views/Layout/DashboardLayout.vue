@@ -3,110 +3,104 @@
     <notifications></notifications>
     <side-bar>
       <template slot="links">
+        <h4 class="text-center mt-3" style="font-family: 'Dancing Script', cursive;">Wedding</h4>
+
         <sidebar-item
           :link="{
-            name: 'Dashboard',
+            name: 'Bảng điều khiển',
             path: '/dashboard',
             icon: 'ni ni-tv-2 text-primary',
           }"
-        >
-        </sidebar-item>
+        ></sidebar-item>
 
         <sidebar-item
           :link="{
-            name: 'Icons',
-            path: '/icons',
-            icon: 'ni ni-planet text-blue',
+            name: 'Đặt tiệc',
+            path: '/bookings',
+            icon: 'ni ni-calendar-grid-58 text-pink',
           }"
-        >
-        </sidebar-item>
+        ></sidebar-item>
 
         <sidebar-item
           :link="{
-            name: 'Maps',
-            path: '/maps',
-            icon: 'ni ni-pin-3 text-orange',
-          }"
-        >
-        </sidebar-item>
-
-        <sidebar-item
-          :link="{
-            name: 'User Profile',
-            path: '/profile',
-            icon: 'ni ni-single-02 text-yellow',
-          }"
-        >
-        </sidebar-item>
-
-        <sidebar-item
-          :link="{
-            name: 'Tables',
-            path: '/tables',
-            icon: 'ni ni-bullet-list-67 text-red',
-          }"
-        >
-        </sidebar-item>
-
-        <sidebar-item
-          :link="{
-            name: 'Quản lý món ăn',
+            name: 'Món ăn',
             path: '/mon-an',
-            icon: 'ni ni-basket text-green',
+            icon: 'ni ni-dish text-green',
           }"
-        >
-        </sidebar-item>
+        ></sidebar-item>
 
         <sidebar-item
           :link="{
-            name: 'Login',
-            path: '/login',
-            icon: 'ni ni-key-25 text-info',
+            name: 'Dịch vụ',
+            path: '/dich-vu',
+            icon: 'ni ni-favourite-28 text-orange',
           }"
-        >
-        </sidebar-item>
+        ></sidebar-item>
+
         <sidebar-item
           :link="{
-            name: 'Register',
+            name: 'Sảnh',
+            path: '/sanh',
+            icon: 'ni ni-building text-red',
+          }"
+        ></sidebar-item>
+
+        <sidebar-item
+          :link="{
+            name: 'Nhà hàng',
+            path: '/nha-hang',
+            icon: 'ni ni-shop text-purple',
+          }"
+        ></sidebar-item>
+
+        <sidebar-item
+          :link="{
+            name: 'Gói gợi ý',
+            path: '/goi-goi-y',
+            icon: 'ni ni-collection text-blue',
+          }"
+        ></sidebar-item>
+
+        <sidebar-item
+          :link="{
+            name: 'Hồ sơ',
+            path: '/profile',
+            icon: 'ni ni-single-02 text-dark',
+          }"
+        ></sidebar-item>
+
+        <hr />
+
+        <sidebar-item
+          :link="{
+            name: 'Đăng ký',
             path: '/register',
-            icon: 'ni ni-circle-08 text-pink',
+            icon: 'ni ni-circle-08 text-success',
           }"
-        >
-        </sidebar-item>
-      </template>
+        ></sidebar-item>
 
-      <template slot="links-after">
-        <hr class="my-3" />
-        <h6 class="navbar-heading p-0 text-muted">Documentation</h6>
+        <sidebar-item
+          :link="{
+            name: 'Đăng xuất',
+            path: '/logout',
+            icon: 'ni ni-button-power text-danger',
+          }"
+        ></sidebar-item>
 
-        <b-nav class="navbar-nav mb-md-3">
-          <b-nav-item
-            href="https://www.creative-tim.com/learning-lab/bootstrap-vue/quick-start/argon-dashboard"
-          >
-            <i class="ni ni-spaceship"></i>
-            <b-nav-text class="p-0">Getting started</b-nav-text>
-          </b-nav-item>
-          <b-nav-item
-            href="https://www.creative-tim.com/learning-lab/bootstrap-vue/colors/argon-dashboard"
-          >
-            <i class="ni ni-palette"></i>
-            <b-nav-text class="p-0">Foundation</b-nav-text>
-          </b-nav-item>
-          <b-nav-item
-            href="https://www.creative-tim.com/learning-lab/bootstrap-vue/avatar/argon-dashboard"
-          >
-            <i class="ni ni-ui-04"></i>
-            <b-nav-text class="p-0">Components</b-nav-text>
-          </b-nav-item>
-        </b-nav>
+        <sidebar-item
+          :link="{
+            name: 'Cài đặt',
+            path: '/settings',
+            icon: 'ni ni-settings-gear-65 text-gray',
+          }"
+        ></sidebar-item>
       </template>
     </side-bar>
+
     <div class="main-content">
       <dashboard-navbar :type="$route.meta.navbarType"></dashboard-navbar>
-
       <div @click="$sidebar.displaySidebar(false)">
         <fade-transition :duration="200" origin="center top" mode="out-in">
-          <!-- your content here -->
           <router-view></router-view>
         </fade-transition>
       </div>
@@ -114,49 +108,36 @@
     </div>
   </div>
 </template>
+
 <script>
-/* eslint-disable no-new */
 import PerfectScrollbar from "perfect-scrollbar";
 import "perfect-scrollbar/css/perfect-scrollbar.css";
-
-function hasElement(className) {
-  return document.getElementsByClassName(className).length > 0;
-}
+import DashboardNavbar from "./DashboardNavbar.vue";
+import ContentFooter from "./ContentFooter.vue";
+import { FadeTransition } from "vue2-transitions";
 
 function initScrollbar(className) {
-  if (hasElement(className)) {
+  if (document.getElementsByClassName(className).length > 0) {
     new PerfectScrollbar(`.${className}`);
   } else {
-    // try to init it later in case this component is loaded async
-    setTimeout(() => {
-      initScrollbar(className);
-    }, 100);
+    setTimeout(() => initScrollbar(className), 100);
   }
 }
 
-import DashboardNavbar from "./DashboardNavbar.vue";
-import ContentFooter from "./ContentFooter.vue";
-import DashboardContent from "./Content.vue";
-import { FadeTransition } from "vue2-transitions";
-
 export default {
-  components: {
-    DashboardNavbar,
-    ContentFooter,
-    DashboardContent,
-    FadeTransition,
-  },
-  methods: {
-    initScrollbar() {
-      let isWindows = navigator.platform.startsWith("Win");
-      if (isWindows) {
-        initScrollbar("sidenav");
-      }
-    },
-  },
+  components: { DashboardNavbar, ContentFooter, FadeTransition },
   mounted() {
-    this.initScrollbar();
+    if (navigator.platform.startsWith("Win")) {
+      initScrollbar("sidenav");
+    }
   },
 };
 </script>
-<style lang="scss"></style>
+
+<style scoped>
+h4 {
+  font-family: "Dancing Script", cursive;
+  font-weight: bold;
+  color: #444;
+}
+</style>

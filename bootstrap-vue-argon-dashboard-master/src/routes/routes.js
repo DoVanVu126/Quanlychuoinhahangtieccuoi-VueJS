@@ -2,75 +2,159 @@
 import DashboardLayout from '@/views/Layout/DashboardLayout.vue';
 import AuthLayout from '@/views/Pages/AuthLayout.vue';
 import NotFound from '@/views/NotFoundPage.vue';
+import UserList from '@/views/UserList.vue';
 
 const routes = [
   {
     path: '/',
-    redirect: 'dashboard',
+    redirect: '/dashboard',
     component: DashboardLayout,
     children: [
       {
         path: '/dashboard',
         name: 'dashboard',
-        component: () => import(/* webpackChunkName: "demo" */ '../views/Dashboard.vue')
+        component: () => import('../views/Dashboard.vue'),
       },
       {
-        path: '/icons',
-        name: 'icons',
-        component: () => import(/* webpackChunkName: "demo" */ '../views/Icons.vue')
-      },
-      {
-        path: '/profile',
-        name: 'profile',
-        component: () => import(/* webpackChunkName: "demo" */ '../views/Pages/UserProfile.vue')
-      },
-      {
-        path: '/maps',
-        name: 'maps',
-        component: () => import(/* webpackChunkName: "demo" */ '../views/GoogleMaps.vue')
-      },
-      {
-        path: '/tables',
-        name: 'tables',
-        component: () => import(/* webpackChunkName: "demo" */ '../views/RegularTables.vue')
+        path: '/users',
+        name: 'UserList',
+        component: UserList,
       },
 
-      // 👉 QUẢN LÝ MÓN ĂN
+      // 👉 ĐẶT TIỆC
+      {
+        path: '/bookings',
+        name: 'Bookings',
+        component: () => import('../views/Bookings.vue'),
+      },
+
+      // 👉 MÓN ĂN
       {
         path: '/mon-an',
         name: 'MonAn',
-        component: () => import('../views/MonAn.vue')
+        component: () => import('../views/MonAn.vue'),
       },
       {
         path: '/mon-an/them',
         name: 'ThemMonAn',
-        component: () => import('../views/ThemMonAn.vue')
+        component: () => import('../views/ThemMonAn.vue'),
       },
       {
         path: '/mon-an/sua/:id',
         name: 'SuaMonAn',
-        component: () => import('../views/SuaMonAn.vue')
-      }
-    ]
+        component: () => import('../views/SuaMonAn.vue'),
+      },
+
+      // 👉 DỊCH VỤ
+      {
+        path: '/dich-vu',
+        name: 'DichVu',
+        component: () => import('../views/DichVu.vue'),
+      },
+      {
+        path: '/dich-vu/them',
+        name: 'ThemDichVu',
+        component: () => import('../views/ThemDichVu.vue'),
+      },
+      {
+        path: '/dich-vu/sua/:id',
+        name: 'SuaDichVu',
+        component: () => import('../views/SuaDichVu.vue'),
+      },
+
+      // 👉 SẢNH
+      {
+        path: '/sanh',
+        name: 'Sanh',
+        component: () => import('../views/Sanh.vue'),
+      },
+      {
+        path: '/sanh/them',
+        name: 'ThemSanh',
+        component: () => import('../views/ThemSanh.vue'),
+      },
+      {
+        path: '/sanh/sua/:id',
+        name: 'SuaSanh',
+        component: () => import('../views/SuaSanh.vue'),
+      },
+
+      // 👉 NHÀ HÀNG
+      {
+        path: '/nha-hang',
+        name: 'NhaHang',
+        component: () => import('../views/NhaHang.vue'),
+      },
+      {
+        path: '/nha-hang/them',
+        name: 'ThemNhaHang',
+        component: () => import('../views/ThemNhaHang.vue'),
+      },
+      {
+        path: '/nha-hang/sua/:id',
+        name: 'SuaNhaHang',
+        component: () => import('../views/SuaNhaHang.vue'),
+      },
+
+      // 👉 GÓI GỢI Ý
+      {
+        path: '/goi-goi-y',
+        name: 'GoiGoiY',
+        component: () => import('../views/GoiGoiY.vue'),
+      },
+      {
+        path: '/goi-goi-y/them',
+        name: 'ThemGoiGoiY',
+        component: () => import('../views/ThemGoiGoiY.vue'),
+      },
+      {
+        path: '/goi-goi-y/sua/:id',
+        name: 'SuaGoiGoiY',
+        component: () => import('../views/SuaGoiGoiY.vue'),
+      },
+
+      // 👉 HỒ SƠ
+      {
+        path: '/profile',
+        name: 'profile',
+        component: () => import('../views/Pages/UserProfile.vue'),
+      },
+
+      // 👉 CÀI ĐẶT
+      {
+        path: '/settings',
+        name: 'Settings',
+        component: () => import('../views/Settings.vue'),
+      },
+
+      // 👉 ĐĂNG XUẤT
+      {
+        path: '/logout',
+        name: 'Logout',
+        component: () => import('../views/Pages/Logout.vue'),
+      },
+    ],
   },
+
+  // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
   {
     path: '/',
-    redirect: 'login',
+    redirect: '/login',
     component: AuthLayout,
     children: [
       {
         path: '/login',
         name: 'login',
-        component: () => import(/* webpackChunkName: "demo" */ '../views/Pages/Login.vue')
+        component: () => import('../views/Pages/Login.vue'),
       },
       {
         path: '/register',
         name: 'register',
-        component: () => import(/* webpackChunkName: "demo" */ '../views/Pages/Register.vue')
+        component: () => import('../views/Pages/Register.vue'),
       },
-      { path: '*', component: NotFound }
-    ]
-  }
+      { path: '*', component: NotFound },
+    ],
+  },
 ];
 
 export default routes;
