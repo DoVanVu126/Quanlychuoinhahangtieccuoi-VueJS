@@ -29,6 +29,15 @@
           }"
         ></sidebar-item>
 
+
+        <sidebar-item
+          :link="{
+            name: 'Kho',
+            path: '/kho',
+            icon: 'ni ni-box-2 text-info',
+          }"
+        ></sidebar-item>
+
         <sidebar-item
           :link="{
             name: 'Dịch vụ',

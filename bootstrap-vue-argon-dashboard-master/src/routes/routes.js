@@ -34,6 +34,12 @@ const routes = [
         name: 'MonAn',
         component: () => import('../views/MonAn.vue'),
       },
+      // 👉 KHO - Quản lý kho
+      {
+        path: '/kho',
+        name: 'Kho',
+        component: () => import('../views/Kho.vue'),
+      },
       {
         path: '/mon-an/them',
         name: 'ThemMonAn',
