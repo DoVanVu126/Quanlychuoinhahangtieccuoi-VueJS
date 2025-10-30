@@ -34,12 +34,6 @@ const routes = [
         name: 'MonAn',
         component: () => import('../views/MonAn.vue'),
       },
-      // 👉 KHO - Quản lý kho
-      {
-        path: '/kho',
-        name: 'Kho',
-        component: () => import('../views/Kho.vue'),
-      },
       {
         path: '/mon-an/them',
         name: 'ThemMonAn',
@@ -118,6 +112,34 @@ const routes = [
         name: 'SuaGoiGoiY',
         component: () => import('../views/SuaGoiGoiY.vue'),
       },
+
+      // 👉 KHO - Quản lý kho
+      {
+        path: '/kho',
+        name: 'Kho',
+        component: () => import('../views/Kho.vue'),
+      },
+      {
+        path: '/them-hang',
+        name: 'ThemHang',
+        component: () => import('../views/kho-hang/ThemHang.vue'),
+      },
+      {
+        path: '/sua-hang',
+        name: 'SuaHang',
+        component: () => import('../views/kho-hang/SuaHang.vue'),
+      },
+      {
+        path: '/xoa-hang',
+        name: 'XoaHang',
+        component: () => import('../views/kho-hang/XoaHang.vue'),
+      },
+      {
+        path: '/bao-cao-pdf',
+        name: 'BaoCaoPDF',
+        component: () => import('../views/kho-hang/BaoCaoPDF.vue'),
+      },
+
 
       // 👉 HỒ SƠ
       {
