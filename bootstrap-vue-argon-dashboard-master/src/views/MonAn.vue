@@ -1,174 +1,229 @@
 <template>
-  <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-5 mt-5">
-      <h2 class="fw-bold text-success">
-        <i class="fas fa-utensils me-3"></i> Quản lý món ăn
-      </h2>
+  <div class="container mt-5 pt-4">
+    <h2 class="text-center mb-4">Quản lý Món ăn</h2>
 
-      <router-link to="/mon-an/them" class="btn btn-success shadow-sm">
-        <i class="fas fa-plus me-2"></i> Thêm món ăn
+    <!-- Nút thêm món ăn -->
+    <div class="d-flex justify-content-end mb-3">
+      <router-link to="/mon-an/them" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Thêm món ăn
       </router-link>
     </div>
 
-    <div class="input-group mb-4 shadow-sm" style="max-width: 400px">
-      <span class="input-group-text bg-success text-white">
-        <i class="fas fa-search"></i>
-      </span>
-      <input
-        type="text"
-        class="form-control"
-        placeholder="Tìm món ăn..."
-        v-model="tuKhoa"
-      />
-    </div>
-
     <!-- Bảng danh sách món ăn -->
-    <div class="table-responsive shadow-sm rounded-3">
-      <table class="table align-middle table-hover mb-0">
-        <thead class="table-success text-center">
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover text-center align-middle">
+        <thead class="table-dark">
           <tr>
-            <th>STT</th>
+            <th>ID</th>
             <th>Tên món ăn</th>
-            <th>Giá</th>
-            <th>Loại món ăn</th>
+            <th>Loại món</th>
+            <th>Giá (VNĐ)</th>
             <th>Mô tả</th>
-            <th>Thao tác</th>
+            <th>Hành động</th>
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="(mon, index) in monAnLoc"
-            :key="mon.id"
-            class="text-center"
-          >
-            <td class="fw-semibold">{{ index + 1 }}</td>
-            <td>{{ mon.tenMon }}</td>
-            <td class="text-success fw-semibold">
-              {{ mon.gia.toLocaleString() }} đ
-            </td>
+          <tr v-for="food in foods.data" :key="food.food_id">
+            <td>{{ food.food_id }}</td>
+            <td class="text-start">{{ food.name }}</td>
+            <td>{{ food.food_type ? food.food_type.name : "Không có" }}</td>
+            <td>{{ formatPrice(food.price) }} VNĐ</td>
+            <td class="text-start">{{ food.description }}</td>
             <td>
-              <span
-                class="badge rounded-pill"
-                :class="{
-                  'bg-primary': mon.loaiMon === 'Món chính',
-                  'bg-warning text-dark': mon.loaiMon === 'Món canh',
-                  'bg-info text-dark': mon.loaiMon === 'Món tráng miệng',
-                }"
-              >
-                {{ mon.loaiMon }}
-              </span>
-            </td>
-            <td class="text-muted">{{ mon.moTa }}</td>
-            <td>
-              <router-link
-                :to="`/mon-an/sua/${mon.id}`"
-                class="btn btn-outline-primary btn-sm me-2"
+              <button
+                class="btn btn-warning btn-sm me-1"
+                @click="openEditModal(food)"
               >
                 <i class="fas fa-edit"></i>
-              </router-link>
-              <button
-                class="btn btn-outline-danger btn-sm"
-                @click="xoaMon(mon.id)"
-              >
-                <i class="fas fa-trash"></i>
+              </button>
+           <button class="btn btn-danger btn-sm me-1" @click="deleteFood(food.food_id)">  <i class="fas fa-trash"></i>
               </button>
             </td>
           </tr>
-
-          <tr v-if="monAnLoc.length === 0">
-            <td colspan="6" class="text-center text-muted py-4">
-              <i class="fas fa-info-circle me-2"></i>
-              Không tìm thấy món ăn nào.
+          <tr v-if="!foods || foods.length === 0">
+            <td colspan="6" class="text-center text-muted">
+              Chưa có món ăn nào
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <!-- Phân trang -->
+    <nav v-if="lastPage > 1" class="d-flex justify-content-center mt-3">
+      <ul class="pagination">
+        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+          <button class="page-link" @click="getFoods(currentPage - 1)">
+            Trước
+          </button>
+        </li>
+
+        <li
+          v-for="page in lastPage"
+          :key="page"
+          class="page-item"
+          :class="{ active: page === currentPage }"
+        >
+          <button class="page-link" @click="getFoods(page)">{{ page }}</button>
+        </li>
+
+        <li class="page-item" :class="{ disabled: currentPage === lastPage }">
+          <button class="page-link" @click="getFoods(currentPage + 1)">
+            Sau
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Modal sửa món ăn -->
+    <div class="modal fade" id="editFoodModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 shadow">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">Cập nhật Món ăn</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form @submit.prevent="saveFood">
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Tên món ăn</label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  v-model="form.name"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Mô tả</label>
+                <textarea
+                  class="form-control form-control-sm"
+                  v-model="form.description"
+                  rows="2"
+                ></textarea>
+              </div>
+              <div class="row">
+                <div class="col-6 mb-3">
+                  <label class="form-label fw-semibold">Giá (VNĐ)</label>
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    v-model="form.price"
+                    min="0"
+                    required
+                  />
+                </div>
+                <div class="col-6 mb-3">
+                  <label class="form-label fw-semibold">Loại món (ID)</label>
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    v-model="form.food_type_id"
+                  />
+                </div>
+              </div>
+              <div class="text-end">
+                <button type="submit" class="btn btn-success btn-sm">
+                  Lưu thay đổi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import api from "@/api";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+
 export default {
-  name: "MonAn",
   data() {
     return {
-      tuKhoa: "",
-      danhSachMon: [
-        {
-          id: 1,
-          tenMon: "Cơm gà chiên giòn",
-          gia: 45000,
-          loaiMon: "Món chính",
-          moTa: "Cơm gà giòn rụm, ăn kèm dưa leo và nước mắm tỏi ớt",
-        },
-        {
-          id: 2,
-          tenMon: "Canh chua cá lóc",
-          gia: 30000,
-          loaiMon: "Món canh",
-          moTa: "Canh chua kiểu miền Tây thanh mát",
-        },
-        {
-          id: 3,
-          tenMon: "Chè đậu xanh nước cốt dừa",
-          gia: 15000,
-          loaiMon: "Món tráng miệng",
-          moTa: "Chè ngọt dịu, béo thơm nước cốt dừa",
-        },
-      ],
+      foods: [],
+      form: {},
+      modal: null,
+      currentPage: 1,
+      lastPage: 1,
     };
   },
-  computed: {
-    monAnLoc() {
-      return this.danhSachMon.filter((mon) =>
-        mon.tenMon.toLowerCase().includes(this.tuKhoa.toLowerCase())
-      );
-    },
-  },
   methods: {
-    xoaMon(id) {
-      if (confirm("Bạn có chắc muốn xóa món này không?")) {
-        this.danhSachMon = this.danhSachMon.filter((m) => m.id !== id);
-        alert("Đã xóa món ăn thành công!");
+    async getFoods(page = 1) {
+      try {
+        const res = await api.get(`/foods?page=${page}`);
+        this.foods = res.data;
+        this.currentPage = res.data.current_page;
+        this.lastPage = res.data.last_page;
+      } catch (err) {
+        console.error("Lỗi tải danh sách món ăn:", err);
       }
     },
+    formatPrice(value) {
+      return new Intl.NumberFormat("vi-VN").format(value);
+    },
+    openEditModal(food) {
+      this.form = { ...food };
+      this.modal = new bootstrap.Modal(
+        document.getElementById("editFoodModal")
+      );
+      this.modal.show();
+    },
+    async saveFood() {
+      try {
+        await api.put(`/foods/${this.form.food_id}`, this.form);
+        this.modal.hide();
+        this.getFoods(this.currentPage);
+      } catch (err) {
+        console.error("Lỗi cập nhật món ăn:", err);
+      }
+    },
+    async deleteFood(id) {
+      if (confirm("Bạn có chắc muốn xóa món ăn này không?")) {
+        try {
+          await api.delete(`/foods/${id}`);
+          this.getFoods(this.currentPage);
+        } catch (err) {
+          console.error("Lỗi xóa món ăn:", err);
+        }
+      }
+    },
+  },
+  mounted() {
+    this.getFoods();
   },
 };
 </script>
 
 <style scoped>
 .container {
-  max-width: 1100px;
-}
-
-h2 {
-  margin-top: 10px;
-  margin-bottom: 10px;
+  padding-top: 80px;
 }
 
 .table {
-  border-radius: 12px;
-  overflow: hidden;
+  vertical-align: middle;
+  font-size: 0.9rem;
 }
 
-.table thead {
-  font-size: 1rem;
+.table th,
+.table td {
+  padding: 0.5rem 0.75rem;
 }
 
-.table tbody tr:hover {
-  background-color: #f1fff3;
-  transition: 0.2s;
-}
-
-input.form-control:focus {
-  border-color: #28a745;
-  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+.modal-content {
+  border-radius: 10px;
 }
 
 .btn {
-  transition: 0.2s;
+  min-width: 75px;
 }
-.btn:hover {
-  transform: scale(1.05);
+
+.pagination .page-link {
+  cursor: pointer;
 }
 </style>
