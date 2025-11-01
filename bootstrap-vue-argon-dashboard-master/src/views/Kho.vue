@@ -1,6 +1,5 @@
 <template>
   <div>
-    <!-- Header -->
     <base-header class="pb-6 pb-8 pt-5 pt-md-8 bg-gradient-success">
       <div class="container-fluid">
         <div class="header-body text-white">
@@ -10,11 +9,10 @@
       </div>
     </base-header>
 
-    <!-- Nội dung chính -->
     <div class="container-fluid mt--7">
       <div
         class="card shadow-lg border-0"
-        style="margin-top: -80px; border-radius: 20px; overflow: hidden;"
+        style="border-radius: 20px; overflow: hidden;"
       >
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
@@ -31,7 +29,6 @@
             </div>
           </div>
 
-          <!-- Bảng dữ liệu -->
           <div class="table-responsive">
             <table class="table table-hover align-items-center">
               <thead class="thead-light">
@@ -88,26 +85,25 @@
       </div>
     </div>
 
-    <!-- Chatbox -->
     <div class="chatbox-container">
-      <div class="chat-toggle" @click="toggleChat">
-        💬
-      </div>
-
       <transition name="fade">
+        <div v-if="!chatOpen" class="chat-toggle" @click="toggleChat">💬</div>
+      </transition>
+
+      <transition name="pop">
         <div v-if="chatOpen" class="chat-window">
           <div class="chat-header">
-            <strong>🤖 Trợ lý kho</strong>
-            <span @click="toggleChat" class="close-btn">×</span>
+            <div class="chat-avatar">🤖</div>
+            <div>
+              <div class="chat-title">Trợ lý kho</div>
+              <div class="chat-status">Đang hoạt động</div>
+            </div>
+            <div class="close-btn" @click="toggleChat">×</div>
           </div>
 
-          <div class="chat-body">
-            <div
-              v-for="(msg, index) in messages"
-              :key="index"
-              :class="['message', msg.sender]"
-            >
-              {{ msg.text }}
+          <div class="chat-body" ref="chatBody">
+            <div v-for="(msg, i) in messages" :key="i" :class="['message', msg.sender]">
+              <div class="bubble">{{ msg.text }}</div>
             </div>
           </div>
 
@@ -117,7 +113,7 @@
               placeholder="Nhập tin nhắn..."
               @keyup.enter="sendMessage"
             />
-            <button @click="sendMessage">Gửi</button>
+            <button @click="sendMessage">➤</button>
           </div>
         </div>
       </transition>
@@ -130,17 +126,20 @@ export default {
   data() {
     return {
       searchQuery: "",
+      chatOpen: false,
+      newMessage: "",
+      messages: [
+        {
+          sender: "bot",
+          text: "Xin chào 👋! Tôi là trợ lý kho. Hãy chọn:\n1️⃣ Hàng cần nhập\n2️⃣ Hàng sắp/hết hạn\n3️⃣ Báo cáo tồn kho\n4️⃣ Hướng dẫn thao tác",
+        },
+      ],
       items: [
         { ma: "TB-001", ten: "Thịt Bò Thăn", ton: 15, dvt: "KG", lo: "L01-0925", hsd: "27/09/2025", hsdTrangThai: "Hết hạn", trangThai: "Cần nhập" },
         { ma: "CA-005", ten: "Cá Hồi Fillet", ton: 25, dvt: "KG", lo: "L03-1025", hsd: "15/10/2025", hsdTrangThai: "Sắp hết", trangThai: "An toàn" },
         { ma: "GA-002", ten: "Gạo Nếp", ton: 500, dvt: "KG", lo: "L08-2026", hsd: "20/08/2026", hsdTrangThai: "An toàn", trangThai: "An toàn" },
         { ma: "HL-010", ten: "Hải Sâm Khô", ton: 3, dvt: "Hộp", lo: "HS-02C", hsd: "15/01/2026", hsdTrangThai: "An toàn", trangThai: "Cần nhập" },
       ],
-      chatOpen: false,
-      messages: [
-        { sender: 'bot', text: 'Xin chào! Tôi là trợ lý kho. Bạn muốn xem tồn kho hay tình hình nguyên liệu?' },
-      ],
-      newMessage: '',
     };
   },
   computed: {
@@ -151,174 +150,248 @@ export default {
     },
   },
   methods: {
-    // ---- Điều hướng trang ----
+    // ---- Trang điều hướng ----
     themHang() { this.$router.push("/them-hang"); },
     suaHang(item) { this.$router.push({ path: "/sua-hang", query: { ma: item.ma } }); },
     xoaHang(item) { this.$router.push({ path: "/xoa-hang", query: { ma: item.ma } }); },
     lichSuKho() { this.$router.push("/lich-su-kho"); },
     xuatBaoCaoPDF() { this.$router.push("/bao-cao-pdf"); },
 
-    // ---- Chatbox ----
+    // ---- Chat logic ----
     toggleChat() {
       this.chatOpen = !this.chatOpen;
+      this.$nextTick(() => {
+        if (this.chatOpen && this.$refs.chatBody)
+          this.$refs.chatBody.scrollTop = this.$refs.chatBody.scrollHeight;
+      });
     },
-
     sendMessage() {
       if (!this.newMessage.trim()) return;
-
       const msg = this.newMessage.trim();
-      this.messages.push({ sender: 'user', text: msg });
-      this.newMessage = '';
+      this.messages.push({ sender: "user", text: msg });
+      this.newMessage = "";
 
       setTimeout(() => {
-        const reply = this.generateReply(msg.toLowerCase());
-        this.messages.push({ sender: 'bot', text: reply });
-      }, 500);
+        const reply = this.generateReply(msg);
+        this.messages.push({ sender: "bot", text: reply });
+        this.$nextTick(() => {
+          this.$refs.chatBody.scrollTop = this.$refs.chatBody.scrollHeight;
+        });
+      }, 600);
     },
-
     generateReply(input) {
-      const low = input.toLowerCase();
-
-      // Hàng cần nhập
-      if (low.includes('cần nhập') || low.includes('thiếu') || low.includes('hết hàng')) {
-        const canNhap = this.items.filter(i => i.trangThai === 'Cần nhập' || i.ton < 20);
-        if (canNhap.length === 0) return 'Tất cả hàng trong kho đều ở mức an toàn.';
-        return '🔸 Hàng cần nhập:\n' + canNhap.map(i => `- ${i.ten} (${i.ton} ${i.dvt})`).join('\n');
+      const msg = input.trim();
+      if (msg === "1") {
+        const canNhap = this.items.filter((i) => i.trangThai === "Cần nhập" || i.ton < 20);
+        return canNhap.length
+          ? "🔸 Hàng cần nhập:\n" + canNhap.map((i) => `- ${i.ten} (${i.ton} ${i.dvt})`).join("\n")
+          : "✅ Tất cả hàng đều an toàn.";
       }
-
-      // Hàng sắp hoặc hết hạn
-      if (low.includes('hết hạn') || low.includes('sắp hết')) {
-        const sapHet = this.items.filter(i => i.hsdTrangThai !== 'An toàn');
-        if (sapHet.length === 0) return 'Hiện không có hàng nào sắp hoặc đã hết hạn.';
-        return '⚠️ Hàng sắp/hết hạn:\n' + sapHet.map(i => `- ${i.ten} (${i.hsdTrangThai})`).join('\n');
+      if (msg === "2") {
+        const sapHet = this.items.filter((i) => i.hsdTrangThai !== "An toàn");
+        return sapHet.length
+          ? "⚠️ Hàng sắp/hết hạn:\n" + sapHet.map((i) => `- ${i.ten} (${i.hsdTrangThai})`).join("\n")
+          : "🟢 Không có hàng sắp/hết hạn.";
       }
-
-      // Báo cáo tổng kho
-      if (low.includes('tình hình') || low.includes('tồn kho') || low.includes('báo cáo')) {
+      if (msg === "3") {
         const tong = this.items.length;
-        const canNhap = this.items.filter(i => i.trangThai === 'Cần nhập').length;
-        const hetHan = this.items.filter(i => i.hsdTrangThai === 'Hết hạn').length;
-        const sapHet = this.items.filter(i => i.hsdTrangThai === 'Sắp hết').length;
-
-        return `📊 Báo cáo nhanh:\n- Tổng số mặt hàng: ${tong}\n- Cần nhập: ${canNhap}\n- Hết hạn: ${hetHan}\n- Sắp hết hạn: ${sapHet}`;
+        const canNhap = this.items.filter((i) => i.trangThai === "Cần nhập").length;
+        const hetHan = this.items.filter((i) => i.hsdTrangThai === "Hết hạn").length;
+        const sapHet = this.items.filter((i) => i.hsdTrangThai === "Sắp hết").length;
+        return `📊 Báo cáo nhanh:\n- Tổng: ${tong}\n- Cần nhập: ${canNhap}\n- Hết hạn: ${hetHan}\n- Sắp hết hạn: ${sapHet}`;
       }
-
-      // Hướng dẫn thao tác
-      if (low.includes('thêm')) {
-        return 'Bạn có thể nhấn nút “+ Thêm Nguyên Liệu” để thêm hàng mới nhé!';
-      }
-      if (low.includes('pdf') || low.includes('báo cáo')) {
-        return 'Để xuất báo cáo PDF, nhấn nút “Xuất Báo Cáo PDF” nha.';
-      }
-
-      return 'Tôi chưa hiểu rõ câu hỏi. Bạn có thể hỏi “Hàng nào cần nhập?” hoặc “Tình hình kho hôm nay?”.';
+      if (msg === "4" || msg.toLowerCase() === "help")
+        return "👉 Hướng dẫn:\n1️⃣ Hàng cần nhập\n2️⃣ Sắp/hết hạn\n3️⃣ Báo cáo tổng\n4️⃣ Hướng dẫn thao tác";
+      return "🤔 Tôi không hiểu. Nhập 1, 2, 3 hoặc 4 nhé.";
     },
   },
 };
 </script>
 
 <style scoped>
-.card {
-  transition: all 0.3s ease;
-  position: relative;
-  z-index: 10;
-}
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+/* ----- Hiệu ứng Pop (cho cửa sổ chat) ----- */
+
+/* Định nghĩa thời gian và kiểu chuyển động CHỈ KHI MỞ */
+.pop-enter-active {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  /* 👆 ĐÃ XÓA .pop-leave-active KHỎI ĐÂY ĐỂ TẮT HIỆU ỨNG ĐÓNG */
 }
 
-/* Chatbox */
-.chatbox-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1000;
+/* KHI ĐÓNG (pop-leave-active) sẽ không có transition, nên sẽ đóng ngay lập tức */
+
+
+/* Trạng thái "BẮT ĐẦU VÀO" (enter-from) 
+  và trạng thái "KẾT THÚC RỜI ĐI" (leave-to)
+  Cả hai đều là ẩn đi và thu nhỏ lại.
+*/
+.pop-enter-from,
+.pop-leave-to {
+  transform: scale(0.8);
+  opacity: 0;
 }
+/* Trạng thái "KẾT THÚC VÀO" (enter-to) và "BẮT ĐẦU RỜI ĐI" (leave-from)
+   sẽ tự động lấy style mặc định (scale(1), opacity: 1) */
+
+
+/* ----- Hiệu ứng Fade (cho nút toggle) ----- */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+/* Trạng thái bắt đầu vào và kết thúc rời đi (hoàn toàn trong suốt) */
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Nút 💬 mở chat */
 .chat-toggle {
-  background: #28a745;
+  background: linear-gradient(135deg, #0084ff, #00bfa5);
   color: white;
-  width: 55px;
-  height: 55px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 25px;
+  font-size: 28px;
   cursor: pointer;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.25s;
 }
 .chat-toggle:hover {
   transform: scale(1.1);
 }
 
+/* Khung chat */
+.chatbox-container {
+  position: fixed;
+  bottom: 20px;
+  right: 25px;
+  z-index: 1000;
+}
 .chat-window {
-  width: 320px;
-  height: 420px;
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  width: 340px;
+  height: 470px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
 }
+
+/* Header */
 .chat-header {
-  background: #28a745;
-  color: white;
+  background: linear-gradient(135deg, #0084ff, #00bfa5);
+  color: #fff;
   padding: 10px 15px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  position: relative;
 }
+.chat-avatar {
+  background: rgba(255, 255, 255, 0.2);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  font-size: 20px;
+}
+.chat-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+.chat-status {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.close-btn {
+  position: absolute;
+  right: 10px;
+  top: 5px;
+  cursor: pointer;
+  font-size: 22px;
+  opacity: 0.8;
+  transition: 0.2s;
+}
+.close-btn:hover {
+  opacity: 1;
+}
+
+/* Nội dung chat */
 .chat-body {
   flex: 1;
-  padding: 10px;
+  padding: 12px;
+  background: #f0f2f5;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 .message {
-  padding: 8px 12px;
-  border-radius: 12px;
-  margin-bottom: 6px;
-  max-width: 80%;
-  white-space: pre-line;
+  margin-bottom: 8px;
+  display: flex;
 }
 .message.user {
-  background: #007bff;
-  color: white;
-  align-self: flex-end;
+  justify-content: flex-end;
 }
 .message.bot {
-  background: #e9ecef;
-  align-self: flex-start;
+  justify-content: flex-start;
 }
+.bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+.message.user .bubble {
+  background: #0084ff;
+  color: #fff;
+  border-bottom-right-radius: 5px;
+}
+.message.bot .bubble {
+  background: #e4e6eb;
+  color: #050505;
+  border-bottom-left-radius: 5px;
+}
+
+/* Thanh nhập */
 .chat-input {
   display: flex;
+  padding: 10px;
   border-top: 1px solid #ddd;
+  background: #fff;
 }
 .chat-input input {
   flex: 1;
-  border: none;
-  padding: 8px 10px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  outline: none;
+  transition: 0.2s;
+}
+.chat-input input:focus {
+  border-color: #0084ff;
 }
 .chat-input button {
-  background: #28a745;
-  color: white;
+  background: #0084ff;
   border: none;
-  padding: 8px 15px;
-}
-.close-btn {
+  color: white;
+  font-size: 18px;
+  margin-left: 8px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
   cursor: pointer;
-  font-size: 20px;
+  transition: 0.25s;
 }
-
-/* Hiệu ứng mở */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s;
-}
-.fade-enter,
-.fade-leave-to {
-  opacity: 0;
+.chat-input button:hover {
+  background: #0073e6;
 }
 </style>

@@ -139,6 +139,11 @@ const routes = [
         name: 'BaoCaoPDF',
         component: () => import('../views/kho-hang/BaoCaoPDF.vue'),
       },
+      {
+        path: '/lich-su-kho',
+        name: 'LichSuKho',
+        component: () => import('../views/kho-hang/LichSuKho.vue')
+      },
 
 
       // 👉 HỒ SƠ
