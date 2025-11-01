@@ -32,17 +32,17 @@ const routes = [
       {
         path: "/mon-an",
         name: "MonAn",
-        component: () => import("@/views/MonAn.vue"), // đổi đúng file mà mình vừa tạo (Food.vue)
+        component: () => import("@/views/Food/MonAn.vue"), // đổi đúng file mà mình vừa tạo (Food.vue)
       },
       {
         path: "/mon-an/them",
         name: "ThemMonAn",
-        component: () => import("@/views/ThemMonAn.vue"), // file thêm món ăn
+        component: () => import("@/views/Food/ThemMonAn.vue"), // file thêm món ăn
       },
       {
         path: "/mon-an/sua/:id",
         name: "SuaMonAn",
-        component: () => import("@/views/SuaMonAn.vue"), // file sửa món ăn
+        component: () => import("@/views/Food/SuaMonAn.vue"), // file sửa món ăn
         props: true,
       },
 
