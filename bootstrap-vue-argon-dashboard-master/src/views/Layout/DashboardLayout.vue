@@ -22,12 +22,12 @@
         ></sidebar-item>
 
         <sidebar-item
-          :link="{
-            name: 'Món ăn',
-            path: '/mon-an',
-            icon: 'ni ni-dish text-green',
-          }"
-        ></sidebar-item>
+  :link="{
+    name: 'Món ăn',
+    path: '/mon-an',
+    icon: 'ni ni-basket text-orange',
+  }"
+></sidebar-item>
 
         <sidebar-item
           :link="{
