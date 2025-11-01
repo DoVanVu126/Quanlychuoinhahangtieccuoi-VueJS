@@ -1,0 +1,54 @@
+/* === WEDDING HOME HERO SECTION === */
+.wedding-home__hero {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  overflow: hidden;
+  border-bottom-left-radius: 150px;
+  border-top-right-radius: 150px;
+  z-index: 1;
+}
+
+/* Ảnh nền */
+.wedding-home__hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.9) contrast(1.1);
+  transition: transform 0.6s ease-in-out;
+}
+
+.wedding-home__hero-img:hover {
+  transform: scale(1.05);
+}
+
+/* Lớp phủ mờ */
+.wedding-home__hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.3));
+  border-bottom-left-radius: 150px;
+  border-top-right-radius: 150px;
+  z-index: 2;
+}
+
+/* Nội dung hero */
+.wedding-home__hero-content {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+  z-index: 3;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .wedding-home__hero {
+    height: 380px;
+    border-bottom-left-radius: 60px;
+    border-top-right-radius: 60px;
+  }
+}

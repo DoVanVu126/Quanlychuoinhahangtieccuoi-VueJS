@@ -3,7 +3,7 @@ import DashboardLayout from '@/views/Layout/DashboardLayout.vue';
 import AuthLayout from '@/views/Pages/AuthLayout.vue';
 import NotFound from '@/views/NotFoundPage.vue';
 import UserList from '@/views/UserList.vue';
-
+import Home from '@/views/Pages/Home.vue';
 const routes = [
   {
     path: '/',
@@ -15,6 +15,7 @@ const routes = [
         name: 'dashboard',
         component: () => import('../views/Dashboard.vue'),
       },
+
       {
         path: '/users',
         name: 'UserList',
@@ -136,6 +137,11 @@ const routes = [
     ],
   },
 
+  {
+    path: '/home',
+    name: 'Home',
+    component: Home,
+  },
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
   {
     path: '/',

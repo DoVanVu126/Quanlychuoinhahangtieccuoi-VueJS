@@ -1,0 +1,173 @@
+/* 🌸 HEADER TRANG HOME */
+.home-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  background-color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 40px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid #f2f2f2;
+}
+
+/* Logo */
+.home-header .logo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.home-header .logo img {
+  height: 40px;
+  object-fit: contain;
+}
+
+/* Thanh tìm kiếm */
+.home-header .search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.home-header .search-bar input {
+  width: 700px;
+  padding: 10px 40px 10px 45px;
+  border: 1.5px solid #ddd;
+  border-radius: 50px;
+  font-size: 15px;
+  color: #333;
+  outline: none;
+  transition: all 0.3s ease;
+  background-color: #fafafa;
+}
+
+.home-header .search-bar input:focus {
+  border-color: #8c6fff;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgba(140, 111, 255, 0.2);
+}
+
+.home-header .search-bar::before {
+  content: "🔍";
+  position: absolute;
+  left: 16px;
+  font-size: 18px;
+  color: #888;
+}
+
+/* Navigation */
+.home-header nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  font-weight: 500;
+}
+
+.home-header nav a {
+  color: #333;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.home-header nav a:hover {
+  color: #8c6fff;
+}
+
+/* 🛒 Icon giỏ hàng */
+.home-header .cart-icon {
+  font-size: 18px;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.3s, transform 0.2s;
+}
+
+.home-header .cart-icon:hover {
+  color: #8c6fff;
+  transform: scale(1.15);
+}
+
+/* 🌍 Chuyển đổi ngôn ngữ */
+.home-header .language-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+}
+
+.home-header .language-switch:hover {
+  box-shadow: 0 0 8px rgba(140, 111, 255, 0.2);
+}
+
+.home-header .language-switch .flag {
+  width: 22px;
+  height: 15px;
+  border-radius: 3px;
+  object-fit: cover;
+}
+
+.home-header .language-switch select {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Nút đăng nhập / tạo tài khoản */
+.home-header .login-btn {
+  color: #555;
+  background: none;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.home-header .login-btn:hover {
+  color: #8c6fff;
+}
+
+.home-header .signup-btn {
+  background: linear-gradient(90deg, #8c6fff, #7c4dff);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.home-header .signup-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .home-header {
+    padding: 12px 20px;
+  }
+
+  .home-header .search-bar input {
+    width: 250px;
+  }
+
+  .home-header nav {
+    gap: 15px;
+  }
+
+  .home-header .signup-btn {
+    padding: 8px 14px;
+  }
+}
