@@ -39,18 +39,42 @@
 </template>
 
 <script>
-import axios from "axios";
+import api from "@/api"; // ✅ import file api.js
 
 export default {
   name: "Users",
   data() {
-    return { users: [] };
+    return {
+      users: [],
+    };
+  },
+  methods: {
+    formatDate(date) {
+      if (!date) return "";
+      return new Date(date).toLocaleDateString("vi-VN");
+    },
   },
   mounted() {
-    axios
-      .get("http://localhost:8088/users")
-      .then((res) => (this.users = res.data))
-      .catch((err) => console.error("Lỗi:", err));
+    // ✅ Gọi đúng API backend Laravel
+    api
+      .get("/users")
+      .then((res) => {
+        this.users = res.data;
+      })
+      .catch((err) => {
+        console.error("❌ Lỗi tải danh sách người dùng:", err);
+      });
   },
 };
 </script>
+
+
+<style scoped>
+.table {
+  text-align: center;
+  vertical-align: middle;
+}
+img {
+  object-fit: cover;
+}
+</style>

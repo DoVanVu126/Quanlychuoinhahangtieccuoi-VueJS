@@ -1,0 +1,167 @@
+/* === WEDDING SEARCH BOX === */
+.wedding-search-box {
+  position: relative;
+  margin-top: -65px; /* 🔥 Giúp phần searchbox “chìm” lên hero */
+  z-index: 5;
+  width: 85%;
+  background: #fff;
+  border-radius: 30px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  padding: 30px 40px 40px;
+  font-family: 'Inter', sans-serif;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* --- Tab --- */
+.wedding-search-tab {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 18px;
+  color: #333;
+  border-bottom: 3px solid #7066ff;
+  padding-bottom: 6px;
+  margin-bottom: 20px;
+}
+
+/* --- Layout nội dung --- */
+.wedding-search-content {
+  display: flex;
+  flex-direction: column; /* ✅ Các phần xếp dọc */
+  gap: 25px;
+}
+
+/* --- nhóm 2 ô ngày cùng hàng --- */
+.wedding-date-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.wedding-date-group {
+  flex: 1;
+}
+
+/* --- Ô nhập tên nhà hàng --- */
+.wedding-search-input-group {
+  position: relative;
+  flex: 1.5;
+  min-width: 260px;
+}
+
+.wedding-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: #7a7a7a;
+  font-size: 18px;
+}
+
+.wedding-search-input-group input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 16px;
+  color: #333;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.wedding-search-input-group input:focus {
+  border-color: #7066ff;
+  box-shadow: 0 0 6px rgba(112, 102, 255, 0.3);
+}
+
+/* --- Ngày đặt / trả --- */
+.wedding-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.wedding-date-group label {
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+.wedding-date-group input {
+  padding: 11px 14px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 16px;
+  outline: none;
+  transition: all 0.3s ease;
+  background: url('https://cdn-icons-png.flaticon.com/512/747/747310.png') no-repeat right 12px center/20px;
+}
+
+.wedding-date-group input:focus {
+  border-color: #7066ff;
+  box-shadow: 0 0 6px rgba(112, 102, 255, 0.3);
+}
+
+/* --- Nút TÌM --- */
+.wedding-search-btn {
+  background: linear-gradient(135deg, #7066ff, #9b8cff);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 40px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(112, 102, 255, 0.3);
+}
+
+.wedding-search-btn:hover {
+  background: linear-gradient(135deg, #5a50ff, #8678ff);
+  transform: translateY(-2px);
+}
+
+/* --- Gợi ý dropdown --- */
+.wedding-suggestions {
+  position: absolute;
+  top: 105%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  z-index: 50;
+}
+
+.wedding-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.wedding-suggestion-item:hover {
+  background: #f5f5ff;
+}
+
+.wedding-suggestion-item img {
+  width: 40px;
+  height: 30px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .wedding-search-box {
+    margin-top: -80px;
+    width: 90%;
+    padding: 20px;
+  }
+}

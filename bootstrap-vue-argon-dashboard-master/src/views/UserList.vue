@@ -1,34 +1,25 @@
 <template>
-  <div class="p-4">
+  <div>
     <h3>Danh sách người dùng</h3>
-    <ul v-if="users.length">
+    <ul>
       <li v-for="user in users" :key="user.id">{{ user.name }}</li>
     </ul>
-    <p v-else>Đang tải...</p>
   </div>
 </template>
 
 <script>
-import api from '../axios.js'
+import api from '../api.js';
 
 export default {
   data() {
-    return {
-      users: [],
-    }
+    return { users: [] };
   },
   mounted() {
-    this.loadUsers()
-  },
-  methods: {
-    async loadUsers() {
-      try {
-        const res = await api.get('/users')
-        this.users = res.data
-      } catch (err) {
-        console.error('Lỗi tải dữ liệu:', err)
-      }
-    }
+    api.get('/users')
+      .then(res => {
+        this.users = res.data;
+      })
+      .catch(err => console.error('Lỗi:', err));
   }
-}
+};
 </script>
