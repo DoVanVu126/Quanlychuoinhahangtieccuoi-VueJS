@@ -72,6 +72,15 @@
 
         <sidebar-item
           :link="{
+            name: 'user',
+            path: '/users',
+            icon: 'ni ni-single-02 text-dark',
+          }"
+        ></sidebar-item>
+
+
+        <sidebar-item
+          :link="{
             name: 'Hồ sơ',
             path: '/profile',
             icon: 'ni ni-single-02 text-dark',

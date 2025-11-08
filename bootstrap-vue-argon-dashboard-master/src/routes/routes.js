@@ -2,7 +2,6 @@
 import DashboardLayout from '@/views/Layout/DashboardLayout.vue';
 import AuthLayout from '@/views/Pages/AuthLayout.vue';
 import NotFound from '@/views/NotFoundPage.vue';
-import UserList from '@/views/UserList.vue';
 import Home from '@/views/Pages/Home.vue';
 
 const routes = [
@@ -17,18 +16,20 @@ const routes = [
         component: () => import("../views/Dashboard.vue"),
       },
 
+
+
+      // user
       {
         path: "/users",
-        name: "UserList",
-        component: UserList,
+        name: "User",
+        component: () => import("../views/User.vue"),
       },
 
-      // 👉 ĐẶT TIỆC
       {
-        path: "/bookings",
-        name: "Bookings",
-        component: () => import("../views/Bookings.vue"),
-      },
+  path: "/users/add",
+  name: "AddUser",
+  component: () => import("../views/AddUser.vue"),
+},
 
       // 👉 MÓN ĂN
       {

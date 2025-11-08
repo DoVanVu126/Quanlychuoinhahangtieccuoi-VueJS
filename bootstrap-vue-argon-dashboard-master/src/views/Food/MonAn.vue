@@ -1,138 +1,103 @@
 <template>
-  <div class="container mt-5 pt-4">
-    <h2 class="text-center mb-4">Quản lý Món ăn</h2>
+  <div>
+    <!-- Header -->
+    <base-header class="pb-6 pb-8 pt-5 pt-md-8 bg-gradient-success">
+      <div class="container-fluid">
+        <div class="header-body text-white">
+          <h2 class="text-white font-weight-bold">QUẢN LÝ MÓN ĂN</h2>
+          <p class="text-light">Theo dõi, chỉnh sửa và quản lý danh sách món ăn nhà hàng</p>
+        </div>
+      </div>
+    </base-header>
 
-    <!-- Nút thêm món ăn -->
-    <div class="d-flex justify-content-end mb-3">
-      <router-link to="/mon-an/them" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Thêm món ăn
-      </router-link>
-    </div>
+    <!-- Nội dung chính -->
+    <div class="container-fluid mt--7">
+      <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
+        <div class="card-body">
+          <!-- Thanh công cụ -->
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <input
+              v-model="searchQuery"
+              class="form-control w-50"
+              placeholder="🔍 Tìm kiếm món ăn theo tên hoặc mô tả..."
+            />
 
-    <!-- Bảng danh sách món ăn -->
-    <div class="table-responsive">
-      <table class="table table-bordered table-hover text-center align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>ID</th>
-            <th>Tên món ăn</th>
-            <th>Loại món</th>
-            <th>Giá (VNĐ)</th>
-            <th>Mô tả</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="food in foods.data" :key="food.food_id">
-            <td>{{ food.food_id }}</td>
-            <td class="text-start">{{ food.name }}</td>
-            <td>{{ food.food_type ? food.food_type.name : "Không có" }}</td>
-            <td>{{ formatPrice(food.price) }} VNĐ</td>
-            <td class="text-start">{{ food.description }}</td>
-            <td>
-              <button
-                class="btn btn-warning btn-sm me-1"
-                @click="openEditModal(food)"
+            <div class="d-flex gap-2">
+              <router-link to="/mon-an/them" class="btn btn-primary">
+                + Thêm Món ăn
+              </router-link>
+              <b-button variant="success" @click="refreshList">↻ Làm mới</b-button>
+            </div>
+          </div>
+
+          <!-- Bảng danh sách -->
+          <div class="table-responsive">
+            <table class="table table-hover align-items-center">
+              <thead class="thead-light">
+                <tr>
+                  <th>ID</th>
+                  <th>Tên món ăn</th>
+                  <th>Loại món</th>
+                  <th>Giá (VNĐ)</th>
+                  <th>Mô tả</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="food in filteredFoods" :key="food.food_id">
+                  <td>{{ food.food_id }}</td>
+                  <td>{{ food.name }}</td>
+                  <td>{{ food.food_type ? food.food_type.name : "Không có" }}</td>
+                  <td>{{ formatPrice(food.price) }}</td>
+                  <td>{{ food.description }}</td>
+                  <td>
+                    <b-button
+                      size="sm"
+                      variant="outline-primary"
+                      @click="editFood(food)"
+                    >
+                      Sửa
+                    </b-button>
+                    <b-button
+                      size="sm"
+                      variant="outline-danger"
+                      @click="deleteFood(food.food_id)"
+                    >
+                      Xóa
+                    </b-button>
+                  </td>
+                </tr>
+
+                <tr v-if="filteredFoods.length === 0">
+                  <td colspan="6" class="text-center text-muted">
+                    Không có món ăn nào phù hợp
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Phân trang -->
+          <nav v-if="lastPage > 1" class="d-flex justify-content-center mt-3">
+            <ul class="pagination">
+              <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                <button class="page-link" @click="getFoods(currentPage - 1)">Trước</button>
+              </li>
+
+              <li
+                v-for="page in lastPage"
+                :key="page"
+                class="page-item"
+                :class="{ active: page === currentPage }"
               >
-                <i class="fas fa-edit"></i>
-              </button>
-           <button class="btn btn-danger btn-sm me-1" @click="deleteFood(food.food_id)">  <i class="fas fa-trash"></i>
-              </button>
-            </td>
-          </tr>
-          <tr v-if="!foods || foods.length === 0">
-            <td colspan="6" class="text-center text-muted">
-              Chưa có món ăn nào
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+                <button class="page-link" @click="getFoods(page)">{{ page }}</button>
+              </li>
 
-    <!-- Phân trang -->
-    <nav v-if="lastPage > 1" class="d-flex justify-content-center mt-3">
-      <ul class="pagination">
-        <li class="page-item" :class="{ disabled: currentPage === 1 }">
-          <button class="page-link" @click="getFoods(currentPage - 1)">
-            Trước
-          </button>
-        </li>
-
-        <li
-          v-for="page in lastPage"
-          :key="page"
-          class="page-item"
-          :class="{ active: page === currentPage }"
-        >
-          <button class="page-link" @click="getFoods(page)">{{ page }}</button>
-        </li>
-
-        <li class="page-item" :class="{ disabled: currentPage === lastPage }">
-          <button class="page-link" @click="getFoods(currentPage + 1)">
-            Sau
-          </button>
-        </li>
-      </ul>
-    </nav>
-
-    <!-- Modal sửa món ăn -->
-    <div class="modal fade" id="editFoodModal" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-3 shadow">
-          <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title">Cập nhật Món ăn</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <form @submit.prevent="saveFood">
-              <div class="mb-3">
-                <label class="form-label fw-semibold">Tên món ăn</label>
-                <input
-                  type="text"
-                  class="form-control form-control-sm"
-                  v-model="form.name"
-                  required
-                />
-              </div>
-              <div class="mb-3">
-                <label class="form-label fw-semibold">Mô tả</label>
-                <textarea
-                  class="form-control form-control-sm"
-                  v-model="form.description"
-                  rows="2"
-                ></textarea>
-              </div>
-              <div class="row">
-                <div class="col-6 mb-3">
-                  <label class="form-label fw-semibold">Giá (VNĐ)</label>
-                  <input
-                    type="number"
-                    class="form-control form-control-sm"
-                    v-model="form.price"
-                    min="0"
-                    required
-                  />
-                </div>
-                <div class="col-6 mb-3">
-                  <label class="form-label fw-semibold">Loại món (ID)</label>
-                  <input
-                    type="number"
-                    class="form-control form-control-sm"
-                    v-model="form.food_type_id"
-                  />
-                </div>
-              </div>
-              <div class="text-end">
-                <button type="submit" class="btn btn-success btn-sm">
-                  Lưu thay đổi
-                </button>
-              </div>
-            </form>
-          </div>
+              <li class="page-item" :class="{ disabled: currentPage === lastPage }">
+                <button class="page-link" @click="getFoods(currentPage + 1)">Sau</button>
+              </li>
+            </ul>
+          </nav>
         </div>
       </div>
     </div>
@@ -141,17 +106,25 @@
 
 <script>
 import api from "@/api";
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 export default {
   data() {
     return {
       foods: [],
-      form: {},
-      modal: null,
       currentPage: 1,
       lastPage: 1,
+      searchQuery: "",
     };
+  },
+  computed: {
+    filteredFoods() {
+      if (!this.foods || !this.foods.data) return [];
+      return this.foods.data.filter(
+        (f) =>
+          f.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+          f.description.toLowerCase().includes(this.searchQuery.toLowerCase())
+      );
+    },
   },
   methods: {
     async getFoods(page = 1) {
@@ -167,21 +140,9 @@ export default {
     formatPrice(value) {
       return new Intl.NumberFormat("vi-VN").format(value);
     },
-    openEditModal(food) {
-      this.form = { ...food };
-      this.modal = new bootstrap.Modal(
-        document.getElementById("editFoodModal")
-      );
-      this.modal.show();
-    },
-    async saveFood() {
-      try {
-        await api.put(`/foods/${this.form.food_id}`, this.form);
-        this.modal.hide();
-        this.getFoods(this.currentPage);
-      } catch (err) {
-        console.error("Lỗi cập nhật món ăn:", err);
-      }
+    editFood(food) {
+      // 👉 Khi bấm "Sửa", chuyển sang trang sửa món ăn
+      this.$router.push({ name: "SuaMonAn", params: { id: food.food_id } });
     },
     async deleteFood(id) {
       if (confirm("Bạn có chắc muốn xóa món ăn này không?")) {
@@ -193,6 +154,10 @@ export default {
         }
       }
     },
+    refreshList() {
+      this.searchQuery = "";
+      this.getFoods();
+    },
   },
   mounted() {
     this.getFoods();
@@ -201,28 +166,16 @@ export default {
 </script>
 
 <style scoped>
-.container {
-  padding-top: 80px;
-}
-
 .table {
   vertical-align: middle;
   font-size: 0.9rem;
 }
-
-.table th,
-.table td {
-  padding: 0.5rem 0.75rem;
+.table th {
+  font-weight: 600;
 }
-
-.modal-content {
-  border-radius: 10px;
-}
-
 .btn {
-  min-width: 75px;
+  min-width: 90px;
 }
-
 .pagination .page-link {
   cursor: pointer;
 }
