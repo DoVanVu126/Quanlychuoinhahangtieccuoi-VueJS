@@ -4,7 +4,12 @@
     <div class="logo">
       <img src="/img/logo.png" alt="Wedding" />
       <div class="search-bar">
-        <input type="text" placeholder="Tìm nhà hàng, địa điểm..." />
+        <input
+          type="text"
+          placeholder="Tìm nhà hàng, địa điểm..."
+          v-model="keyword"
+          @keyup.enter="goToSearch"
+        />
       </div>
     </div>
 
@@ -36,6 +41,18 @@
 <script>
 export default {
   name: "HomeHeader",
+  data() {
+    return {
+      keyword: "",
+    };
+  },
+  methods: {
+    goToSearch() {
+      const query = this.keyword.trim();
+      if (!query) return;
+      this.$router.push({ path: "/search", query: { keyword: query } });
+    },
+  },
 };
 </script>
 

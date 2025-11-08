@@ -4,7 +4,7 @@ import AuthLayout from '@/views/Pages/AuthLayout.vue';
 import NotFound from '@/views/NotFoundPage.vue';
 import UserList from '@/views/UserList.vue';
 import Home from '@/views/Pages/Home.vue';
-
+import Search from '@/views/Pages/Search.vue';
 const routes = [
   {
     path: "/",
@@ -177,6 +177,18 @@ const routes = [
     name: 'Home',
     component: Home,
   },
+  { path: '/search', name: 'Search', component: Search },
+  {
+    path: '/dat-tiec',
+    name: 'DatTiec',
+    component: () => import('@/views/Pages/BookingPage.vue'),
+    props: route => ({
+      restaurant: route.query.restaurant || null,
+      startDate: route.query.startDate || null,
+      endDate: route.query.endDate || null
+    })
+  },
+
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
   {
     path: "/",
