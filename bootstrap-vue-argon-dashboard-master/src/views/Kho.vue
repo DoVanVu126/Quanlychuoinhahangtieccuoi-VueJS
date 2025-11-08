@@ -220,7 +220,7 @@ export default {
 /* KHI ĐÓNG (pop-leave-active) sẽ không có transition, nên sẽ đóng ngay lập tức */
 
 
-/* Trạng thái "BẮT ĐẦU VÀO" (enter-from) 
+/* Trạng thái "BẮT ĐẦU VÀO" (enter-from)
   và trạng thái "KẾT THÚC RỜI ĐI" (leave-to)
   Cả hai đều là ẩn đi và thu nhỏ lại.
 */
@@ -391,7 +391,7 @@ export default {
   cursor: pointer;
   transition: 0.25s;
 }
-.chat-input button:hover {
+.chat-input button:hover { 
   background: #0073e6;
 }
 </style>

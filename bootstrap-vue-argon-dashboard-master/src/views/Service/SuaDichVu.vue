@@ -1,56 +1,69 @@
 <template>
-  <div class="container mt-5" style="max-width: 800px;">
-    <h2 class="text-center mb-4 fw-bold">Sửa Dịch vụ</h2>
+  <div class="container mt-5">
+    <h2 class="mb-4 text-primary">🛠 Sửa Dịch Vụ</h2>
 
-    <div class="card shadow-sm p-3">
-      <div class="card-body">
-        <form @submit.prevent="updateService">
-          <!-- Tên dịch vụ -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Tên dịch vụ</label>
-            <input type="text" class="form-control form-control-lg" v-model="form.name" required />
-            <small class="text-danger" v-if="errors.name">{{ errors.name[0] }}</small>
-          </div>
+    <b-form @submit.prevent="updateService">
+      <!-- Tên dịch vụ -->
+      <b-form-group label="Tên dịch vụ">
+        <b-form-input v-model="form.name" required></b-form-input>
+      </b-form-group>
 
-          <!-- Mô tả -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Mô tả</label>
-            <textarea class="form-control form-control-lg" v-model="form.description" rows="4"></textarea>
-            <small class="text-danger" v-if="errors.description">{{ errors.description[0] }}</small>
-          </div>
+      <!-- Mô tả -->
+      <b-form-group label="Mô tả">
+        <b-form-textarea v-model="form.description" rows="3"></b-form-textarea>
+      </b-form-group>
 
-          <!-- Giá và ID Nhà hàng -->
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label fw-semibold">Giá (VNĐ)</label>
-              <input type="number" class="form-control form-control-lg" v-model="form.price" min="0" required />
-              <small class="text-danger" v-if="errors.price">{{ errors.price[0] }}</small>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label fw-semibold">ID Nhà hàng</label>
-              <input type="number" class="form-control form-control-lg" v-model="form.restaurant_id" required />
-              <small class="text-danger" v-if="errors.restaurant_id">{{ errors.restaurant_id[0] }}</small>
-            </div>
-          </div>
+      <!-- Giá -->
+      <b-form-group label="Giá (VNĐ)">
+        <b-form-input type="number" v-model="form.price" required></b-form-input>
+      </b-form-group>
 
-          <!-- Trạng thái dịch vụ -->
-          <div class="mb-4">
-            <label class="form-label fw-semibold">Trạng thái</label>
-            <select class="form-select form-select-lg" v-model="form.status">
-              <option :value="true">Hoạt động</option>
-              <option :value="false">Ngưng hoạt động</option>
-            </select>
-            <small class="text-danger" v-if="errors.status">{{ errors.status[0] }}</small>
-          </div>
+      <!-- Nhà hàng -->
+      <b-form-group label="ID Nhà hàng">
+        <b-form-input
+          type="number"
+          v-model="form.restaurant_id"
+          required
+        ></b-form-input>
+      </b-form-group>
 
-          <!-- Nút -->
-          <div class="d-flex justify-content-between">
-            <router-link to="/dich-vu" class="btn btn-secondary btn-lg">Hủy</router-link>
-            <button type="submit" class="btn btn-warning btn-lg">Cập nhật</button>
-          </div>
-        </form>
+      <!-- Trạng thái -->
+      <b-form-group label="Trạng thái">
+        <b-form-select v-model="form.status">
+          <b-form-select-option value="available">Hoạt động</b-form-select-option>
+          <b-form-select-option value="unavailable">Ngưng hoạt động</b-form-select-option>
+          <b-form-select-option value="maintenance">Bảo trì</b-form-select-option>
+        </b-form-select>
+      </b-form-group>
+
+      <!-- Ảnh hiện tại -->
+      <b-form-group label="Ảnh hiện tại">
+        <div v-if="form.image_url">
+          <img
+            :src="getImageUrl(form.image_url)"
+            alt="Ảnh dịch vụ"
+            class="rounded shadow-sm border mb-2"
+            style="width: 150px; height: 150px; object-fit: cover"
+          />
+        </div>
+        <p v-else class="text-muted">Không có ảnh</p>
+
+        <!-- Chọn ảnh mới -->
+        <b-form-file
+          v-model="form.newImage"
+          accept="image/*"
+          placeholder="Chọn ảnh mới nếu muốn thay"
+        ></b-form-file>
+      </b-form-group>
+
+      <!-- Nút thao tác -->
+      <div class="d-flex gap-2 mt-3">
+        <b-button type="submit" variant="primary">💾 Cập nhật</b-button>
+        <b-button variant="secondary" @click="$router.push('/dich-vu')">
+          Hủy
+        </b-button>
       </div>
-    </div>
+    </b-form>
   </div>
 </template>
 
@@ -65,44 +78,63 @@ export default {
         description: "",
         price: 0,
         restaurant_id: null,
-        status: true,
-        image_url: "",
-        created_at: null,
+        status: "available",
+        image_url: null,
+        newImage: null, // ảnh mới nếu chọn thay
       },
-      errors: {},
     };
   },
   mounted() {
     this.loadService();
   },
   methods: {
+    // ✅ Lấy dữ liệu dịch vụ cần sửa
     async loadService() {
       try {
         const res = await api.get(`/services/${this.$route.params.id}`);
         this.form = {
           ...res.data,
-          status: !!res.data.status,
+          newImage: null, // reset ảnh mới
         };
       } catch (err) {
-        console.error("Không tải được dịch vụ:", err);
+        console.error("❌ Không tải được dịch vụ:", err);
         alert("Không tải được dịch vụ!");
         this.$router.push("/dich-vu");
       }
     },
+
+    // ✅ Hiển thị đúng URL ảnh
+    getImageUrl(url) {
+      if (!url) return null;
+      if (url.startsWith("http")) return url;
+      return `http://127.0.0.1:8088/${url.replace(/^\/+/, "")}`;
+    },
+
+    // ✅ Gửi dữ liệu cập nhật (kể cả ảnh mới)
     async updateService() {
-      this.errors = {};
       try {
-        await api.put(`/services/${this.$route.params.id}`, this.form);
-        alert("Cập nhật dịch vụ thành công!");
+        const formData = new FormData();
+        formData.append("name", this.form.name);
+        formData.append("description", this.form.description);
+        formData.append("price", this.form.price);
+        formData.append("restaurant_id", this.form.restaurant_id);
+        formData.append("status", this.form.status);
+
+        if (this.form.newImage) {
+          formData.append("image", this.form.newImage);
+        }
+
+        await api.post(
+          `/services/${this.$route.params.id}?_method=PUT`,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+
+        alert("✅ Cập nhật dịch vụ thành công!");
         this.$router.push("/dich-vu");
       } catch (err) {
-        if (err.response && err.response.status === 422) {
-          this.errors = err.response.data.errors || err.response.data;
-          alert("Cập nhật thất bại: Kiểm tra dữ liệu nhập!");
-        } else {
-          console.error("Lỗi update dịch vụ:", err);
-          alert("Cập nhật dịch vụ thất bại do lỗi server!");
-        }
+        console.error("❌ Lỗi cập nhật:", err);
+        alert("Cập nhật thất bại!");
       }
     },
   },
@@ -110,17 +142,23 @@ export default {
 </script>
 
 <style scoped>
-.card {
-  border-radius: 15px;
+.container {
+  max-width: 700px;
 }
 
 h2 {
-  font-size: 1.8rem;
+  font-weight: 600;
+  color: #0069d9;
 }
 
-.form-control-lg,
-.form-select-lg {
-  font-size: 1.1rem;
-  padding: 0.75rem;
+.b-form-group {
+  margin-bottom: 1.2rem;
+}
+
+img {
+  transition: 0.3s;
+}
+img:hover {
+  transform: scale(1.05);
 }
 </style>

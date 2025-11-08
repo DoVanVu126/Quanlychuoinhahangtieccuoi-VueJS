@@ -1,66 +1,53 @@
 <template>
-  <div class="container mt-5" style="max-width: 800px;">
-    <h2 class="text-center mb-4 text-primary fw-bold">Thêm Dịch vụ mới</h2>
+  <div class="container mt-5">
+    <h2>Thêm Dịch Vụ</h2>
+    <b-form @submit.prevent="addService">
+      <!-- Tên dịch vụ -->
+      <b-form-group label="Tên dịch vụ">
+        <b-form-input v-model="form.name" required></b-form-input>
+      </b-form-group>
 
-    <div class="card shadow-lg border-0">
-      <div class="card-body p-4">
-        <form @submit.prevent="addService">
-          <!-- Tên dịch vụ -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Tên dịch vụ</label>
-            <input type="text" class="form-control form-control-lg" v-model="form.name" required />
-            <small class="text-danger" v-if="errors.name">{{ errors.name[0] }}</small>
-          </div>
+      <!-- Mô tả -->
+      <b-form-group label="Mô tả">
+        <b-form-textarea v-model="form.description" rows="3" required></b-form-textarea>
+      </b-form-group>
 
-          <!-- Mô tả -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Mô tả</label>
-            <textarea
-              class="form-control form-control-lg"
-              v-model="form.description"
-              rows="4"
-              placeholder="Nhập mô tả dịch vụ..."
-            ></textarea>
-            <small class="text-danger" v-if="errors.description">{{ errors.description[0] }}</small>
-          </div>
+      <!-- Giá -->
+      <b-form-group label="Giá (VNĐ)">
+        <b-form-input type="number" v-model="form.price" min="0" required></b-form-input>
+      </b-form-group>
 
-          <!-- Giá và ID nhà hàng -->
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label fw-semibold">Giá (VNĐ)</label>
-              <input
-                type="number"
-                class="form-control form-control-lg"
-                v-model="form.price"
-                min="0"
-                required
-              />
-              <small class="text-danger" v-if="errors.price">{{ errors.price[0] }}</small>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label fw-semibold">ID Nhà hàng</label>
-              <input
-                type="number"
-                class="form-control form-control-lg"
-                v-model="form.restaurant_id"
-                required
-              />
-              <small class="text-danger" v-if="errors.restaurant_id">{{ errors.restaurant_id[0] }}</small>
-            </div>
-          </div>
+      <!-- ID Nhà hàng -->
+      <b-form-group label="ID Nhà hàng">
+        <b-form-input type="number" v-model="form.restaurant_id" min="1" required></b-form-input>
+      </b-form-group>
 
-          <!-- Nút -->
-          <div class="d-flex justify-content-between mt-4">
-            <router-link to="/dich-vu" class="btn btn-secondary btn-lg px-4">
-              <i class="fas fa-arrow-left me-2"></i> Hủy
-            </router-link>
-            <button type="submit" class="btn btn-primary btn-lg px-4">
-              <i class="fas fa-plus-circle me-2"></i> Thêm mới
-            </button>
-          </div>
-        </form>
+      <!-- Trạng thái -->
+      <b-form-group label="Trạng thái">
+        <b-form-select v-model="form.status" :options="statusOptions"></b-form-select>
+      </b-form-group>
+
+      <!-- Upload ảnh -->
+      <b-form-group label="Ảnh dịch vụ">
+        <b-form-file
+          @change="handleImageUpload"
+          accept="image/*"
+          browse-text="Chọn ảnh"
+          placeholder="Chưa chọn ảnh nào"
+        ></b-form-file>
+
+        <!-- Hiển thị ảnh xem trước -->
+        <div v-if="previewImage" class="mt-3 text-center">
+          <img :src="previewImage" alt="Preview" class="img-thumbnail" style="max-width: 200px;" />
+        </div>
+      </b-form-group>
+
+      <!-- Nút hành động -->
+      <div class="d-flex justify-content-between">
+        <b-button type="submit" variant="success">💾 Lưu</b-button>
+        <b-button variant="secondary" @click="$router.push('/dich-vu')">⬅ Quay lại</b-button>
       </div>
-    </div>
+    </b-form>
   </div>
 </template>
 
@@ -75,24 +62,49 @@ export default {
         description: "",
         price: 0,
         restaurant_id: null,
+        status: "available", // mặc định
       },
-      errors: {},
+      imageFile: null,
+      previewImage: null,
+      statusOptions: [
+        { value: "available", text: "Có sẵn" },
+        { value: "unavailable", text: "Không khả dụng" },
+        { value: "maintenance", text: "Bảo trì" },
+      ],
     };
   },
   methods: {
+    // Xử lý upload ảnh và xem trước
+    handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        this.imageFile = file;
+        this.previewImage = URL.createObjectURL(file);
+      }
+    },
+
+    // Gửi form lên server
     async addService() {
-      this.errors = {};
       try {
-        await api.post("/services", this.form);
-        alert("Thêm dịch vụ thành công!");
+        const formData = new FormData();
+        formData.append("name", this.form.name);
+        formData.append("description", this.form.description);
+        formData.append("price", this.form.price);
+        formData.append("restaurant_id", this.form.restaurant_id);
+        formData.append("status", this.form.status);
+        if (this.imageFile) {
+          formData.append("image", this.imageFile);
+        }
+
+        await api.post("/services", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        alert("✅ Đã thêm dịch vụ: " + this.form.name);
         this.$router.push("/dich-vu");
       } catch (err) {
+        console.error("❌ Lỗi thêm dịch vụ:", err);
         alert("Thêm dịch vụ thất bại!");
-        if (err.response && err.response.status === 422) {
-          this.errors = err.response.data;
-        } else {
-          console.error("Lỗi thêm dịch vụ:", err);
-        }
       }
     },
   },
@@ -100,28 +112,21 @@ export default {
 </script>
 
 <style scoped>
-.card {
-  border-radius: 12px;
-}
-
-input,
-textarea {
-  font-size: 1.05rem;
-}
-
-label {
-  font-size: 1rem;
-}
-
-.btn {
-  min-width: 130px;
+.container {
+  max-width: 700px;
 }
 
 h2 {
-  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 20px;
 }
 
-.container {
-  padding-top: 80px;
+.b-form-group {
+  margin-bottom: 1.2rem;
+}
+
+.img-thumbnail {
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 </style>

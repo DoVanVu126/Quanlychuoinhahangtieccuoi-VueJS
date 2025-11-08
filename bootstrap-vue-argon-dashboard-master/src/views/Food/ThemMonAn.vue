@@ -1,97 +1,67 @@
 <template>
-  <div class="container py-5">
-    <div class="card shadow-lg border-0 rounded-4 p-4">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-success mb-0">
-          <i class="fas fa-plus-circle me-2"></i> Thêm món ăn mới
-        </h3>
-        <router-link to="/mon-an" class="btn btn-outline-secondary btn-sm">
-          <i class="fas fa-arrow-left me-2"></i> Quay lại
-        </router-link>
-      </div>
+  <div class="container mt-5">
+    <h2>Thêm Món Ăn</h2>
+    <b-form @submit.prevent="addFood">
+      <b-form-group label="Tên món ăn">
+        <b-form-input v-model="form.name" required></b-form-input>
+      </b-form-group>
 
-      <form @submit.prevent="themMonAn">
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Tên món ăn</label>
-          <input
-            v-model="monAn.tenMon"
-            type="text"
-            class="form-control form-control-lg rounded-3 shadow-sm"
-            placeholder="Nhập tên món ăn..."
-            required
-          />
-        </div>
+      <b-form-group label="Mô tả">
+        <b-form-textarea
+          v-model="form.description"
+          rows="3"
+          required
+        ></b-form-textarea>
+      </b-form-group>
 
+      <b-form-group label="Giá (VNĐ)">
+        <b-form-input
+          type="number"
+          v-model="form.price"
+          required
+        ></b-form-input>
+      </b-form-group>
 
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Giá (VNĐ)</label>
-          <input
-            v-model="monAn.gia"
-            type="number"
-            class="form-control form-control-lg rounded-3 shadow-sm"
-            placeholder="Nhập giá món ăn..."
-            required
-          />
-        </div>
+      <b-form-group label="Loại món ăn (ID)">
+        <b-form-input
+          type="number"
+          v-model="form.food_type_id"
+          required
+        ></b-form-input>
+      </b-form-group>
 
-
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Loại món ăn</label>
-          <select
-            v-model="monAn.loaiMon"
-            class="form-select form-select-lg rounded-3 shadow-sm"
-            required
-          >
-            <option value="" disabled>-- Chọn loại món ăn --</option>
-            <option value="Món chính">Món chính</option>
-            <option value="Món phụ">Món phụ</option>
-            <option value="Tráng miệng">Tráng miệng</option>
-          </select>
-        </div>
-
-        <div class="mb-4">
-          <label class="form-label fw-semibold">Mô tả</label>
-          <textarea
-            v-model="monAn.moTa"
-            class="form-control rounded-3 shadow-sm"
-            rows="3"
-            placeholder="Nhập mô tả món ăn..."
-          ></textarea>
-        </div>
-
-
-        <div class="text-end">
-          <button type="submit" class="btn btn-success btn-lg px-4 shadow-sm me-2">
-            <i class="fas fa-save me-2"></i> Lưu món ăn
-          </button>
-          <router-link to="/mon-an" class="btn btn-outline-secondary btn-lg px-4 shadow-sm">
-            <i class="fas fa-times me-2"></i> Hủy
-          </router-link>
-        </div>
-      </form>
-    </div>
+      <b-button type="submit" variant="success">Lưu</b-button>
+      <b-button variant="secondary" @click="$router.push('/mon-an')">Quay lại</b-button>
+    </b-form>
   </div>
 </template>
 
 <script>
+import api from "@/api";
+
 export default {
-  name: "ThemMonAn",
   data() {
     return {
-      monAn: {
-        tenMon: "",
-        gia: "",
-        loaiMon: "",
-        moTa: ""
-      }
+      form: {
+        name: "",
+        description: "",
+        price: 0,
+        food_type_id: null,
+      },
     };
   },
   methods: {
-    themMonAn() {
-      alert(`✅ Đã thêm món: ${this.monAn.tenMon}`);
-      this.$router.push("/mon-an");
-    }
-  }
+    async addFood() {
+      try {
+        await api.post("/foods", this.form);
+        alert("✅ Đã thêm món ăn: " + this.form.name);
+        this.$router.push("/mon-an");
+      } catch (err) {
+        console.error("Lỗi thêm món ăn:", err);
+        alert("❌ Thêm món ăn thất bại!");
+      }
+    },
+  },
 };
 </script>
 
@@ -100,27 +70,12 @@ export default {
   max-width: 700px;
 }
 
-.card {
-  background: #ffffff;
-  transition: 0.3s ease;
+h2 {
+  font-weight: 600;
+  margin-bottom: 20px;
 }
 
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: #198754 !important;
-  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
-}
-
-button {
-  transition: 0.2s ease;
-}
-button:hover {
-  transform: scale(1.03);
+.b-form-group {
+  margin-bottom: 1.2rem;
 }
 </style>
