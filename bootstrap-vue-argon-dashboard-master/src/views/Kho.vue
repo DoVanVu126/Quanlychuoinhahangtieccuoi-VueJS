@@ -81,6 +81,39 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Pagination -->
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted">
+              Hiển thị {{ items.length }} / {{ total }} mục
+            </div>
+            <nav aria-label="Pagination">
+              <ul class="pagination mb-0">
+                <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                  <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
+                    <i class="fas fa-angle-left"></i>
+                    <span class="sr-only">Previous</span>
+                  </a>
+                </li>
+                
+                <li 
+                  v-for="page in visiblePages" 
+                  :key="page" 
+                  class="page-item" 
+                  :class="{ active: page === currentPage }"
+                >
+                  <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
+                </li>
+                
+                <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                  <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
+                    <i class="fas fa-angle-right"></i>
+                    <span class="sr-only">Next</span>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
         </div>
       </div>
     </div>
@@ -122,6 +155,8 @@
 </template>
 
 <script>
+import api from '@/api';
+
 export default {
   data() {
     return {
@@ -134,13 +169,18 @@ export default {
           text: "Xin chào 👋! Tôi là trợ lý kho. Hãy chọn:\n1️⃣ Hàng cần nhập\n2️⃣ Hàng sắp/hết hạn\n3️⃣ Báo cáo tồn kho\n4️⃣ Hướng dẫn thao tác",
         },
       ],
-      items: [
-        { ma: "TB-001", ten: "Thịt Bò Thăn", ton: 15, dvt: "KG", lo: "L01-0925", hsd: "27/09/2025", hsdTrangThai: "Hết hạn", trangThai: "Cần nhập" },
-        { ma: "CA-005", ten: "Cá Hồi Fillet", ton: 25, dvt: "KG", lo: "L03-1025", hsd: "15/10/2025", hsdTrangThai: "Sắp hết", trangThai: "An toàn" },
-        { ma: "GA-002", ten: "Gạo Nếp", ton: 500, dvt: "KG", lo: "L08-2026", hsd: "20/08/2026", hsdTrangThai: "An toàn", trangThai: "An toàn" },
-        { ma: "HL-010", ten: "Hải Sâm Khô", ton: 3, dvt: "Hộp", lo: "HS-02C", hsd: "15/01/2026", hsdTrangThai: "An toàn", trangThai: "Cần nhập" },
-      ],
+      items: [],
+      loading: false,
+      error: null,
+      // Pagination
+      currentPage: 1,
+      totalPages: 1,
+      perPage: 15,
+      total: 0,
     };
+  },
+  mounted() {
+    this.loadItems(1);
   },
   computed: {
     filteredItems() {
@@ -148,12 +188,139 @@ export default {
         i.ten.toLowerCase().includes(this.searchQuery.toLowerCase())
       );
     },
+    visiblePages() {
+      const pages = [];
+      const maxVisible = 5;
+      let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
+      let end = Math.min(this.totalPages, start + maxVisible - 1);
+      
+      if (end - start < maxVisible - 1) {
+        start = Math.max(1, end - maxVisible + 1);
+      }
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
   },
   methods: {
+    // ---- Load data from API ----
+    async loadItems(page = 1) {
+      try {
+        this.loading = true;
+        this.error = null;
+        const res = await api.get(`/inventories?page=${page}`);
+        
+        // Kiểm tra cấu trúc response
+        console.log('Full API Response:', res.data);
+        
+        // Xử lý nhiều dạng response
+        let dataArray = [];
+        
+        // Laravel trả về: {success: true, data: {...}}
+        if (res.data.success && res.data.data) {
+          // Kiểm tra nếu là paginated response (có data.data)
+          if (res.data.data.data && Array.isArray(res.data.data.data)) {
+            // Laravel pagination: {success: true, data: {data: [...], current_page: 1, ...}}
+            dataArray = res.data.data.data;
+            console.log('Extracted from paginated response:', dataArray);
+          } else if (Array.isArray(res.data.data)) {
+            // data là array trực tiếp
+            dataArray = res.data.data;
+            console.log('Extracted from res.data.data (array):', dataArray);
+          } else {
+            console.error('Unexpected response format:', res.data);
+            throw new Error('Invalid response format');
+          }
+        } else if (Array.isArray(res.data)) {
+          // Response trực tiếp là array
+          dataArray = res.data;
+          console.log('Extracted from res.data (direct array):', dataArray);
+        } else {
+          console.error('Unexpected response format:', res.data);
+          throw new Error('Invalid response format');
+        }
+        
+        // Map dữ liệu từ database
+        this.items = dataArray.map(item => ({
+          id: item.inventory_id,
+          ma: `INV-${String(item.inventory_id).padStart(3, '0')}`,
+          ten: item.item_name,
+          ton: item.quantity,
+          dvt: item.unit,
+          lo: item.batch || '-',
+          hsd: item.expiry_date || '-',
+          restaurant_id: item.restaurant_id,
+          reorder_level: item.reorder_level || 20,
+          hsdTrangThai: this.calculateHSDStatus(item.expiry_date),
+          trangThai: this.calculateStockStatus(item.quantity, item.reorder_level)
+        }));
+        
+        // Cập nhật thông tin phân trang
+        if (res.data.data.current_page) {
+          this.currentPage = res.data.data.current_page;
+          this.totalPages = res.data.data.last_page;
+          this.perPage = res.data.data.per_page;
+          this.total = res.data.data.total;
+        }
+        
+        console.log('Mapped items:', this.items);
+        console.log('Pagination:', { currentPage: this.currentPage, totalPages: this.totalPages, total: this.total });
+        this.loading = false;
+      } catch (err) {
+        console.error('Lỗi tải kho:', err);
+        console.error('Error details:', err.response && err.response.data);
+        this.error = 'Không thể tải dữ liệu từ API. Vui lòng kiểm tra backend.';
+        this.items = [];
+        this.loading = false;
+      }
+    },
+
+    // Phân trang
+    changePage(page) {
+      if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+      this.loadItems(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    // Tính trạng thái HSD
+    calculateHSDStatus(hsd) {
+      if (!hsd || hsd === '-') return 'An toàn';
+      const parts = hsd.split('/');
+      if (parts.length !== 3) return 'An toàn';
+      
+      const [day, month, year] = parts;
+      const expiryDate = new Date(year, month - 1, day);
+      const today = new Date();
+      const daysUntilExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilExpiry < 0) return 'Hết hạn';
+      if (daysUntilExpiry <= 30) return 'Sắp hết';
+      return 'An toàn';
+    },
+
+    // Tính trạng thái tồn kho
+    calculateStockStatus(quantity, reorderLevel = 20) {
+      return quantity < reorderLevel ? 'Cần nhập' : 'An toàn';
+    },
+
     // ---- Trang điều hướng ----
     themHang() { this.$router.push("/them-hang"); },
     suaHang(item) { this.$router.push({ path: "/sua-hang", query: { ma: item.ma } }); },
-    xoaHang(item) { this.$router.push({ path: "/xoa-hang", query: { ma: item.ma } }); },
+    
+    async xoaHang(item) {
+      if (!confirm(`Bạn có chắc muốn xóa ${item.ten}?`)) return;
+      
+      try {
+        await api.delete(`/inventories/${item.id}`);
+        this.loadItems();
+      } catch (err) {
+        console.error('Lỗi xóa:', err);
+        alert('Không thể xóa. Vui lòng thử lại.');
+      }
+    },
+    
     lichSuKho() { this.$router.push("/lich-su-kho"); },
     xuatBaoCaoPDF() { this.$router.push("/bao-cao-pdf"); },
 
