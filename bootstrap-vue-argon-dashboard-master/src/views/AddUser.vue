@@ -17,6 +17,16 @@
         <b-form-input type="password" v-model="form.password" required></b-form-input>
       </b-form-group>
 
+      <!-- Phone -->
+      <b-form-group label="Số điện thoại">
+        <b-form-input type="tel" v-model="form.phone" placeholder="Nhập số điện thoại"></b-form-input>
+      </b-form-group>
+
+      <!-- Address -->
+      <b-form-group label="Địa chỉ">
+        <b-form-input type="text" v-model="form.address" placeholder="Nhập địa chỉ"></b-form-input>
+      </b-form-group>
+
       <!-- Role -->
       <b-form-group label="Vai trò">
         <b-form-select v-model="form.role" :options="roleOptions" required></b-form-select>
@@ -56,6 +66,8 @@ export default {
         username: "",
         email: "",
         password: "",
+        phone: "",
+        address: "",
         role: "customer",
       },
       imageFile: null,
@@ -78,23 +90,33 @@ export default {
     async addUser() {
       try {
         const formData = new FormData();
-        formData.append("username", this.form.username);
-        formData.append("email", this.form.email);
-        formData.append("password", this.form.password);
-        formData.append("role", this.form.role);
-        if (this.imageFile) {
-          formData.append("image", this.imageFile);
-        }
+        // Gửi dữ liệu, đảm bảo không undefined
+        formData.append("username", this.form.username || "");
+        formData.append("email", this.form.email || "");
+        formData.append("password", this.form.password || "");
+        formData.append("role", this.form.role || "customer");
+        formData.append("phone", this.form.phone || "");
+        formData.append("address", this.form.address || "");
+        if (this.imageFile) formData.append("image", this.imageFile);
 
-        await api.post("/users", formData, {
+        const res = await api.post("/users", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 
         alert("✅ Đã thêm user: " + this.form.username);
         this.$router.push("/users");
       } catch (err) {
-        console.error("❌ Lỗi thêm user:", err);
-        alert("Thêm user thất bại!");
+        // 🔹 Log lỗi chi tiết để biết field nào sai
+        console.error("❌ Lỗi thêm user:", err.response ? err.response.data : err);
+        if (err.response && err.response.data && err.response.data.errors) {
+          const errors = err.response.data.errors;
+          let msg = Object.keys(errors)
+            .map(key => `${key}: ${errors[key].join(", ")}`)
+            .join("\n");
+          alert("Thêm user thất bại:\n" + msg);
+        } else {
+          alert("Thêm user thất bại! Kiểm tra console để xem chi tiết.");
+        }
       }
     },
   },
@@ -105,16 +127,13 @@ export default {
 .container {
   max-width: 700px;
 }
-
 h2 {
   font-weight: 600;
   margin-bottom: 20px;
 }
-
 .b-form-group {
   margin-bottom: 1.2rem;
 }
-
 .img-thumbnail {
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
