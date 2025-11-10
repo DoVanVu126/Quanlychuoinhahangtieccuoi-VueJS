@@ -1,5 +1,5 @@
 .searchpage-header {
-    padding: 40px 80px;
+    padding: 20px 75px;
     background-color: #f9fafc;
 }
 
@@ -82,9 +82,16 @@
 
 .searchpage-filters {
   display: flex;
+  justify-content: space-between; /* 🔹 Căn nút trái - filter phải */
+  align-items: center;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+
+.searchpage-filter-group {
+  display: flex;
   align-items: center;
   gap: 12px;
-  margin: 24px 0;
   flex-wrap: wrap;
 }
 

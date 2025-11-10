@@ -1,9 +1,9 @@
 // router/routes.js
-import DashboardLayout from '@/views/Layout/DashboardLayout.vue';
-import AuthLayout from '@/views/Pages/AuthLayout.vue';
-import NotFound from '@/views/NotFoundPage.vue';
-import Home from '@/views/Pages/Home.vue';
-import Search from '@/views/Pages/Search.vue';
+import DashboardLayout from "@/views/Layout/DashboardLayout.vue";
+import AuthLayout from "@/views/Pages/AuthLayout.vue";
+import NotFound from "@/views/NotFoundPage.vue";
+import Home from "@/views/Pages/Home.vue";
+import Search from "@/views/Pages/Search.vue";
 const routes = [
   {
     path: "/",
@@ -16,8 +16,6 @@ const routes = [
         component: () => import("../views/Dashboard.vue"),
       },
 
-
-
       // user
       {
         path: "/users",
@@ -26,10 +24,15 @@ const routes = [
       },
 
       {
-  path: "/users/add",
-  name: "AddUser",
-  component: () => import("../views/AddUser.vue"),
-},
+        path: "/users/add",
+        name: "AddUser",
+        component: () => import("../views/AddUser.vue"),
+      },
+      {
+        path: "/users/edit/:id",
+        name: "EditUser",
+        component: () => import("../views/EditUser.vue"),
+      },
 
       // 👉 MÓN ĂN
       {
@@ -119,36 +122,35 @@ const routes = [
 
       // 👉 KHO - Quản lý kho
       {
-        path: '/kho',
-        name: 'Kho',
-        component: () => import('../views/Kho.vue'),
+        path: "/kho",
+        name: "Kho",
+        component: () => import("../views/Kho.vue"),
       },
       {
-        path: '/them-hang',
-        name: 'ThemHang',
-        component: () => import('../views/kho-hang/ThemHang.vue'),
+        path: "/them-hang",
+        name: "ThemHang",
+        component: () => import("../views/kho-hang/ThemHang.vue"),
       },
       {
-        path: '/sua-hang',
-        name: 'SuaHang',
-        component: () => import('../views/kho-hang/SuaHang.vue'),
+        path: "/sua-hang",
+        name: "SuaHang",
+        component: () => import("../views/kho-hang/SuaHang.vue"),
       },
       {
-        path: '/xoa-hang',
-        name: 'XoaHang',
-        component: () => import('../views/kho-hang/XoaHang.vue'),
+        path: "/xoa-hang",
+        name: "XoaHang",
+        component: () => import("../views/kho-hang/XoaHang.vue"),
       },
       {
-        path: '/bao-cao-pdf',
-        name: 'BaoCaoPDF',
-        component: () => import('../views/kho-hang/BaoCaoPDF.vue'),
+        path: "/bao-cao-pdf",
+        name: "BaoCaoPDF",
+        component: () => import("../views/kho-hang/BaoCaoPDF.vue"),
       },
       {
-        path: '/lich-su-kho',
-        name: 'LichSuKho',
-        component: () => import('../views/kho-hang/LichSuKho.vue')
+        path: "/lich-su-kho",
+        name: "LichSuKho",
+        component: () => import("../views/kho-hang/LichSuKho.vue"),
       },
-
 
       // 👉 HỒ SƠ
       {
@@ -174,20 +176,20 @@ const routes = [
   },
 
   {
-    path: '/home',
-    name: 'Home',
+    path: "/home",
+    name: "Home",
     component: Home,
   },
-  { path: '/search', name: 'Search', component: Search },
+  { path: "/search", name: "Search", component: Search },
   {
-    path: '/dat-tiec',
-    name: 'DatTiec',
-    component: () => import('@/views/Pages/BookingPage.vue'),
-    props: route => ({
+    path: "/dat-tiec",
+    name: "DatTiec",
+    component: () => import("@/views/Pages/BookingPage.vue"),
+    props: (route) => ({
       restaurant: route.query.restaurant || null,
       startDate: route.query.startDate || null,
-      endDate: route.query.endDate || null
-    })
+      endDate: route.query.endDate || null,
+    }),
   },
 
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
