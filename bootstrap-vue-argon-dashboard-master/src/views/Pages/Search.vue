@@ -1,40 +1,39 @@
 <template>
   <section class="searchpage-page">
     <HomeHeader />
-
-    <!-- ✅ Thanh bộ lọc -->
-    <div class="searchpage-filters">
-      <button class="searchpage-compare-btn">So sánh</button>
-
-      <select v-model="selectedPrice" class="searchpage-select">
-        <option value="">Giá</option>
-        <option value="low">Dưới 3.000.000đ</option>
-        <option value="medium">3.000.000 - 5.000.000đ</option>
-        <option value="high">Trên 5.000.000đ</option>
-      </select>
-
-      <select v-model="selectedStar" class="searchpage-select">
-        <option value="">Đánh giá sao</option>
-        <option v-for="i in 5" :key="i" :value="i">{{ i }} sao</option>
-      </select>
-
-      <!-- ✅ Thành phố -->
-      <select v-model="selectedCity" class="searchpage-select" @change="fetchWardsByCity">
-        <option value="">Thành phố</option>
-        <option v-for="city in cities" :key="city">{{ city }}</option>
-      </select>
-
-      <!-- ✅ Phường/Xã -->
-      <select v-model="selectedWard" class="searchpage-select">
-        <option value="">Phường / Xã</option>
-        <option v-for="ward in wards" :key="ward">{{ ward }}</option>
-      </select>
-
-      <button class="searchpage-clear-btn" @click="clearFilters">✕</button>
-    </div>
-
     <!-- ✅ Kết quả tìm kiếm -->
     <div class="searchpage-header">
+      <!-- ✅ Thanh bộ lọc -->
+      <div class="searchpage-filters">
+        <!-- Nút so sánh bên trái -->
+        <button class="searchpage-compare-btn">So sánh</button>
+        <!-- Nhóm bộ lọc bên phải -->
+        <div class="searchpage-filter-group">
+          <select v-model="selectedPrice" class="searchpage-select">
+            <option value="">Giá</option>
+            <option value="low">Dưới 3.000.000đ</option>
+            <option value="medium">3.000.000 - 5.000.000đ</option>
+            <option value="high">Trên 5.000.000đ</option>
+          </select>
+
+          <select v-model="selectedStar" class="searchpage-select">
+            <option value="">Đánh giá sao</option>
+            <option v-for="i in 5" :key="i" :value="i">{{ i }} sao</option>
+          </select>
+
+          <select v-model="selectedCity" class="searchpage-select" @change="fetchWardsByCity">
+            <option value="">Thành phố</option>
+            <option v-for="city in cities" :key="city">{{ city }}</option>
+          </select>
+
+          <select v-model="selectedWard" class="searchpage-select">
+            <option value="">Phường / Xã</option>
+            <option v-for="ward in wards" :key="ward">{{ ward }}</option>
+          </select>
+
+          <button class="searchpage-clear-btn" @click="clearFilters">✕</button>
+        </div>
+      </div>
       <div v-if="loading" class="text-gray-600 mt-4">Đang tải...</div>
       <div v-else-if="filteredResults.length === 0" class="text-gray-600 mt-4">
         Không tìm thấy kết quả nào.
@@ -50,12 +49,8 @@
               từ ~ {{ formatPrice(r.price_table) }}đ / bàn
             </p>
             <div class="searchpage-stars">
-              <i
-                v-for="i in 5"
-                :key="i"
-                class="fa"
-                :class="i <= Math.round(r.star_rating) ? 'fa-star text-yellow-400' : 'fa-star-o text-gray-300'"
-              ></i>
+              <i v-for="i in 5" :key="i" class="fa"
+                :class="i <= Math.round(r.star_rating) ? 'fa-star text-yellow-400' : 'fa-star-o text-gray-300'"></i>
             </div>
             <button class="searchpage-view-btn">Xem</button>
           </div>
