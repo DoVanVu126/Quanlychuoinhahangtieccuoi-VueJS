@@ -22,10 +22,19 @@
         ></sidebar-item>
 
         <sidebar-item
+  :link="{
+    name: 'Món ăn',
+    path: '/mon-an',
+    icon: 'ni ni-basket text-orange',
+  }"
+></sidebar-item>
+
+
+        <sidebar-item
           :link="{
-            name: 'Món ăn',
-            path: '/mon-an',
-            icon: 'ni ni-dish text-green',
+            name: 'Kho',
+            path: '/kho',
+            icon: 'ni ni-box-2 text-info',
           }"
         ></sidebar-item>
 
@@ -60,6 +69,15 @@
             icon: 'ni ni-collection text-blue',
           }"
         ></sidebar-item>
+
+        <sidebar-item
+          :link="{
+            name: 'user',
+            path: '/users',
+            icon: 'ni ni-single-02 text-dark',
+          }"
+        ></sidebar-item>
+
 
         <sidebar-item
           :link="{
