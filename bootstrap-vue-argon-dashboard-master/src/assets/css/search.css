@@ -126,3 +126,99 @@
 .searchpage-clear-btn:hover {
   transform: scale(1.1);
 }
+
+/* ✅ Hiệu ứng slide panel từ phải vào */
+.slide-compare-enter-active,
+.slide-compare-leave-active {
+  transition: transform 0.4s ease;
+}
+.slide-compare-enter-from,
+.slide-compare-leave-to {
+  transform: translateX(100%);
+}
+
+/* ✅ Panel so sánh */
+.compare-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  height: 100%;
+  background: #fff;
+  box-shadow: -3px 0 10px rgba(0, 0, 0, 0.15);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 9999;
+}
+
+.compare-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.compare-selects {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.compare-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.compare-item span {
+  background: #1a73e8;
+  color: white;
+  font-weight: bold;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 24px;
+}
+
+.compare-dropdown {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.compare-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-cancel {
+  flex: 1;
+  background: red;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-start {
+  flex: 1;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-start:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
