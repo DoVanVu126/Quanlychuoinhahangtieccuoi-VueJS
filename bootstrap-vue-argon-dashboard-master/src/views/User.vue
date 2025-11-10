@@ -37,6 +37,8 @@
                   <th>Email</th>
                   <th>Ảnh đại diện</th>
                   <th>Vai trò</th>
+                  <th>Phone</th>
+                  <th>Address</th>
                   <th>Ngày tạo</th>
                   <th>Thao tác</th>
                 </tr>
@@ -59,6 +61,8 @@
                     <span v-else class="text-muted">Không có</span>
                   </td>
                   <td>{{ user.role }}</td>
+                  <td>{{ user.phone || 'Không có' }}</td>
+                  <td>{{ user.address || 'Không có' }}</td>
                   <td>{{ formatDate(user.created_at) }}</td>
                   <td>
                     <b-button size="sm" variant="outline-primary" @click="editUser(user)">Sửa</b-button>
@@ -66,7 +70,7 @@
                   </td>
                 </tr>
                 <tr v-if="filteredUsers.length === 0">
-                  <td colspan="7" class="text-center text-muted">Không có user nào phù hợp</td>
+                  <td colspan="9" class="text-center text-muted">Không có user nào phù hợp</td>
                 </tr>
               </tbody>
             </table>
@@ -118,10 +122,16 @@ export default {
   methods: {
     async getUsers(page = 1) {
       try {
-        const res = await api.get(`/users?page=${page}`);
+        const params = {
+          page,
+          search: this.searchQuery.trim()
+        };
+        const res = await api.get(`/users`, { params });
         this.users = res.data.data.map((u) => ({
           ...u,
           fixed_image_url: this.fixImageUrl(u.image_url),
+          phone: u.phone || '',
+          address: u.address || '',
         }));
         this.currentPage = res.data.current_page;
         this.lastPage = res.data.last_page;
@@ -159,6 +169,14 @@ export default {
     refreshList() {
       this.searchQuery = "";
       this.getUsers();
+    },
+  },
+  watch: {
+    searchQuery: {
+      handler() {
+        this.getUsers(1);
+      },
+      immediate: false,
     },
   },
   mounted() {
