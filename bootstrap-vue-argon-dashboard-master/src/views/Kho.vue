@@ -15,11 +15,43 @@
         style="border-radius: 20px; overflow: hidden;"
       >
         <div class="card-body">
+          <!-- Bộ lọc nhanh -->
+          <div class="d-flex gap-2 mb-3">
+            <b-button 
+              :variant="filterType === 'all' ? 'primary' : 'outline-primary'" 
+              size="sm"
+              @click="filterType = 'all'"
+            >
+              Tất cả ({{ total }})
+            </b-button>
+            <b-button 
+              :variant="filterType === 'expired' ? 'danger' : 'outline-danger'" 
+              size="sm"
+              @click="filterType = 'expired'"
+            >
+              🔴 Hết hạn ({{ expiredCount }})
+            </b-button>
+            <b-button 
+              :variant="filterType === 'near-expiry' ? 'warning' : 'outline-warning'" 
+              size="sm"
+              @click="filterType = 'near-expiry'"
+            >
+              ⚠️ Sắp hết ({{ nearExpiryCount }})
+            </b-button>
+            <b-button 
+              :variant="filterType === 'low-stock' ? 'info' : 'outline-info'" 
+              size="sm"
+              @click="filterType = 'low-stock'"
+            >
+              📦 Cần nhập ({{ lowStockCount }})
+            </b-button>
+          </div>
+
           <div class="d-flex justify-content-between align-items-center mb-3">
             <input
               v-model="searchQuery"
               class="form-control w-50"
-              placeholder="Tìm kiếm theo tên, lô hàng, nhà cung cấp..."
+              placeholder="Tìm kiếm theo tên mặt hàng..."
             />
 
             <div class="d-flex gap-2">
@@ -33,31 +65,44 @@
             <table class="table table-hover align-items-center">
               <thead class="thead-light">
                 <tr>
-                  <th>Mã hàng</th>
-                  <th>Tên hàng</th>
-                  <th>Tồn kho</th>
-                  <th>ĐVT</th>
-                  <th>Lô hàng</th>
-                  <th>HSD</th>
+                  <th>STT</th>
+                  <th>Nhà hàng</th>
+                  <th>Tên mặt hàng</th>
+                  <th>Số lượng</th>
+                  <th>Đơn vị</th>
+                  <th>Mức đặt lại</th>
+                  <th>Hạn sử dụng</th>
                   <th>Trạng thái HSD</th>
-                  <th>Trạng thái tồn kho</th>
+                  <th>Trạng thái tồn</th>
                   <th>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="item in filteredItems" :key="item.ma">
-                  <td>{{ item.ma }}</td>
-                  <td>{{ item.ten }}</td>
-                  <td>{{ item.ton }}</td>
-                  <td>{{ item.dvt }}</td>
-                  <td>{{ item.lo }}</td>
-                  <td>{{ item.hsd }}</td>
+                <tr v-for="(item, index) in filteredItems" :key="item.id">
+                  <td><strong>{{ (currentPage - 1) * perPage + index + 1 }}</strong></td>
+                  <td>
+                    <span class="badge badge-info">NH-{{ item.restaurant_id }}</span>
+                  </td>
+                  <td>{{ item.item_name }}</td>
+                  <td>
+                    <strong :class="item.quantity < item.reorder_level ? 'text-danger' : 'text-success'">
+                      {{ Math.round(item.quantity) }}
+                    </strong>
+                  </td>
+                  <td>{{ item.unit }}</td>
+                  <td>
+                    <span class="text-muted">{{ Math.round(item.reorder_level) }}</span>
+                  </td>
+                  <td>
+                    <small class="text-muted">{{ formatExpiryDate(item.expiry_date) }}</small>
+                  </td>
                   <td>
                     <span
                       :class="{
                         'badge badge-danger': item.hsdTrangThai === 'Hết hạn',
                         'badge badge-warning': item.hsdTrangThai === 'Sắp hết',
                         'badge badge-success': item.hsdTrangThai === 'An toàn',
+                        'badge badge-secondary': item.hsdTrangThai === 'Không có HSD',
                       }"
                     >
                       {{ item.hsdTrangThai }}
@@ -172,6 +217,8 @@ export default {
       items: [],
       loading: false,
       error: null,
+      filterType: 'all', // all, expired, near-expiry, low-stock
+      searchTimeout: null,
       // Pagination
       currentPage: 1,
       totalPages: 1,
@@ -182,11 +229,30 @@ export default {
   mounted() {
     this.loadItems(1);
   },
+  watch: {
+    searchQuery(newVal) {
+      // Debounce search - đợi 500ms sau khi user ngừng gõ
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => {
+        this.loadItems(1);
+      }, 500);
+    },
+    filterType() {
+      this.loadItems(1);
+    }
+  },
   computed: {
     filteredItems() {
-      return this.items.filter((i) =>
-        i.ten.toLowerCase().includes(this.searchQuery.toLowerCase())
-      );
+      return this.items;
+    },
+    expiredCount() {
+      return this.items.filter((i) => i.hsdTrangThai === 'Hết hạn').length;
+    },
+    nearExpiryCount() {
+      return this.items.filter((i) => i.hsdTrangThai === 'Sắp hết').length;
+    },
+    lowStockCount() {
+      return this.items.filter((i) => i.trangThai === 'Cần nhập').length;
     },
     visiblePages() {
       const pages = [];
@@ -210,7 +276,25 @@ export default {
       try {
         this.loading = true;
         this.error = null;
-        const res = await api.get(`/inventories?page=${page}`);
+        
+        // Build query parameters
+        let url = `/inventories?page=${page}`;
+        
+        // Thêm search query
+        if (this.searchQuery) {
+          url += `&search=${encodeURIComponent(this.searchQuery)}`;
+        }
+        
+        // Thêm filter type
+        if (this.filterType === 'expired') {
+          url += `&status=expired`;
+        } else if (this.filterType === 'near-expiry') {
+          url += `&status=near-expiry`;
+        } else if (this.filterType === 'low-stock') {
+          url += `&low_stock=1`;
+        }
+        
+        const res = await api.get(url);
         
         // Kiểm tra cấu trúc response
         console.log('Full API Response:', res.data);
@@ -245,16 +329,17 @@ export default {
         // Map dữ liệu từ database
         this.items = dataArray.map(item => ({
           id: item.inventory_id,
-          ma: `INV-${String(item.inventory_id).padStart(3, '0')}`,
-          ten: item.item_name,
-          ton: item.quantity,
-          dvt: item.unit,
-          lo: item.batch || '-',
-          hsd: item.expiry_date || '-',
           restaurant_id: item.restaurant_id,
+          item_name: item.item_name,
+          quantity: item.quantity,
+          unit: item.unit,
           reorder_level: item.reorder_level || 20,
+          expiry_date: item.expiry_date,
+          status: item.status,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
           hsdTrangThai: this.calculateHSDStatus(item.expiry_date),
-          trangThai: this.calculateStockStatus(item.quantity, item.reorder_level)
+          trangThai: this.calculateStockStatus(item.quantity, item.reorder_level || 20)
         }));
         
         // Cập nhật thông tin phân trang
@@ -285,18 +370,18 @@ export default {
     },
 
     // Tính trạng thái HSD
-    calculateHSDStatus(hsd) {
-      if (!hsd || hsd === '-') return 'An toàn';
-      const parts = hsd.split('/');
-      if (parts.length !== 3) return 'An toàn';
+    calculateHSDStatus(expiryDate) {
+      if (!expiryDate) return 'Không có HSD';
       
-      const [day, month, year] = parts;
-      const expiryDate = new Date(year, month - 1, day);
+      const expiry = new Date(expiryDate);
       const today = new Date();
-      const daysUntilExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+      today.setHours(0, 0, 0, 0);
+      expiry.setHours(0, 0, 0, 0);
+      
+      const daysUntilExpiry = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
       
       if (daysUntilExpiry < 0) return 'Hết hạn';
-      if (daysUntilExpiry <= 30) return 'Sắp hết';
+      if (daysUntilExpiry <= 7) return 'Sắp hết';
       return 'An toàn';
     },
 
@@ -305,19 +390,49 @@ export default {
       return quantity < reorderLevel ? 'Cần nhập' : 'An toàn';
     },
 
+    // Format ngày tháng
+    formatDate(dateString) {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${day}/${month}/${year} ${hours}:${minutes}`;
+    },
+
+    // Format ngày hết hạn
+    formatExpiryDate(dateString) {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    },
+
     // ---- Trang điều hướng ----
-    themHang() { this.$router.push("/them-hang"); },
-    suaHang(item) { this.$router.push({ path: "/sua-hang", query: { ma: item.ma } }); },
+    themHang() { 
+      this.$router.push("/them-hang");
+    },
+    
+    suaHang(item) { 
+      this.$router.push({ path: "/sua-hang", query: { id: item.id } });
+    },
     
     async xoaHang(item) {
-      if (!confirm(`Bạn có chắc muốn xóa ${item.ten}?`)) return;
+      if (!confirm(`Bạn có chắc muốn xóa "${item.item_name}"?`)) return;
       
       try {
+        this.loading = true;
         await api.delete(`/inventories/${item.id}`);
-        this.loadItems();
+        alert('Xóa thành công!');
+        this.loadItems(this.currentPage);
       } catch (err) {
         console.error('Lỗi xóa:', err);
         alert('Không thể xóa. Vui lòng thử lại.');
+        this.loading = false;
       }
     },
     
@@ -349,26 +464,36 @@ export default {
     generateReply(input) {
       const msg = input.trim();
       if (msg === "1") {
-        const canNhap = this.items.filter((i) => i.trangThai === "Cần nhập" || i.ton < 20);
+        const canNhap = this.items.filter((i) => i.trangThai === "Cần nhập");
         return canNhap.length
-          ? "🔸 Hàng cần nhập:\n" + canNhap.map((i) => `- ${i.ten} (${i.ton} ${i.dvt})`).join("\n")
+          ? "🔸 Hàng cần nhập:\n" + canNhap.map((i) => `- ${i.item_name} (${i.quantity} ${i.unit})`).join("\n")
           : "✅ Tất cả hàng đều an toàn.";
       }
       if (msg === "2") {
-        const sapHet = this.items.filter((i) => i.hsdTrangThai !== "An toàn");
-        return sapHet.length
-          ? "⚠️ Hàng sắp/hết hạn:\n" + sapHet.map((i) => `- ${i.ten} (${i.hsdTrangThai})`).join("\n")
-          : "🟢 Không có hàng sắp/hết hạn.";
+        const hetHan = this.items.filter((i) => i.hsdTrangThai === "Hết hạn");
+        const sapHet = this.items.filter((i) => i.hsdTrangThai === "Sắp hết");
+        let response = "";
+        if (hetHan.length > 0) {
+          response += `� Hàng đã hết hạn (${hetHan.length}):\n` + 
+                     hetHan.slice(0, 5).map((i) => `- ${i.item_name} (HSD: ${this.formatExpiryDate(i.expiry_date)})`).join("\n");
+        }
+        if (sapHet.length > 0) {
+          response += (response ? "\n\n" : "") + 
+                     `⚠️ Hàng sắp hết hạn (${sapHet.length}):\n` + 
+                     sapHet.slice(0, 5).map((i) => `- ${i.item_name} (HSD: ${this.formatExpiryDate(i.expiry_date)})`).join("\n");
+        }
+        return response || "🟢 Không có hàng sắp/hết hạn.";
       }
       if (msg === "3") {
         const tong = this.items.length;
         const canNhap = this.items.filter((i) => i.trangThai === "Cần nhập").length;
+        const anToan = this.items.filter((i) => i.trangThai === "An toàn").length;
         const hetHan = this.items.filter((i) => i.hsdTrangThai === "Hết hạn").length;
         const sapHet = this.items.filter((i) => i.hsdTrangThai === "Sắp hết").length;
-        return `📊 Báo cáo nhanh:\n- Tổng: ${tong}\n- Cần nhập: ${canNhap}\n- Hết hạn: ${hetHan}\n- Sắp hết hạn: ${sapHet}`;
+        return `📊 Báo cáo nhanh:\n- Tổng mặt hàng: ${tong}\n- Cần nhập thêm: ${canNhap}\n- An toàn: ${anToan}\n- Hết hạn: ${hetHan}\n- Sắp hết hạn: ${sapHet}`;
       }
       if (msg === "4" || msg.toLowerCase() === "help")
-        return "👉 Hướng dẫn:\n1️⃣ Hàng cần nhập\n2️⃣ Sắp/hết hạn\n3️⃣ Báo cáo tổng\n4️⃣ Hướng dẫn thao tác";
+        return "👉 Hướng dẫn:\n1️⃣ Hàng cần nhập\n2️⃣ Hàng sắp/hết hạn\n3️⃣ Báo cáo tổng\n4️⃣ Hướng dẫn thao tác";
       return "🤔 Tôi không hiểu. Nhập 1, 2, 3 hoặc 4 nhé.";
     },
   },
