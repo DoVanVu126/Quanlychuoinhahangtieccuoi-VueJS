@@ -4,6 +4,7 @@ import AuthLayout from '@/views/Pages/AuthLayout.vue';
 import NotFound from '@/views/NotFoundPage.vue';
 import Home from '@/views/Pages/Home.vue';
 import Search from '@/views/Pages/Search.vue';
+import Register from '@/views/Auth/Register.vue'
 const routes = [
   {
     path: "/",
@@ -26,10 +27,10 @@ const routes = [
       },
 
       {
-  path: "/users/add",
-  name: "AddUser",
-  component: () => import("../views/AddUser.vue"),
-},
+        path: "/users/add",
+        name: "AddUser",
+        component: () => import("../views/AddUser.vue"),
+      },
 
       // 👉 MÓN ĂN
       {
@@ -174,40 +175,15 @@ const routes = [
   },
 
   {
+    path: '/register',
+    name: 'Register',
+    component: Register
+  },
+
+  {
     path: '/home',
     name: 'Home',
     component: Home,
-  },
-  { path: '/search', name: 'Search', component: Search },
-  {
-    path: '/dat-tiec',
-    name: 'DatTiec',
-    component: () => import('@/views/Pages/BookingPage.vue'),
-    props: route => ({
-      restaurant: route.query.restaurant || null,
-      startDate: route.query.startDate || null,
-      endDate: route.query.endDate || null
-    })
-  },
-
-  // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
-  {
-    path: "/",
-    redirect: "/login",
-    component: AuthLayout,
-    children: [
-      {
-        path: "/login",
-        name: "login",
-        component: () => import("../views/Pages/Login.vue"),
-      },
-      {
-        path: "/register",
-        name: "register",
-        component: () => import("../views/Pages/Register.vue"),
-      },
-      { path: "*", component: NotFound },
-    ],
   },
 ];
 
