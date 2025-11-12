@@ -4,6 +4,10 @@ import AuthLayout from "@/views/Pages/AuthLayout.vue";
 import NotFound from "@/views/NotFoundPage.vue";
 import Home from "@/views/Pages/Home.vue";
 import Search from "@/views/Pages/Search.vue";
+import Register from '@/views/Auth/Register.vue';
+import Login from '@/views/Auth/Login.vue';
+
+
 const routes = [
   {
     path: "/",
@@ -194,23 +198,16 @@ const routes = [
 
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
   {
-    path: "/",
-    redirect: "/login",
-    component: AuthLayout,
-    children: [
-      {
-        path: "/login",
-        name: "login",
-        component: () => import("../views/Pages/Login.vue"),
-      },
-      {
-        path: "/register",
-        name: "register",
-        component: () => import("../views/Pages/Register.vue"),
-      },
-      { path: "*", component: NotFound },
-    ],
+    path: "/login",
+    name: "Login",
+    component: Login,
   },
+
+  {
+    path: "/register",
+    name: "Register",
+    component: Register,
+  },  
 ];
 
 export default routes;

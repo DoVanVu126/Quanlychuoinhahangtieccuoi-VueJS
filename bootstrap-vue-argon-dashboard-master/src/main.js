@@ -20,8 +20,38 @@ import App from './App.vue';
 
 // router setup
 import router from './routes/router';
+
+// THÊM VÀO: Import axios
+import axios from 'axios';
+
 // plugin setup
 Vue.use(DashboardPlugin);
+
+// ==========================================
+// === THÊM VÀO: CẤU HÌNH AXIOS INTERCEPTOR ===
+// (Tự động đính kèm token vào mọi request)
+
+
+
+axios.interceptors.request.use(config => {
+  
+  // 1. Thử lấy token từ localStorage (cho "Nhớ tài khoản")
+  let token = localStorage.getItem('user_token');
+
+  // 2. Nếu không có, thử lấy từ sessionStorage (cho "Không nhớ")
+  if (!token) {
+    token = sessionStorage.getItem('user_token');
+  }
+
+  // 3. Nếu có token, đính kèm vào header 'Authorization'
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  
+  return config;
+});
+// ==========================================
+
 
 /* eslint-disable no-new */
 new Vue({

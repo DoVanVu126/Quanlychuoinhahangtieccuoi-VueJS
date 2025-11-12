@@ -34,9 +34,10 @@
                                 </div>
                             </b-form-group>
 
+
                             <div class="d-flex justify-content-between align-items-center mt-3">
-                                <b-form-checkbox v-model="form.remember" class="text-muted">
-                                    Nhớ tài khoản
+                                <b-form-checkbox v-model="form.remember">
+                                    <span class="text-muted">Nhớ tài khoản</span>
                                 </b-form-checkbox>
 
                                 <router-link to="/forgot-password" class="text-primary font-weight-bold small">
@@ -102,29 +103,18 @@ export default {
                 password: this.form.password
             })
                 .then(response => {
-        this.isLoading = false;
+                    this.isLoading = false;
 
-        const user = response.data.user;
-        const token = response.data.access_token;
+                    const user = response.data.user;
+                    const token = response.data.access_token;
 
-        // === LOGIC LƯU TRỮ CÓ ĐIỀU KIỆN ===
-        
-        if (this.form.remember) {
-          // 1. NẾU NGƯỜI DÙNG CHỌN "NHỚ"
-          // Lưu vào localStorage (vĩnh viễn)
-          localStorage.setItem('user_token', token);
-          localStorage.setItem('user_info', JSON.stringify(user));
-        } else {
-          // 2. NẾU KHÔNG CHỌN
-          // Lưu vào sessionStorage (tạm thời)
-          sessionStorage.setItem('user_token', token);
-          sessionStorage.setItem('user_info', JSON.stringify(user));
-        }
-        // ==================================
+                    // Lưu token & user vào localStorage
+                    localStorage.setItem('user_token', token);
+                    localStorage.setItem('user_info', JSON.stringify(user));
 
-        alert('Đăng nhập thành công!');
-        this.$router.push('/dashboard'); 
-      }) 
+                    alert('Đăng nhập thành công!');
+                    this.$router.push('/dashboard');
+                })
                 .catch(error => {
                     this.isLoading = false;
                     if (error.response && error.response.status === 422) {

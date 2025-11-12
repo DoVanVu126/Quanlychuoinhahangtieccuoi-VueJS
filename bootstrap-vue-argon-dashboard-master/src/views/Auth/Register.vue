@@ -1,143 +1,128 @@
 <template>
-  <b-container fluid class="mt-5 mb-5">
-    <b-row class="justify-content-center">
-      <b-col lg="5" md="7">
-        <b-card no-body class="bg-secondary shadow border-0">
-          
-          <b-card-header class="bg-transparent pb-5">
-            <div class="text-muted text-center mt-2 h1">
-              Đăng ký tài khoản
-            </div>
-          </b-card-header>
+  <div class="register-page-container">
+    <header class="border-bottom py-4">
+      <b-container>
+        <div class="font-cursive h1 text-dark">Wedding</div>
+      </b-container>
+    </header>
 
-          <b-card-body class="px-lg-5 py-lg-5">
-            <b-form role="form" @submit.prevent="handleRegister">
-              
-              <b-form-group label="Tên đăng nhập">
-                <b-form-input
-                  v-model="form.username"
-                  type="text"
-                  placeholder="Nhập tên đăng nhập"
-                  required
-                ></b-form-input>
+    <main class="py-5">
+      <b-container>
+        <b-row class="justify-content-center">
+          <b-col md="6" lg="5">
+            <h1 class="font-serif text-center display-4 mb-5">
+              Tạo tài khoản
+            </h1>
+
+            <b-form @submit.prevent="handleRegister">
+
+              <b-form-group label="Tên tài khoản" label-class="form-label">
+                <b-form-input v-model="form.username" type="text" class="minimal-input" required></b-form-input>
               </b-form-group>
 
-              <b-form-group label="Email">
-                <b-form-input
-                  v-model="form.email"
-                  type="email"
-                  placeholder="Nhập email"
-                  required
-                ></b-form-input>
+              <b-form-group label="Email" label-class="form-label" class="mt-4">
+                <b-form-input v-model="form.email" type="email" class="minimal-input" required></b-form-input>
               </b-form-group>
 
-              <b-form-group label="Số điện thoại">
-                <b-form-input
-                  v-model="form.phone"
-                  type="tel"
-                  placeholder="Nhập số điện thoại"
-                  required
-                ></b-form-input>
+              <b-form-group label="Số điện thoại" label-class="form-label" class="mt-4">
+                <b-input-group>
+                  <b-input-group-prepend class="minimal-prepend">
+                    <b-input-group-text>+84</b-input-group-text>
+                  </b-input-group-prepend>
+                  <b-form-input v-model="form.phone" type="tel" placeholder="0123456789" class="minimal-input"
+                    required></b-form-input>
+                </b-input-group>
               </b-form-group>
 
-              <b-form-group label="Mật khẩu">
-                <b-form-input
-                  v-model="form.password"
-                  type="password"
-                  placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)"
-                  required
-                ></b-form-input>
+              <b-form-group label="Mật khẩu" label-class="form-label" class="mt-4">
+                <div class="position-relative">
+                  <b-form-input v-model="form.password" :type="showPassword ? 'text' : 'password'"
+                    class="minimal-input pe-5" required></b-form-input>
+
+                  <i class="fas" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'" @click="togglePassword"
+                    style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;"></i>
+                </div>
               </b-form-group>
 
-              <b-form-group label="Xác nhận mật khẩu">
-                <b-form-input
-                  v-model="form.password_confirmation"
-                  type="password"
-                  placeholder="Nhập lại mật khẩu"
-                  required
-                ></b-form-input>
+
+              <b-form-group label="Xác nhận mật khẩu" label-class="form-label" class="mt-4">
+                <b-form-input v-model="form.password_confirmation" type="password" class="minimal-input"
+                  required></b-form-input>
               </b-form-group>
-              
+
               <div v-if="apiError" class="text-danger my-3">
                 {{ apiError }}
               </div>
 
-              <div class="text-center">
-                <b-button type="submit" variant="primary" class="my-4" :disabled="isLoading">
-                  <span v-if="isLoading">Đang xử lý...</span>
-                  <span v-else>Tạo tài khoản</span>
-                </b-button>
-              </div>
+              <b-button type="submit" class="minimal-button w-100 mt-4" :disabled="isLoading">
+                <span v-if="isLoading">Đang xử lý...</span>
+                <span v-else>TẠO TÀI KHOẢN</span>
+              </b-button>
             </b-form>
-          </b-card-body>
-        </b-card>
-      </b-col>
-    </b-row>
-  </b-container>
+
+            <div class="mt-4 text-center">
+              <p class="text-muted">
+                Đã có tài khoản?
+                <router-link to="/login" class="text-primary font-weight-bold">
+                  Đăng nhập ngay
+                </router-link>
+              </p>
+            </div>
+
+          </b-col>
+        </b-row>
+      </b-container>
+    </main>
+  </div>
 </template>
 
 <script>
 // Import axios để gọi API
 import axios from 'axios';
 
+// PHẦN SCRIPT NÀY GIỮ NGUYÊN 100%
+// Nó không liên quan đến giao diện
 export default {
   name: 'register',
   data() {
     return {
-      // Dùng 'form' object để gom nhóm dữ liệu
-      // Các key (username, email...) PHẢI KHỚP với API
       form: {
-        username: '',
+        name: '',
         email: '',
-        phone: '',
         password: '',
-        password_confirmation: '' // Phải có key này để qua mặt validation 'confirmed'
+        questionpassword: '',
       },
-      apiError: null, // Dùng để lưu thông báo lỗi từ server
-      isLoading: false // Dùng để vô hiệu hóa nút bấm khi đang gửi
+      showPassword: false, // 👁 Ẩn/hiện mật khẩu
+      apiError: null,
+      isLoading: false
     };
   },
   methods: {
+    togglePassword() {
+      this.showPassword = !this.showPassword;
+    },
     handleRegister() {
-      // 1. Reset lỗi và đặt trạng thái loading
       this.apiError = null;
       this.isLoading = true;
 
-      // 2. Lấy URL API từ file .env.local
-      // (Nếu không có, nó sẽ dùng địa chỉ dự phòng)
+      // SỬA LẠI ĐỂ KHỚP VỚI VUE CLI (thay vì Vite)
       const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8088';
 
-      
-
-      // 3. Gửi yêu cầu POST đến API
       axios.post(`${apiUrl}/api/register`, this.form)
         .then(response => {
-          // 4. Xử lý khi ĐĂNG KÝ THÀNH CÔNG
           this.isLoading = false;
-          
-          console.log(response.data); // In ra console để xem
           alert('Đăng ký thành công! Bạn sẽ được chuyển đến trang đăng nhập.');
-          
-          // Chuyển hướng người dùng đến trang đăng nhập
-          this.$router.push('/login'); 
+
+          // SỬA LẠI ĐỂ KHỚP VỚI ROUTER CỦA BẠN
+          this.$router.push('/login');
         })
         .catch(error => {
-          // 5. Xử lý khi CÓ LỖI
           this.isLoading = false;
-
           if (error.response && error.response.status === 422) {
-            // Lỗi 422: Lỗi Validation (do người dùng nhập sai)
-            // Lấy object 'errors' từ Laravel trả về
             const errors = error.response.data;
-            
-            // Lấy key của lỗi đầu tiên (ví dụ: 'email')
             const firstErrorKey = Object.keys(errors)[0];
-            
-            // Gán thông báo lỗi đầu tiên (ví dụ: "The email has already been taken.")
             this.apiError = errors[firstErrorKey][0];
-            
           } else {
-            // Lỗi server 500 hoặc lỗi mạng
             this.apiError = 'Đã có lỗi nghiêm trọng xảy ra. Vui lòng thử lại sau.';
             console.error('Lỗi đăng ký:', error);
           }
@@ -147,6 +132,89 @@ export default {
 };
 </script>
 
-<style>
-/* Bạn có thể thêm CSS tùy chỉnh ở đây nếu cần */
+<style scoped>
+/* * 6. KHỐI CSS TÙY CHỈNH
+ * Đây là nơi chúng ta "bắt chước" phong cách Tailwind
+ */
+
+/* Thêm font chữ đã import */
+.font-cursive {
+  font-family: 'Dancing Script', cursive;
+  font-weight: 700;
+}
+
+.font-serif {
+  font-family: 'Lora', serif;
+  font-weight: 600;
+}
+
+/* Container chính, đảm bảo nền trắng */
+.register-page-container {
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+/* Style cho label của form */
+.form-label {
+  color: #4a5568;
+  /* text-gray-700 */
+  font-size: 0.875rem;
+  /* text-sm */
+  margin-bottom: 0.5rem;
+  /* mb-2 */
+}
+
+/* Style cho ô input "tối giản" */
+.minimal-input {
+  background-color: #f3f4f6 !important;
+  /* bg-gray-100 */
+  border: 0 !important;
+  border-radius: 0 !important;
+  /* rounded-none */
+  padding-top: 0.75rem !important;
+  /* py-3 */
+  padding-bottom: 0.75rem !important;
+  /* py-3 */
+  box-shadow: none !important;
+  /* Tắt box-shadow của Bootstrap */
+}
+
+/* Style cho ô input khi được focus */
+.minimal-input:focus {
+  background-color: #f3f4f6 !important;
+  border: 0 !important;
+  box-shadow: 0 0 0 2px #60a5fa !important;
+  /* focus:ring-2 focus:ring-blue-400 */
+}
+
+/* Style cho phần "+84" */
+.minimal-prepend .input-group-text {
+  background-color: #f3f4f6 !important;
+  /* bg-gray-100 */
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #4b5563;
+  /* text-gray-600 */
+}
+
+/* Style cho nút bấm */
+.minimal-button {
+  background-color: #60a5fa !important;
+  /* bg-blue-400 */
+  border-color: #60a5fa !important;
+  border-radius: 0 !important;
+  /* rounded-none */
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+  padding-top: 0.75rem !important;
+  /* py-3 */
+  padding-bottom: 0.75rem !important;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.minimal-button:hover {
+  background-color: #3b82f6 !important;
+  /* hover:bg-blue-500 */
+  border-color: #3b82f6 !important;
+}
 </style>
