@@ -18,22 +18,33 @@
                         <b-form @submit.prevent="handleLogin">
 
                             <b-form-group label="Tên tài khoản hoặc Email" label-class="form-label">
-                                <b-form-input v-model="form.login" type="text" class="minimal-input"
-                                    placeholder="Nhập tài khoản hoặc email" required></b-form-input>
+                                <b-form-input 
+                                    v-model="form.login" 
+                                    type="text" 
+                                    class="minimal-input"
+                                    placeholder="Nhập tài khoản hoặc email" 
+                                    required>
+                                </b-form-input>
                             </b-form-group>
 
                             <b-form-group label="Mật khẩu" label-class="form-label" class="mt-4">
                                 <div class="position-relative">
-                                    <b-form-input v-model="form.password" :type="showPassword ? 'text' : 'password'"
-                                        class="minimal-input pe-5" required></b-form-input>
+                                    <b-form-input 
+                                        v-model="form.password" 
+                                        :type="showPassword ? 'text' : 'password'"
+                                        class="minimal-input pe-5" 
+                                        placeholder="Nhập mật khẩu"
+                                        required>
+                                    </b-form-input>
 
                                     <!-- Biểu tượng con mắt -->
-                                    <i class="fas" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"
+                                    <i class="fas" 
+                                        :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"
                                         @click="togglePassword"
-                                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;"></i>
+                                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;">
+                                    </i>
                                 </div>
                             </b-form-group>
-
 
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <b-form-checkbox v-model="form.remember">
@@ -45,12 +56,15 @@
                                 </router-link>
                             </div>
 
-                            <div v-if="apiError" class="text-danger my-3 text-center">
+                            <div v-if="apiError" class="alert alert-danger mt-3" role="alert">
                                 {{ apiError }}
                             </div>
 
                             <b-button type="submit" class="minimal-button w-100 mt-4" :disabled="isLoading">
-                                <span v-if="isLoading">Đang xử lý...</span>
+                                <span v-if="isLoading">
+                                    <b-spinner small class="me-2"></b-spinner>
+                                    Đang xử lý...
+                                </span>
                                 <span v-else>ĐĂNG NHẬP</span>
                             </b-button>
                         </b-form>
@@ -83,15 +97,48 @@ export default {
                 password: '',
                 remember: false
             },
-            showPassword: false, // 👈 thêm dòng này
+            showPassword: false,
             apiError: null,
             isLoading: false
         };
+    },
+    mounted() {
+        // Khi component được mount, kiểm tra localStorage
+        this.loadRememberedAccount();
     },
     methods: {
         togglePassword() {
             this.showPassword = !this.showPassword;
         },
+
+        /**
+         * Load tài khoản đã lưu từ localStorage
+         */
+        loadRememberedAccount() {
+            const rememberedLogin = localStorage.getItem('remembered_login');
+            const rememberMe = localStorage.getItem('remember_me');
+
+            if (rememberedLogin && rememberMe === 'true') {
+                this.form.login = rememberedLogin;
+                this.form.remember = true;
+            }
+        },
+
+        /**
+         * Lưu hoặc xóa tài khoản khỏi localStorage
+         */
+        handleRememberAccount() {
+            if (this.form.remember) {
+                // Lưu username/email vào localStorage
+                localStorage.setItem('remembered_login', this.form.login);
+                localStorage.setItem('remember_me', 'true');
+            } else {
+                // Xóa thông tin đã lưu
+                localStorage.removeItem('remembered_login');
+                localStorage.removeItem('remember_me');
+            }
+        },
+
         handleLogin() {
             this.apiError = null;
             this.isLoading = true;
@@ -112,7 +159,18 @@ export default {
                     localStorage.setItem('user_token', token);
                     localStorage.setItem('user_info', JSON.stringify(user));
 
-                    alert('Đăng nhập thành công!');
+                    // Xử lý "Nhớ tài khoản"
+                    this.handleRememberAccount();
+
+                    // Hiển thị thông báo thành công
+                    this.$bvToast.toast('Chào mừng bạn quay trở lại!', {
+                        title: 'Đăng nhập thành công',
+                        variant: 'success',
+                        solid: true,
+                        autoHideDelay: 3000
+                    });
+
+                    // Chuyển hướng đến dashboard
                     this.$router.push('/dashboard');
                 })
                 .catch(error => {
@@ -129,8 +187,6 @@ export default {
 </script>
 
 <style scoped>
-/* Đồng bộ style với Register.vue */
-
 /* Font chữ */
 .font-cursive {
     font-family: 'Dancing Script', cursive;
@@ -183,8 +239,13 @@ export default {
     transition: background-color 0.2s ease-in-out;
 }
 
-.minimal-button:hover {
+.minimal-button:hover:not(:disabled) {
     background-color: #3b82f6 !important;
     border-color: #3b82f6 !important;
+}
+
+.minimal-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 </style>

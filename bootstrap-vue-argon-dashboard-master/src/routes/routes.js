@@ -6,7 +6,9 @@ import Home from "@/views/Pages/Home.vue";
 import Search from "@/views/Pages/Search.vue";
 import Register from '@/views/Auth/Register.vue';
 import Login from '@/views/Auth/Login.vue';
-
+import ForgotPassword from '@/views/Auth/ForgotPassword.vue';
+import VerifyOtp from '@/views/Auth/VerifyOtp.vue';
+import ResetPassword from '@/views/Auth/ResetPassword.vue';
 
 const routes = [
   {
@@ -207,7 +209,24 @@ const routes = [
     path: "/register",
     name: "Register",
     component: Register,
-  },  
+  },
+
+  {
+    path: "/forgot-password",
+    name: "ForgotPassword",
+    component: ForgotPassword,
+  },
+  {
+    path: "/verify-otp",
+    name: "VerifyOtp",
+    component: VerifyOtp,
+  },
+
+  {
+    path: "/reset-password",
+    name: "ResetPassword",
+    component: ResetPassword,
+  },
 ];
 
 export default routes;
