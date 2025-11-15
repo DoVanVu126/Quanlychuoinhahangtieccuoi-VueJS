@@ -3,6 +3,9 @@ import DashboardLayout from "@/views/Layout/DashboardLayout.vue";
 import AuthLayout from "@/views/Pages/AuthLayout.vue";
 import NotFound from "@/views/NotFoundPage.vue";
 import Home from "@/views/Pages/Home.vue";
+import Login from "@/views/Pages/Login.vue";
+import Register from "@/views/Pages/Register.vue";
+import Profile from "@/views/Pages/Profile.vue";
 import Search from "@/views/Pages/Search.vue";
 const routes = [
   {
@@ -180,6 +183,9 @@ const routes = [
     name: "Home",
     component: Home,
   },
+  { path: "/login", name: "Login", component: Login },
+  { path: "/register", name: "Register", component: Register },
+  { path: "/profile", name: "Profile", component: Profile },
   { path: "/search", name: "Search", component: Search },
   {
     path: "/dat-tiec",

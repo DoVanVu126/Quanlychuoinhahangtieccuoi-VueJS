@@ -1,0 +1,52 @@
+.booking-page-row {
+  display: flex;
+  gap: 100px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.booking-page-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.booking-page-group input,
+.booking-page-group select,
+.booking-page-group textarea {
+  padding: 10px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.booking-page-actions {
+  display: flex;
+  gap: 1220px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+}
+
+.booking-page-btn-draft,
+.booking-page-btn-book {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.booking-page-btn-draft {
+  background-color: #f0f0f0;
+}
+
+.booking-page-btn-book {
+  background-color: #4caf50;
+  color: white;
+}
+
+.booking-page-error {
+  color: #dc2626;
+}
+
+.booking-page-success {
+  color: #16a34a;
+}

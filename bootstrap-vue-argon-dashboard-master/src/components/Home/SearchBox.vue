@@ -14,7 +14,8 @@
           class="suggestion-list absolute left-0 top-full w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50">
           <li v-for="(item, index) in results" :key="index" class="wedding-suggestion-item"
             @mousedown.prevent="selectSuggestion(item)">
-            <img :src="item.image || '/images/default-restaurant.jpg'" alt="Restaurant" />
+            <!-- SỬA: dùng image_url theo cấu trúc DB -->
+            <img :src="item.image_url || '/images/default-restaurant.jpg'" alt="Restaurant" />
             <span class="font-medium text-gray-800">{{ item.name }}</span>
           </li>
         </ul>
@@ -22,10 +23,13 @@
 
       <!-- Nhà hàng được chọn -->
       <div v-if="selectedRestaurant" class="wedding-selected-restaurant">
-        <img :src="selectedRestaurant.image || '/images/default-restaurant.jpg'" alt="Restaurant"
+        <!-- SỬA: dùng image_url theo cấu trúc DB -->
+        <img :src="selectedRestaurant.image_url || '/images/default-restaurant.jpg'" alt="Restaurant"
           class="wedding-selected-img" />
         <div class="wedding-selected-info">
           <h3 class="wedding-selected-name font-semibold text-lg">{{ selectedRestaurant.name }}</h3>
+          <!-- Nếu cần hiển thị địa chỉ: dùng ward + city (nếu backend không trả address) -->
+          <p v-if="selectedRestaurant.address" class="text-sm text-gray-600">{{ selectedRestaurant.address }}</p>
         </div>
       </div>
 
@@ -45,7 +49,6 @@
       <p v-if="errorMessage" class="wedding-error-message">
         {{ errorMessage }}
       </p>
-
 
       <button class="wedding-search-btn" @click="goToBookingPage">TÌM</button>
     </div>
@@ -79,6 +82,11 @@ export default {
         const res = await axios.get("http://localhost:8088/api/restaurants/search", {
           params: { keyword: this.keyword },
         });
+
+        // Nếu backend trả về image_url và các trường khác thì dùng trực tiếp.
+        // Nếu backend trả image thay vì image_url, bạn có thể map ở đây.
+        // Ví dụ: const data = res.data.map(r => ({ ...r, image_url: r.image || r.image_url }));
+        // Mình giữ nguyên dữ liệu trả về từ backend:
         this.results = res.data;
       } catch (error) {
         console.error("Lỗi tìm kiếm:", error);
@@ -91,7 +99,11 @@ export default {
 
     selectSuggestion(item) {
       this.keyword = item.name;
-      this.selectedRestaurant = item;
+      // Giữ nguyên object trả về backend nhưng thêm address nếu cần
+      this.selectedRestaurant = {
+        ...item,
+        address: item.address ? item.address : `${item.ward ? item.ward : ""}${item.ward && item.city ? ", " : ""}${item.city ? item.city : ""}`
+      };
       this.showSuggestions = false;
     },
 
@@ -103,7 +115,12 @@ export default {
 
     // ✅ Khi nhấn "TÌM"
     goToBookingPage() {
-      this.errorMessage = "";
+      const token = localStorage.getItem("token");
+
+      if (!token || token === "undefined") {
+        this.showError("⚠️ Vui lòng đăng nhập trước khi đặt tiệc!");
+        return;
+      }
 
       if (!this.selectedRestaurant) {
         this.showError("⚠️ Vui lòng chọn nhà hàng!");
@@ -118,15 +135,16 @@ export default {
         return;
       }
 
-      // Nếu hợp lệ thì chuyển trang
       this.$router.push({
         name: "DatTiec",
         query: {
-          restaurant: this.selectedRestaurant.name,
+          restaurant_id: this.selectedRestaurant.restaurant_id,
           startDate: this.startDate,
           endDate: this.endDate,
-        },
+        }
       });
+
+
     },
 
     // ✅ Hàm hiển thị lỗi trong 3 giây
@@ -139,6 +157,5 @@ export default {
   },
 };
 </script>
-
 
 <style src="../../assets/css/search-box.css"></style>
