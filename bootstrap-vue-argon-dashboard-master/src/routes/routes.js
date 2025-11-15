@@ -4,6 +4,7 @@ import AuthLayout from "@/views/Pages/AuthLayout.vue";
 import NotFound from "@/views/NotFoundPage.vue";
 import Home from "@/views/Pages/Home.vue";
 import Search from "@/views/Pages/Search.vue";
+import UserLayout from "@/views/KM/UserLayout.vue";
 const routes = [
   {
     path: "/",
@@ -68,6 +69,36 @@ const routes = [
         name: "SuaDichVu",
         component: () => import("../views/Service/SuaDichVu.vue"),
       },
+
+      // 👉 KHUYẾN MÃI
+      {
+        path: "/promotions",
+        name: "Promotions",
+        component: () => import("../views/Promotion/Promotions.vue"),
+      },
+      {
+        path: "/promotions/add",
+        name: "AddPromotion",
+        component: () => import("../views/Promotion/AddPromotion.vue"),
+      },
+      {
+        path: "/promotions/edit/:id",
+        name: "EditPromotion",
+        component: () => import("../views/Promotion/EditPromotion.vue"),
+      },
+
+   {
+  path: "/promotions",
+  name: "PromotionList",
+  component: () => import("../components/Home/PromotionList.vue"),
+},
+
+// {
+//   path: "/promotion/:id",
+//   name: "PromotionDetail",
+//   component: () => import("../components/Home/PromotionDetail.vue"),
+// },
+
 
       // 👉 SẢNH
       {
@@ -192,6 +223,19 @@ const routes = [
     }),
   },
 
+  {
+  path: "/promotion/:id",
+  component: UserLayout,
+  children: [
+    {
+      path: "",
+      name: "PromotionDetailUser",
+      component: () => import("../components/Home/PromotionDetail.vue"),
+    }
+  ]
+},
+
+
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
   {
     path: "/",
@@ -212,5 +256,6 @@ const routes = [
     ],
   },
 ];
+
 
 export default routes;
