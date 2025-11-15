@@ -17,33 +17,45 @@
 
                         <b-form @submit.prevent="handleLogin">
 
+                            <!-- Login Field -->
                             <b-form-group label="Tên tài khoản hoặc Email" label-class="form-label">
                                 <b-form-input 
                                     v-model="form.login" 
                                     type="text" 
                                     class="minimal-input"
-                                    placeholder="Nhập tài khoản hoặc email" 
-                                    required>
+                                    :class="{ 'is-invalid-custom': errors.login }"
+                                    :state="errors.login ? false : null"
+                                    placeholder="Nhập tài khoản hoặc email"
+                                    @input="validateLogin"
+                                    @blur="validateLogin">
                                 </b-form-input>
+                                <small v-if="errors.login" class="text-danger d-block mt-1">
+                                    {{ errors.login }}
+                                </small>
                             </b-form-group>
 
+                            <!-- Password Field -->
                             <b-form-group label="Mật khẩu" label-class="form-label" class="mt-4">
                                 <div class="position-relative">
                                     <b-form-input 
                                         v-model="form.password" 
                                         :type="showPassword ? 'text' : 'password'"
-                                        class="minimal-input pe-5" 
+                                        class="minimal-input pe-5"
+                                        :class="{ 'is-invalid-custom': errors.password }"
                                         placeholder="Nhập mật khẩu"
-                                        required>
+                                        @input="validatePassword"
+                                        @blur="validatePassword">
                                     </b-form-input>
 
-                                    <!-- Biểu tượng con mắt -->
                                     <i class="fas" 
                                         :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"
                                         @click="togglePassword"
                                         style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;">
                                     </i>
                                 </div>
+                                <small v-if="errors.password" class="text-danger d-block mt-1">
+                                    {{ errors.password }}
+                                </small>
                             </b-form-group>
 
                             <div class="d-flex justify-content-between align-items-center mt-3">
@@ -56,11 +68,10 @@
                                 </router-link>
                             </div>
 
-                            <div v-if="apiError" class="alert alert-danger mt-3" role="alert">
-                                {{ apiError }}
-                            </div>
-
-                            <b-button type="submit" class="minimal-button w-100 mt-4" :disabled="isLoading">
+                            <b-button 
+                                type="submit" 
+                                class="minimal-button w-100 mt-4" 
+                                :disabled="isLoading || !isFormValid">
                                 <span v-if="isLoading">
                                     <b-spinner small class="me-2"></b-spinner>
                                     Đang xử lý...
@@ -97,13 +108,25 @@ export default {
                 password: '',
                 remember: false
             },
+            errors: {
+                login: '',
+                password: ''
+            },
             showPassword: false,
-            apiError: null,
             isLoading: false
         };
     },
+    computed: {
+        isFormValid() {
+            return (
+                this.form.login &&
+                this.form.password &&
+                !this.errors.login &&
+                !this.errors.password
+            );
+        }
+    },
     mounted() {
-        // Khi component được mount, kiểm tra localStorage
         this.loadRememberedAccount();
     },
     methods: {
@@ -111,9 +134,33 @@ export default {
             this.showPassword = !this.showPassword;
         },
 
-        /**
-         * Load tài khoản đã lưu từ localStorage
-         */
+        // Validation methods
+        validateLogin() {
+            const login = this.form.login;
+            
+            if (!login) {
+                this.errors.login = 'Tên tài khoản hoặc email là bắt buộc';
+            } else if (login.length > 255) {
+                this.errors.login = 'Tên đăng nhập quá dài';
+            } else if (/<|>/.test(login)) {
+                this.errors.login = 'Không được chứa ký tự đặc biệt';
+            } else {
+                this.errors.login = '';
+            }
+        },
+
+        validatePassword() {
+            const password = this.form.password;
+            
+            if (!password) {
+                this.errors.password = 'Mật khẩu là bắt buộc';
+            } else if (password.length > 255) {
+                this.errors.password = 'Mật khẩu quá dài';
+            } else {
+                this.errors.password = '';
+            }
+        },
+
         loadRememberedAccount() {
             const rememberedLogin = localStorage.getItem('remembered_login');
             const rememberMe = localStorage.getItem('remember_me');
@@ -124,25 +171,47 @@ export default {
             }
         },
 
-        /**
-         * Lưu hoặc xóa tài khoản khỏi localStorage
-         */
         handleRememberAccount() {
             if (this.form.remember) {
-                // Lưu username/email vào localStorage
                 localStorage.setItem('remembered_login', this.form.login);
                 localStorage.setItem('remember_me', 'true');
             } else {
-                // Xóa thông tin đã lưu
                 localStorage.removeItem('remembered_login');
                 localStorage.removeItem('remember_me');
             }
         },
 
-        handleLogin() {
-            this.apiError = null;
-            this.isLoading = true;
+        showSuccessToast(message) {
+            this.$bvToast.toast(message, {
+                title: 'Thành công',
+                variant: 'success',
+                solid: true,
+                autoHideDelay: 2000,
+                toaster: 'b-toaster-top-center',
+            });
+        },
 
+        showErrorToast(message) {
+            this.$bvToast.toast(message, {
+                title: 'Lỗi đăng nhập',
+                variant: 'danger',
+                solid: true,
+                autoHideDelay: 4000,
+                toaster: 'b-toaster-top-center',
+            });
+        },
+
+        handleLogin() {
+            // Validate trước khi submit
+            this.validateLogin();
+            this.validatePassword();
+
+            if (!this.isFormValid) {
+                this.showErrorToast('Vui lòng kiểm tra lại thông tin đăng nhập');
+                return;
+            }
+
+            this.isLoading = true;
             const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8088';
 
             axios.post(`${apiUrl}/api/login`, {
@@ -152,33 +221,51 @@ export default {
                 .then(response => {
                     this.isLoading = false;
 
-                    const user = response.data.user;
-                    const token = response.data.access_token;
+                    if (response.data.success) {
+                        const user = response.data.user;
+                        const token = response.data.access_token;
 
-                    // Lưu token & user vào localStorage
-                    localStorage.setItem('user_token', token);
-                    localStorage.setItem('user_info', JSON.stringify(user));
+                        // Lưu token & user vào localStorage
+                        localStorage.setItem('user_token', token);
+                        localStorage.setItem('user_info', JSON.stringify(user));
 
-                    // Xử lý "Nhớ tài khoản"
-                    this.handleRememberAccount();
+                        // Xử lý "Nhớ tài khoản"
+                        this.handleRememberAccount();
 
-                    // Hiển thị thông báo thành công
-                    this.$bvToast.toast('Chào mừng bạn quay trở lại!', {
-                        title: 'Đăng nhập thành công',
-                        variant: 'success',
-                        solid: true,
-                        autoHideDelay: 3000
-                    });
+                        // Hiển thị thông báo thành công
+                        this.showSuccessToast('Chào mừng bạn quay trở lại!');
 
-                    // Chuyển hướng đến dashboard
-                    this.$router.push('/dashboard');
+                        // Chuyển hướng đến dashboard
+                        setTimeout(() => {
+                            this.$router.push('/dashboard');
+                        }, 1000);
+                    }
                 })
                 .catch(error => {
                     this.isLoading = false;
-                    if (error.response && error.response.status === 422) {
-                        this.apiError = 'Tài khoản hoặc mật khẩu không chính xác.';
+                    
+                    if (error.response) {
+                        if (error.response.status === 422 || error.response.status === 401) {
+                            const errorData = error.response.data;
+                            
+                            // Hiển thị lỗi từ server
+                            if (errorData.errors) {
+                                for (let field in errorData.errors) {
+                                    if (Array.isArray(errorData.errors[field])) {
+                                        this.errors[field] = errorData.errors[field][0];
+                                    }
+                                }
+                            }
+                            
+                            const message = errorData.message || 'Tài khoản hoặc mật khẩu không chính xác';
+                            this.showErrorToast(message);
+                        } else if (error.response.status === 500) {
+                            this.showErrorToast('Lỗi server. Vui lòng thử lại sau');
+                        } else {
+                            this.showErrorToast('Đã có lỗi xảy ra. Vui lòng thử lại');
+                        }
                     } else {
-                        this.apiError = 'Đã có lỗi nghiêm trọng xảy ra. Vui lòng thử lại sau.';
+                        this.showErrorToast('Không thể kết nối đến server');
                     }
                 });
         }
@@ -209,6 +296,7 @@ export default {
     color: #4a5568;
     font-size: 0.875rem;
     margin-bottom: 0.5rem;
+    font-weight: 500;
 }
 
 /* Input */
@@ -219,12 +307,24 @@ export default {
     padding-top: 0.75rem !important;
     padding-bottom: 0.75rem !important;
     box-shadow: none !important;
+    transition: all 0.2s ease;
 }
 
 .minimal-input:focus {
     background-color: #f3f4f6 !important;
     border: 0 !important;
     box-shadow: 0 0 0 2px #60a5fa !important;
+}
+
+/* Input invalid - CSS mạnh hơn */
+.minimal-input.is-invalid-custom {
+    box-shadow: 0 0 0 3px #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+
+.minimal-input.is-invalid-custom:focus {
+    box-shadow: 0 0 0 3px #dc2626 !important;
+    background-color: #fef2f2 !important;
 }
 
 /* Nút bấm */
@@ -236,7 +336,7 @@ export default {
     font-weight: 600 !important;
     padding-top: 0.75rem !important;
     padding-bottom: 0.75rem !important;
-    transition: background-color 0.2s ease-in-out;
+    transition: all 0.2s ease-in-out;
 }
 
 .minimal-button:hover:not(:disabled) {
@@ -247,5 +347,27 @@ export default {
 .minimal-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+</style>
+
+<style>
+/* Toast styles - Global */
+.b-toaster-top-center {
+    top: 20px !important;
+}
+
+.toast {
+    border-radius: 0.5rem !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.toast-header {
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+    font-weight: 600 !important;
+}
+
+.toast-body {
+    font-size: 0.95rem !important;
+    padding: 1rem !important;
 }
 </style>
