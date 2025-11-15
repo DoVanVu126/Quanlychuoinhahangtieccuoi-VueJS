@@ -4,12 +4,7 @@
     <div class="logo">
       <img src="/img/logo.png" alt="Wedding" />
       <div class="search-bar">
-        <input
-          type="text"
-          placeholder="Tìm nhà hàng, địa điểm..."
-          v-model="keyword"
-          @keyup.enter="goToSearch"
-        />
+        <input type="text" placeholder="Tìm nhà hàng, địa điểm..." v-model="keyword" @keyup.enter="goToSearch" />
       </div>
     </div>
 
@@ -32,8 +27,24 @@
         </select>
       </div>
 
-      <button class="login-btn">Đăng nhập</button>
-      <button class="signup-btn">Tạo tài khoản</button>
+      <!-- Nếu chưa đăng nhập -->
+      <template v-if="!user">
+        <button class="homeheader-login-btn" @click="goToLogin">Đăng nhập</button>
+        <button class="homeheader-signup-btn" @click="goToSignup">Tạo tài khoản</button>
+      </template>
+
+      <!-- Nếu đã đăng nhập -->
+      <template v-else>
+        <div class="homeheader-user-dropdown" @click="toggleDropdown">
+          <span>Chào, {{ user.username }}</span>
+          <i class="fas fa-caret-down"></i>
+
+          <div v-if="dropdownOpen" class="homeheader-dropdown-menu" @click.stop>
+            <router-link to="/profile">Trang cá nhân</router-link>
+            <a @click="logout">Đăng xuất</a>
+          </div>
+        </div>
+      </template>
     </nav>
   </header>
 </template>
@@ -44,6 +55,8 @@ export default {
   data() {
     return {
       keyword: "",
+      user: JSON.parse(localStorage.getItem("user")) || null,
+      dropdownOpen: false,
     };
   },
   methods: {
@@ -51,6 +64,21 @@ export default {
       const query = this.keyword.trim();
       if (!query) return;
       this.$router.push({ path: "/search", query: { keyword: query } });
+    },
+    goToLogin() {
+      this.$router.push("/login");
+    },
+    goToSignup() {
+      this.$router.push("/register");
+    },
+    toggleDropdown() {
+      this.dropdownOpen = !this.dropdownOpen;
+    },
+    logout() {
+      localStorage.removeItem("user");   // xóa thông tin user
+      localStorage.removeItem("token");  // xóa token
+      this.user = null;
+      this.$router.push("/login");       // chuyển về trang login
     },
   },
 };
