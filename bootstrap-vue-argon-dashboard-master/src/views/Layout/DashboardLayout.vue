@@ -3,7 +3,12 @@
     <notifications></notifications>
     <side-bar>
       <template slot="links">
-        <h4 class="text-center mt-3" style="font-family: 'Dancing Script', cursive;">Wedding</h4>
+        <h4
+          class="text-center mt-3"
+          style="font-family: 'Dancing Script', cursive"
+        >
+          Wedding
+        </h4>
 
         <sidebar-item
           :link="{
@@ -22,13 +27,12 @@
         ></sidebar-item>
 
         <sidebar-item
-  :link="{
-    name: 'Món ăn',
-    path: '/mon-an',
-    icon: 'ni ni-basket text-orange',
-  }"
-></sidebar-item>
-
+          :link="{
+            name: 'Món ăn',
+            path: '/mon-an',
+            icon: 'ni ni-basket text-orange',
+          }"
+        ></sidebar-item>
 
         <sidebar-item
           :link="{
@@ -64,6 +68,14 @@
 
         <sidebar-item
           :link="{
+            name: 'Khuyến mãi',
+            path: '/promotions',
+            icon: 'ni ni-bell-55 text-yellow',
+          }"
+        ></sidebar-item>
+
+        <sidebar-item
+          :link="{
             name: 'Gói gợi ý',
             path: '/goi-goi-y',
             icon: 'ni ni-collection text-blue',
@@ -77,7 +89,6 @@
             icon: 'ni ni-single-02 text-dark',
           }"
         ></sidebar-item>
-
 
         <sidebar-item
           :link="{
