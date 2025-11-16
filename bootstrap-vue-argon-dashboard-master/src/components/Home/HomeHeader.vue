@@ -14,9 +14,12 @@
       <a href="#ho-tro">Hỗ trợ</a>
 
       <!-- Icon giỏ hàng -->
-      <div class="cart-icon">
+      <!-- <div class="cart-icon">
         <i class="fas fa-shopping-cart"></i>
-      </div>
+      </div> -->
+      <router-link to="/gio-hang" class="cart-icon">
+  <i class="fas fa-shopping-cart"></i>
+</router-link>
 
       <!-- Chọn ngôn ngữ -->
       <div class="language-switch">

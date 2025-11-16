@@ -229,6 +229,18 @@ const routes = [
     }),
   },
 
+ {
+  path: "/gio-hang",
+  component: UserLayout,   // Layout người dùng
+  children: [
+    {
+      path: "",
+      name: "CartPage",
+      component: () => import("../components/Home/Cart.vue"),
+    }
+  ]
+},
+
   {
   path: "/promotion/:id",
   component: UserLayout,
