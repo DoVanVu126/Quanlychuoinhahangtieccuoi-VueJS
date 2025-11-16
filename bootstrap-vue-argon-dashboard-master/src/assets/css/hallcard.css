@@ -1,0 +1,86 @@
+/* 🔹 Layout hall item ngang */
+.hallcard-container {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  border-bottom: 2px solid #e6e6e6;
+}
+
+/* Ảnh hiển thị bên trái */
+.hallcard-img-wrapper {
+  position: relative;
+  width: 200px;
+  height: 140px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.hallcard-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Overlay khi bị khoá */
+.hallcard-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 22px;
+  font-weight: 700;
+  backdrop-filter: blur(2px);
+  text-transform: uppercase;
+}
+
+/* Thông tin phần nội dung bên phải */
+.hallcard-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.hallcard-info h4 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #111;
+}
+
+.hallcard-info p {
+  color: #555;
+  margin: 4px 0;
+  line-height: 1.45;
+}
+
+/* 🔘 Button full chiều ngang */
+.hallcard-btn-select,
+.hallcard-btn-selected {
+  margin-top: 12px;
+  padding: 12px 0;
+  border-radius: 10px;
+  font-weight: 600;
+  width: 100%;
+  border: none;
+  font-size: 15px;
+  transition: 0.25s;
+}
+
+/* Normal */
+.hallcard-btn-select {
+  background: #0050ff;
+  color: white;
+}
+.hallcard-btn-select:hover {
+  background: #003ed1;
+}
+
+/* Selected */
+.hallcard-btn-selected {
+  background: #b1b1b1;
+  color: white;
+  pointer-events: none;
+}

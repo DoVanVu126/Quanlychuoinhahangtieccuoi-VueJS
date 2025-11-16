@@ -1,12 +1,27 @@
 <template>
-  <div class="hall-card">
-    <img :src="hall.image" alt="Hall" />
-    <div class="hall-info">
+  <div class="hallcard-container">
+    <div class="hallcard-img-wrapper">
+      <img :src="hall.image" alt="Hall" class="hallcard-img" />
+
+      <!-- Khi bị khoá / đã được đặt -->
+      <div
+        v-if="hall.status === 'locked' || hall.status === 'maintenance'"
+        class="hallcard-overlay"
+      >
+        {{ hall.status === 'locked' ? 'ĐÃ ĐƯỢC ĐẶT' : 'ĐANG BẢO TRÌ' }}
+      </div>
+    </div>
+
+    <div class="hallcard-info">
       <h4>{{ hall.name }}</h4>
       <p>{{ hall.description }}</p>
-      <p><strong>{{ hall.range }}</strong> | {{ hall.price }}</p>
+      <p>
+        <strong>{{ hall.range }}</strong> &nbsp; {{ hall.price }}
+      </p>
+
       <button
-        :class="hall.selected ? 'btn-selected' : 'btn-select'"
+        :class="hall.selected ? 'hallcard-btn-selected' : 'hallcard-btn-select'"
+        :disabled="hall.status === 'locked' || hall.status === 'maintenance'"
         @click="$emit('select', hall)"
       >
         {{ hall.selected ? 'ĐÃ CHỌN' : 'CHỌN' }}
@@ -21,3 +36,4 @@ export default {
   props: ["hall"],
 };
 </script>
+<style src="../../assets/css/hallcard.css"></style>
