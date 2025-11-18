@@ -3,12 +3,11 @@
     <div class="hallcard-img-wrapper">
       <img :src="hall.image" alt="Hall" class="hallcard-img" />
 
-      <!-- Khi bị khoá / đã được đặt -->
       <div
-        v-if="hall.status === 'locked' || hall.status === 'maintenance'"
+        v-if="hall.status === 'maintenance'"
         class="hallcard-overlay"
       >
-        {{ hall.status === 'locked' ? 'ĐÃ ĐƯỢC ĐẶT' : 'ĐANG BẢO TRÌ' }}
+        ĐANG BẢO TRÌ
       </div>
     </div>
 
@@ -21,7 +20,8 @@
 
       <button
         :class="hall.selected ? 'hallcard-btn-selected' : 'hallcard-btn-select'"
-        :disabled="hall.status === 'locked' || hall.status === 'maintenance'"
+        
+        :disabled="hall.status === 'maintenance'" 
         @click="$emit('select', hall)"
       >
         {{ hall.selected ? 'ĐÃ CHỌN' : 'CHỌN' }}

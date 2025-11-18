@@ -1,7 +1,12 @@
 <template>
   <div class="servicecard-container">
     <div class="servicecard-img-wrapper">
-      <img :src="service.image_url" alt="Service" class="servicecard-img" />
+      <img :src="service.image_url || '/images/default-service.jpg'" alt="Service" class="servicecard-img" />
+
+      <!-- Khi bị khoá / không khả dụng -->
+      <div v-if="service.status === 'locked' || service.status === 'maintenance'" class="servicecard-overlay">
+        {{ service.status === 'locked' ? 'ĐÃ ĐƯỢC CHỌN' : 'ĐANG BẢO TRÌ' }}
+      </div>
     </div>
 
     <div class="servicecard-info">
@@ -11,6 +16,7 @@
 
       <button
         :class="service.selected ? 'servicecard-btn-selected' : 'servicecard-btn-select'"
+        :disabled="service.status === 'locked' || service.status === 'maintenance'"
         @click="$emit('select', service)"
       >
         {{ service.selected ? "ĐÃ CHỌN" : "CHỌN" }}
@@ -22,7 +28,9 @@
 <script>
 export default {
   name: "ServiceCard",
-  props: { service: Object },
+  props: {
+    service: { type: Object, required: true },
+  },
 };
 </script>
 
