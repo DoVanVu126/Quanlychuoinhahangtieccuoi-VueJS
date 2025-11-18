@@ -14,6 +14,10 @@
         <input type="email" v-model="form.email" placeholder="Nhập email" />
       </div>
     </div>
+    <div class="booking-page-group">
+      <label>Giá (VNĐ)*</label>
+      <input type="number" v-model.number="form.price" placeholder="Nhập giá hoặc lấy từ sảnh" min="0" />
+    </div>
 
     <div class="booking-page-row">
       <div class="booking-page-group">
@@ -31,9 +35,8 @@
       <div class="booking-page-group">
         <label>Thời gian*</label>
         <select v-model="form.time">
-          <option>9h-13h</option>
-          <option>14h-18h</option>
-          <option>18h-22h</option>
+          <option>9:00:00</option>
+          <option>16:00:00</option>
         </select>
       </div>
     </div>
@@ -74,20 +77,24 @@ export default {
     restaurant: { type: Object, required: true },
     startDate: { type: String, default: "" },
     endDate: { type: String, default: "" },
+    selectedHall: { type: Object, default: null } // 👈 nhận sảnh chọn
   },
+
   data() {
     return {
       form: {
         name: "",
         phone: "",
         email: "",
+        price: "",
         type: "Đám cưới",
         tables: 1,
-        time: "9h-13h",
+        time: "9:00:00",
         note: "",
         startDate: this.startDate || "",
         endDate: this.endDate || "",
       },
+      selectedHall: null, // sảnh được chọn
       formError: "",
       successMessage: "",
     };
@@ -114,6 +121,11 @@ export default {
     async submitBooking() {
       this.formError = "";
       this.successMessage = "";
+      if (this.selectedHall) {
+        this.form.price = this.selectedHall.price;
+      } else {
+        this.form.price = 0; // hoặc giữ nguyên giá nhập tay
+      }
 
       if (!this.form.name || !this.form.phone || !this.form.email) {
         this.formError = "Vui lòng điền đầy đủ Họ tên, SĐT và Email.";
@@ -126,18 +138,18 @@ export default {
 
       const payload = {
         restaurant_id: this.restaurant.restaurant_id,
-        name: this.form.name,
-        phone: this.form.phone,
-        email: this.form.email,
-        type: this.form.type,
-        tables: this.form.tables,
-        time: this.form.time,
-        note: this.form.note,
-        start_date: this.form.startDate,
-        end_date: this.form.endDate,
+        hall_id: this.selectedHall ? this.selectedHall.hall_id : null, // 👈 ID sảnh
+        event_type: this.form.type,
+        event_time: this.form.time,
+        event_date: this.form.startDate,
+        return_date: this.form.endDate,
+        number_of_tables: this.form.tables,
+        price: this.selectedHall ? this.selectedHall.price : this.form.price,
+        notes: this.form.note,
         user_id: this.user ? this.user.user_id : null,
       };
 
+      console.log("Payload sẽ gửi:", payload);
       try {
         const token = localStorage.getItem("token");
         const headers = token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {};

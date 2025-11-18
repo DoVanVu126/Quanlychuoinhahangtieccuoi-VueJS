@@ -5,8 +5,8 @@
     <div class="booking-content">
       <!-- Phần nội dung đặt tiệc -->
       <RestaurantHeader :restaurants="restaurants" />
-      <BookingForm :user="user" :restaurant="restaurants" :startDate="startDate" :endDate="endDate" />
-      <BookingTabs :halls="halls" :foods="foods" :services="services" />
+      <BookingForm :user="user" :restaurant="restaurants" :startDate="startDate" :endDate="endDate" :selectedHall="selectedHall"/>
+      <BookingTabs :halls="halls" @hall-selected="selectedHall = $event" :foods="foods" :services="services" />
 
     </div>
   </div>

@@ -12,11 +12,10 @@
     overflow: hidden;
 }
 
-/* Header Tabs */
 .booking-tabs-header {
     display: flex;
-    justify-content: flex-start;
-    gap: 0;
+    justify-content: center;
+    gap: 25px; /* chỉnh khoảng cách giữa các nút tùy ý */
 }
 
 .booking-tabs-header button {
@@ -75,4 +74,33 @@
     object-fit: cover;
     border-radius: 8px;
     margin-bottom: 5px;
+}
+
+.food-type-tabs {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.food-type-tabs button {
+  padding: 10px 22px;
+  font-size: 15px;
+  border-radius: 12px;
+  border: 1px solid #ffffff;
+  background: #fff;
+  cursor: pointer;
+  transition: 0.25s;
+  font-weight: 600;
+}
+
+.food-type-tabs button:hover {
+  background: #f4f4f4;
+  transform: translateY(-2px);
+}
+
+.food-type-tabs button.active {
+  background: #3b82f6;
+  color: #fff;
+  transform: scale(1.05);
 }
