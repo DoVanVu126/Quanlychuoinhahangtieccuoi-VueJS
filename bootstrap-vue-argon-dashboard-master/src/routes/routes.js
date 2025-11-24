@@ -90,17 +90,11 @@ const routes = [
         component: () => import("../views/Promotion/EditPromotion.vue"),
       },
 
-   {
-  path: "/promotions",
-  name: "PromotionList",
-  component: () => import("../components/Home/PromotionList.vue"),
-},
-
-// {
-//   path: "/promotion/:id",
-//   name: "PromotionDetail",
-//   component: () => import("../components/Home/PromotionDetail.vue"),
-// },
+      {
+        path: "/promotions",
+        name: "PromotionList",
+        component: () => import("../components/Home/PromotionList.vue"),
+      },
 
 
       // 👉 SẢNH
@@ -119,39 +113,21 @@ const routes = [
         name: "SuaSanh",
         component: () => import("../views/SuaSanh.vue"),
       },
-
       // 👉 NHÀ HÀNG
       {
-        path: "/nha-hang",
-        name: "NhaHang",
-        component: () => import("@/views/NhaHang.vue"),
+        path: "/restaurant",
+        name: "Restaurant",
+        component: () => import("../views/Restaurant/Restaurant.vue"),
       },
       {
-        path: "/nha-hang/them",
-        name: "ThemNhaHang",
-        component: () => import("../views/ThemNhaHang.vue"),
+        path: "/restaurant/them",
+        name: "ThemRestaurant",
+        component: () => import("../views/Restaurant/ThemRestaurant.vue"),
       },
       {
-        path: "/nha-hang/sua/:id",
-        name: "SuaNhaHang",
-        component: () => import("../views/SuaNhaHang.vue"),
-      },
-
-      // 👉 GÓI GỢI Ý
-      {
-        path: "/goi-goi-y",
-        name: "GoiGoiY",
-        component: () => import("../views/GoiGoiY.vue"),
-      },
-      {
-        path: "/goi-goi-y/them",
-        name: "ThemGoiGoiY",
-        component: () => import("../views/ThemGoiGoiY.vue"),
-      },
-      {
-        path: "/goi-goi-y/sua/:id",
-        name: "SuaGoiGoiY",
-        component: () => import("../views/SuaGoiGoiY.vue"),
+        path: "/restaurant/sua/:id",
+        name: "SuaRestaurant",
+        component: () => import("../views/Restaurant/SuaRestaurant.vue"),
       },
 
       // 👉 KHO - Quản lý kho
@@ -229,29 +205,29 @@ const routes = [
     }),
   },
 
- {
-  path: "/gio-hang",
-  component: UserLayout,   // Layout người dùng
-  children: [
-    {
-      path: "",
-      name: "CartPage",
-      component: () => import("../components/Home/Cart.vue"),
-    }
-  ]
-},
+  {
+    path: "/gio-hang",
+    component: UserLayout,   // Layout người dùng
+    children: [
+      {
+        path: "",
+        name: "CartPage",
+        component: () => import("../components/Home/Cart.vue"),
+      }
+    ]
+  },
 
   {
-  path: "/promotion/:id",
-  component: UserLayout,
-  children: [
-    {
-      path: "",
-      name: "PromotionDetailUser",
-      component: () => import("../components/Home/PromotionDetail.vue"),
-    }
-  ]
-},
+    path: "/promotion/:id",
+    component: UserLayout,
+    children: [
+      {
+        path: "",
+        name: "PromotionDetailUser",
+        component: () => import("../components/Home/PromotionDetail.vue"),
+      }
+    ]
+  },
 
 
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)

@@ -61,7 +61,7 @@
         <sidebar-item
           :link="{
             name: 'Nhà hàng',
-            path: '/nha-hang',
+            path: '/restaurant',
             icon: 'ni ni-shop text-purple',
           }"
         ></sidebar-item>
