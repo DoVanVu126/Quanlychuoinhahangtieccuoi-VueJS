@@ -14,10 +14,7 @@
         <input type="email" v-model="form.email" placeholder="Nhập email" />
       </div>
     </div>
-    <div class="booking-page-group">
-      <label>Giá (VNĐ)*</label>
-      <input type="number" v-model.number="form.price" placeholder="Nhập giá hoặc lấy từ sảnh" min="0" />
-    </div>
+    <!-- Giá được lấy từ sảnh đã chọn; không hiển thị trường giá ở giao diện -->
 
     <div class="booking-page-row">
       <div class="booking-page-group">

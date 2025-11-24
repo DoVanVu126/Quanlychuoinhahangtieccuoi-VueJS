@@ -54,44 +54,56 @@ export default {
   },
   data() {
     return {
-      hallsData: [...this.halls],
       activeTab: "sanh",
-      activeFoodTypeId: 1
+      activeFoodTypeId: 1,
     };
   }
   ,
   methods: {
     selectHall(clickedHall) {
-      const selectedHall = this.hallsData.find(h => h.selected);
+      const idx = this.halls.findIndex((h) => h.hall_id === clickedHall.hall_id);
+      if (idx === -1) return;
 
-      // Nếu click lại hall đang chọn -> bỏ chọn
-      if (selectedHall && selectedHall.hall_id === clickedHall.hall_id) {
-        clickedHall.selected = false;
-        this.$emit("hall-selected", null);
+      const currentlySelectedIdx = this.halls.findIndex((h) => h.selected);
+
+      // If clicking the currently selected hall -> deselect
+      if (currentlySelectedIdx === idx) {
+        const newObj = Object.assign({}, this.halls[idx], { selected: false });
+        this.$set(this.halls, idx, newObj);
+        this.$emit('hall-selected', null);
         return;
       }
 
-      // Nếu đã có hall khác đang chọn -> cảnh báo
-      if (selectedHall && selectedHall.hall_id !== clickedHall.hall_id) {
-        alert("Bạn đã chọn sảnh rồi!");
+      // If another hall already selected -> warn
+      if (currentlySelectedIdx !== -1 && currentlySelectedIdx !== idx) {
+        alert('Bạn đã chọn sảnh rồi!');
         return;
       }
 
-      // Chưa chọn hall nào -> chọn hall
-      clickedHall.selected = true;
-      this.$emit("hall-selected", clickedHall);
+      // Select this hall and ensure others are unselected
+      this.halls.forEach((h, i) => {
+        if (i === idx) this.$set(this.halls, i, Object.assign({}, h, { selected: true }));
+        else this.$set(this.halls, i, Object.assign({}, h, { selected: false }));
+      });
+      this.$emit('hall-selected', this.halls[idx]);
     }
     ,
     selectFood(selectedFood) {
-      this.foods.forEach(f => f.selected = false);
-      selectedFood.selected = true;
-      this.$emit("food-selected", selectedFood);
+      // toggle selection for foods (allow multiple) — update the array so reactivity is guaranteed
+      const idx = this.foods.findIndex((f) => f.food_id === selectedFood.food_id);
+      if (idx === -1) return;
+      const newObj = Object.assign({}, this.foods[idx], { selected: !Boolean(this.foods[idx].selected) });
+      this.$set(this.foods, idx, newObj);
+      this.$emit('food-selected', newObj);
     },
 
     selectService(selectedService) {
-      this.services.forEach(s => s.selected = false);
-      selectedService.selected = true;
-      this.$emit("service-selected", selectedService);
+      // toggle selection for services (allow multiple) — update the array so reactivity is guaranteed
+      const idx = this.services.findIndex((s) => s.service_id === selectedService.service_id);
+      if (idx === -1) return;
+      const newObj = Object.assign({}, this.services[idx], { selected: !Boolean(this.services[idx].selected) });
+      this.$set(this.services, idx, newObj);
+      this.$emit('service-selected', newObj);
     }
   }
 

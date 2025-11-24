@@ -12,7 +12,7 @@
     <div class="servicecard-info">
       <h4>{{ service.name }}</h4>
       <p>{{ service.description }}</p>
-      <p class="servicecard-price">Giá: {{ service.price }} VNĐ</p>
+      <!-- Giá ẩn khỏi UI; vẫn gửi service.price khi booking -->
 
       <button
         :class="service.selected ? 'servicecard-btn-selected' : 'servicecard-btn-select'"

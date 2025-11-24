@@ -64,36 +64,83 @@
     <!-- ✅ Hộp thoại so sánh trượt từ bên phải -->
     <transition name="slide-compare">
       <div v-if="showCompare" class="compare-panel">
-        <h3 class="compare-title">Chỉ so sánh 2 nhà hàng</h3>
         <div class="compare-selects">
           <div class="compare-item">
             <span>1</span>
             <div class="compare-slot">
               <div v-if="selectedCompareRestaurants[0]" class="compare-selected">
+                <img :src="getImageUrl(selectedCompareRestaurants[0].image_url)" alt="thumb" @error="onImgError($event)" />
                 <div class="compare-name">{{ selectedCompareRestaurants[0].name }}</div>
-                <button class="btn-delete" @click="clearSlot(0)">Xóa</button>
+                <button class="btn-delete" @click="clearSlot(0)">x</button>
               </div>
               <div v-else class="compare-empty">Chưa chọn — nhấn 'Chọn' trên thẻ</div>
             </div>
-
-            
           </div>
           <div class="compare-item">
             <span>2</span>
             <div class="compare-slot">
               <div v-if="selectedCompareRestaurants[1]" class="compare-selected">
+                <img :src="getImageUrl(selectedCompareRestaurants[1].image_url)" alt="thumb" @error="onImgError($event)" />
                 <div class="compare-name">{{ selectedCompareRestaurants[1].name }}</div>
-                <button class="btn-delete" @click="clearSlot(1)">Xóa</button>
+                <button class="btn-delete" @click="clearSlot(1)">x</button>
               </div>
               <div v-else class="compare-empty">Chưa chọn — nhấn 'Chọn' trên thẻ</div>
             </div>
-
-            
           </div>
         </div>
         <div class="compare-actions">
+          <h3 class="compare-title">Chỉ so sánh 2 nhà hàng</h3>
           <button class="btn-cancel" @click="cancelCompare">Hủy</button>
           <button class="btn-start" @click="startCompare" :disabled="!canCompare">Bắt đầu</button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Detailed compare modal -->
+    <transition name="fade">
+      <div v-if="showCompareResult" class="compare-result-overlay">
+        <div class="compare-result-modal">
+          <button class="compare-close" @click="closeCompareResult">✕</button>
+          <div class="compare-result-header">
+            <div class="col">{{ selectedCompareRestaurants[0] ? selectedCompareRestaurants[0].name : '' }}</div>
+            <div class="col">{{ selectedCompareRestaurants[1] ? selectedCompareRestaurants[1].name : '' }}</div>
+          </div>
+          <div class="compare-result-body">
+            <div class="compare-row">
+              <div class="compare-label">Địa chỉ</div>
+              <div class="compare-value">{{ selectedCompareRestaurants[0] ? (selectedCompareRestaurants[0].ward + ', ' + selectedCompareRestaurants[0].city) : '' }}</div>
+              <div class="compare-value">{{ selectedCompareRestaurants[1] ? (selectedCompareRestaurants[1].ward + ', ' + selectedCompareRestaurants[1].city) : '' }}</div>
+            </div>
+            <div class="compare-row">
+              <div class="compare-label">Sức chứa</div>
+              <div class="compare-value">{{ selectedCompareRestaurants[0] ? (selectedCompareRestaurants[0].capacity || '—') : '' }}</div>
+              <div class="compare-value">{{ selectedCompareRestaurants[1] ? (selectedCompareRestaurants[1].capacity || '—') : '' }}</div>
+            </div>
+            <div class="compare-row">
+              <div class="compare-label">Giá trung bình / bàn</div>
+              <div class="compare-value">{{ selectedCompareRestaurants[0] ? 'từ ~ ' + formatPrice(selectedCompareRestaurants[0].price_table) + 'đ / bàn' : '' }}</div>
+              <div class="compare-value">{{ selectedCompareRestaurants[1] ? 'từ ~ ' + formatPrice(selectedCompareRestaurants[1].price_table) + 'đ / bàn' : '' }}</div>
+            </div>
+            <div class="compare-row">
+              <div class="compare-label">Số sảnh</div>
+              <div class="compare-value">{{ getHalls(selectedCompareRestaurants[0]) }}</div>
+              <div class="compare-value">{{ getHalls(selectedCompareRestaurants[1]) }}</div>
+            </div>
+            <div class="compare-row">
+              <div class="compare-label">Đánh giá</div>
+              <div class="compare-value">
+                <i v-for="i in 5" :key="i+ '_a'" class="fa" :class="i <= Math.round((selectedCompareRestaurants[0] && selectedCompareRestaurants[0].star_rating) || 0) ? 'fa-star text-yellow-400' : 'fa-star-o text-gray-300'"></i>
+              </div>
+              <div class="compare-value">
+                <i v-for="i in 5" :key="i+ '_b'" class="fa" :class="i <= Math.round((selectedCompareRestaurants[1] && selectedCompareRestaurants[1].star_rating) || 0) ? 'fa-star text-yellow-400' : 'fa-star-o text-gray-300'"></i>
+              </div>
+            </div>
+            <div class="compare-row">
+              <div class="compare-label">Có khuyến mãi</div>
+              <div class="compare-value">{{ getHasPromo(selectedCompareRestaurants[0]) ? 'Có' : 'Không' }}</div>
+              <div class="compare-value">{{ getHasPromo(selectedCompareRestaurants[1]) ? 'Có' : 'Không' }}</div>
+            </div>
+          </div>
         </div>
       </div>
     </transition>
@@ -128,6 +175,8 @@ export default {
       // ✅ Thêm cho chức năng So sánh
       showCompare: false,
       compareSelection: [null, null],
+      // show detailed comparison modal
+      showCompareResult: false,
     };
   },
   computed: {
@@ -238,10 +287,60 @@ export default {
     startCompare() {
       const [a, b] = this.selectedCompareRestaurants;
       console.log("So sánh giữa:", a, b);
-      if (a && b) alert(`So sánh ${a.name} và ${b.name}`);
+      if (a && b) this.showCompareResult = true;
+    },
+
+    closeCompareResult() {
+      this.showCompareResult = false;
+    },
+    // Try multiple possible fields to get number of halls
+    getHalls(rest) {
+      if (!rest) return '—';
+      // numeric count provided directly
+      if (rest.halls_count != null) return rest.halls_count;
+      if (rest.halls != null && typeof rest.halls === 'number') return rest.halls;
+      // arrays
+      if (rest.sanh != null && Array.isArray(rest.sanh)) return rest.sanh.length;
+      if (rest.halls_list && Array.isArray(rest.halls_list)) return rest.halls_list.length;
+      if (rest.sanhList && Array.isArray(rest.sanhList)) return rest.sanhList.length;
+      // various possible count fields
+      if (rest.sanh_count != null) return rest.sanh_count;
+      if (rest.hall_count != null) return rest.hall_count;
+      if (rest.number_of_halls != null) return rest.number_of_halls;
+      if (rest.count_halls != null) return rest.count_halls;
+      // some APIs embed halls in an array named 'halls_list' or 'sanhList'
+      if (rest.halls_list && Array.isArray(rest.halls_list)) return rest.halls_list.length;
+      if (rest.sanhList && Array.isArray(rest.sanhList)) return rest.sanhList.length;
+      return '—';
+    },
+
+    // Detect if restaurant has promotions
+    getHasPromo(rest) {
+      if (!rest) return false;
+      // direct boolean flags
+      if (typeof rest.has_promo === 'boolean') return rest.has_promo;
+      if (typeof rest.has_promotion === 'boolean') return rest.has_promotion;
+      if (typeof rest.hasPromotion === 'boolean') return rest.hasPromotion;
+      // backend may include counts for active promotions
+      if (rest.active_promotions_count != null) return Number(rest.active_promotions_count) > 0;
+      if (rest.active_promos_count != null) return Number(rest.active_promos_count) > 0;
+      // arrays / objects
+      if (rest.promotion) return true;
+      if (rest.promotions && Array.isArray(rest.promotions) && rest.promotions.length > 0) return true;
+      if (rest.promos && Array.isArray(rest.promos) && rest.promos.length > 0) return true;
+      if (rest.promo && (typeof rest.promo === 'object' || rest.promo === true)) return true;
+      // discount as fallback
+      if (rest.discount && Number(rest.discount) > 0) return true;
+      return false;
     },
     viewRestaurant(r) {
-      console.log("Xem nhà hàng:", r);
+      // Navigate to the public restaurant detail page. Use restaurant_id or id field.
+      const id = (r && (r.restaurant_id || r.id));
+      if (!id) {
+        console.warn('Không có id nhà hàng để xem', r);
+        return;
+      }
+      this.$router.push({ name: 'RestaurantDetail', params: { id } });
     },
     selectRestaurant(r) {
       // Debug info
