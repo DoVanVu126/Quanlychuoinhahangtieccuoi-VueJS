@@ -7,13 +7,15 @@
         <b-form-input v-model="form.name" required></b-form-input>
       </b-form-group>
 
-      <!-- Chọn nhà hàng từ combobox -->
-      <b-form-group label="Nhà hàng">
-        <b-form-select v-model="form.restaurant_id" :options="restaurantOptions" required>
-          <template #first>
-            <b-form-select-option :value="''" disabled>-- Chọn nhà hàng --</b-form-select-option>
-          </template>
-        </b-form-select>
+      <!-- Nhập ID nhà hàng -->
+      <b-form-group label="Mã nhà hàng (restaurant_id)">
+        <b-form-input
+          type="number"
+          v-model="form.restaurant_id"
+          min="1"
+          required
+          placeholder="Nhập ID nhà hàng"
+        ></b-form-input>
       </b-form-group>
 
       <!-- Sức chứa -->
@@ -25,6 +27,11 @@
       <b-form-group label="Giá thuê (VNĐ)">
         <b-form-input type="number" v-model="form.price" min="0" required></b-form-input>
       </b-form-group>
+
+      <!-- Vị trí -->
+      <!-- <b-form-group label="Vị trí">
+        <b-form-input v-model="form.location" placeholder="Ví dụ: Tầng 2 - Khu A"></b-form-input>
+      </b-form-group> -->
 
       <!-- Trạng thái -->
       <b-form-group label="Trạng thái">
@@ -63,14 +70,14 @@ export default {
     return {
       form: {
         name: "",
-        restaurant_id: "", // lưu ID nhà hàng khi chọn
+        restaurant_id: "", // tự nhập ID
         capacity: "",
         price: "",
+        // location: "",
         status: "available",
       },
       imageFile: null,
       previewImage: null,
-      restaurants: [], // dữ liệu danh sách nhà hàng
       statusOptions: [
         { value: "available", text: "Có sẵn" },
         { value: "unavailable", text: "Đã đặt" },
@@ -78,24 +85,7 @@ export default {
       ],
     };
   },
-  computed: {
-    restaurantOptions() {
-      return this.restaurants.map(r => ({
-        value: r.restaurant_id,
-        text: r.name
-      }));
-    }
-  },
   methods: {
-    async fetchRestaurants() {
-      try {
-        const res = await api.get("/restaurants"); // API lấy danh sách nhà hàng
-        this.restaurants = res.data;
-      } catch (err) {
-        console.error("Lỗi tải danh sách nhà hàng:", err);
-      }
-    },
-
     handleImageUpload(e) {
       const file = e.target.files[0];
       if (file) {
@@ -105,11 +95,6 @@ export default {
     },
 
     async addHall() {
-      if (!this.form.restaurant_id) {
-        alert("Vui lòng chọn nhà hàng!");
-        return;
-      }
-
       try {
         const formData = new FormData();
         for (const key in this.form) {
@@ -130,9 +115,6 @@ export default {
         alert("Thêm sảnh thất bại!");
       }
     },
-  },
-  mounted() {
-    this.fetchRestaurants(); // tải danh sách nhà hàng khi mở trang
   },
 };
 </script>
