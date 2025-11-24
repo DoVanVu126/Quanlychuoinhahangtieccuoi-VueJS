@@ -4,8 +4,13 @@
 
     <form @submit.prevent="addPromotion" enctype="multipart/form-data">
 
-      <b-form-group label="ID Nhà hàng">
-        <b-form-input type="number" v-model="form.restaurant_id" min="1" required></b-form-input>
+      <!-- Chọn nhà hàng từ combobox -->
+      <b-form-group label="Nhà hàng">
+        <b-form-select v-model="form.restaurant_id" :options="restaurantOptions" required>
+          <template #first>
+            <b-form-select-option :value="''" disabled>-- Chọn nhà hàng --</b-form-select-option>
+          </template>
+        </b-form-select>
       </b-form-group>
 
       <b-form-group label="Mã khuyến mãi">
@@ -82,6 +87,8 @@ export default {
       imageFile: null,
       previewImage: null,
 
+      restaurants: [], // danh sách nhà hàng
+
       discountTypeOptions: [
         { value: "amount", text: "Giảm theo số tiền" },
         { value: "percent", text: "Giảm theo phần trăm" },
@@ -95,7 +102,25 @@ export default {
     };
   },
 
+  computed: {
+    restaurantOptions() {
+      return this.restaurants.map(r => ({
+        value: r.restaurant_id,
+        text: r.name
+      }));
+    }
+  },
+
   methods: {
+    async fetchRestaurants() {
+      try {
+        const res = await api.get("/restaurants"); // API lấy danh sách nhà hàng
+        this.restaurants = res.data;
+      } catch (err) {
+        console.error("Lỗi tải danh sách nhà hàng:", err);
+      }
+    },
+
     handleImageUpload(e) {
       const file = e.target.files[0];
       if (file) {
@@ -105,35 +130,24 @@ export default {
     },
 
     async addPromotion() {
+      if (!this.form.restaurant_id) {
+        alert("Vui lòng chọn nhà hàng!");
+        return;
+      }
+
       try {
         const formData = new FormData();
-        formData.append("restaurant_id", this.form.restaurant_id);
-        formData.append("promotion_code", this.form.code);
-        formData.append("title", this.form.title);
-        formData.append("description", this.form.description);
-        formData.append("discount_type", this.form.discount_type);
-        formData.append("discount_value", this.form.discount_value);
-        formData.append("start_date", this.form.start_date);
-        formData.append("end_date", this.form.end_date);
-        formData.append("status", this.form.status);
-
+        for (const key in this.form) {
+          formData.append(key, this.form[key]);
+        }
         if (this.imageFile) {
           formData.append("image", this.imageFile);
         }
 
         const res = await api.post("/promotions", formData);
 
-        // Kiểm tra image_url tồn tại
-        let fullImageUrl = null;
-        if (res.data.image_url) {
-          fullImageUrl = res.data.image_url.startsWith("http")
-            ? res.data.image_url
-            : `http://127.0.0.1:8088/${res.data.image_url.replace(/^\/+/, "")}`;
-        }
-
         alert("✅ Đã thêm khuyến mãi: " + res.data.title);
 
-        // Redirect về trang danh sách
         this.$router.push({ name: "Promotions" });
 
       } catch (e) {
@@ -148,6 +162,10 @@ export default {
         }
       }
     },
+  },
+
+  mounted() {
+    this.fetchRestaurants();
   },
 };
 </script>

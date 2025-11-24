@@ -3,6 +3,15 @@
     <h2 class="mb-4 text-warning">✏️ Sửa Khuyến Mãi</h2>
 
     <b-form @submit.prevent="updatePromotion" enctype="multipart/form-data">
+      <!-- Chọn Nhà hàng -->
+      <b-form-group label="Nhà hàng">
+        <b-form-select v-model="form.restaurant_id" :options="restaurantOptions" required>
+          <template #first>
+            <b-form-select-option :value="''" disabled>-- Chọn nhà hàng --</b-form-select-option>
+          </template>
+        </b-form-select>
+      </b-form-group>
+
       <!-- Mã Khuyến Mãi -->
       <b-form-group label="Mã Khuyến Mãi">
         <b-form-input v-model="form.promotion_code" required></b-form-input>
@@ -16,11 +25,6 @@
       <!-- Mô tả -->
       <b-form-group label="Mô tả">
         <b-form-textarea v-model="form.description" rows="3"></b-form-textarea>
-      </b-form-group>
-
-      <!-- Nhà hàng -->
-      <b-form-group label="ID Nhà hàng">
-        <b-form-input type="number" v-model.number="form.restaurant_id" required></b-form-input>
       </b-form-group>
 
       <!-- Loại giảm -->
@@ -57,7 +61,6 @@
 
       <!-- Ảnh hiện tại & chọn ảnh mới -->
       <b-form-group label="Ảnh khuyến mãi">
-        <!-- Ảnh hiện tại -->
         <div v-if="!previewImage && form.currentImage">
           <p>Ảnh hiện tại:</p>
           <img
@@ -68,13 +71,11 @@
           />
         </div>
 
-        <!-- Preview ảnh mới -->
         <div v-if="previewImage" class="mb-2">
           <p>Ảnh mới:</p>
           <img :src="previewImage" alt="Preview" class="img-thumbnail" style="max-width: 200px;" />
         </div>
 
-        <!-- Chọn ảnh mới -->
         <b-form-file
           @change="handleImageUpload"
           accept="image/*"
@@ -108,18 +109,35 @@ export default {
         start_date: "",
         end_date: "",
         status: "active",
-        currentImage: null, // ảnh hiện tại
-        newImage: null, // ảnh mới nếu chọn
+        currentImage: null,
+        newImage: null,
       },
-      previewImage: null, // preview ảnh mới
+      previewImage: null,
+      restaurants: [], // danh sách nhà hàng
     };
   },
 
+  computed: {
+    restaurantOptions() {
+      return this.restaurants.map(r => ({ value: r.restaurant_id, text: r.name }));
+    }
+  },
+
   mounted() {
+    this.fetchRestaurants();
     this.loadPromotion();
   },
 
   methods: {
+    async fetchRestaurants() {
+      try {
+        const res = await api.get("/restaurants");
+        this.restaurants = res.data;
+      } catch (err) {
+        console.error("Lỗi tải danh sách nhà hàng:", err);
+      }
+    },
+
     async loadPromotion() {
       try {
         const id = this.$route.params.id;
@@ -155,36 +173,29 @@ export default {
     },
 
     async updatePromotion() {
-  try {
-    const id = this.$route.params.id;
-    const formData = new FormData();
+      try {
+        const id = this.$route.params.id;
+        const formData = new FormData();
 
-    formData.append("promotion_code", this.form.promotion_code);
-    formData.append("title", this.form.title);
-    formData.append("description", this.form.description);
-    formData.append("restaurant_id", this.form.restaurant_id);
-    formData.append("discount_type", this.form.discount_type);
-    formData.append("discount_value", this.form.discount_value);
-    formData.append("start_date", this.form.start_date);
-    formData.append("end_date", this.form.end_date);
-    formData.append("status", this.form.status);
+        for (const key of ["promotion_code", "title", "description", "restaurant_id", "discount_type", "discount_value", "start_date", "end_date", "status"]) {
+          formData.append(key, this.form[key]);
+        }
 
-    if (this.form.newImage) {
-      formData.append("image", this.form.newImage);
-    }
+        if (this.form.newImage) {
+          formData.append("image", this.form.newImage);
+        }
 
-    // POST bình thường, không cần _method=PUT
-    await api.post(`/promotions/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+        await api.post(`/promotions/${id}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
 
-    alert("✅ Cập nhật khuyến mãi thành công!");
-    this.$router.push("/promotions");
-  } catch (err) {
-    console.error("❌ Lỗi cập nhật:", err);
-    alert("Cập nhật thất bại!");
-  }
-}
+        alert("✅ Cập nhật khuyến mãi thành công!");
+        this.$router.push("/promotions");
+      } catch (err) {
+        console.error("❌ Lỗi cập nhật:", err);
+        alert("Cập nhật thất bại!");
+      }
+    },
   },
 };
 </script>
@@ -201,6 +212,6 @@ h2 {
 }
 .img-thumbnail {
   border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 </style>

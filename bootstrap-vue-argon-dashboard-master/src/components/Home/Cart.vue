@@ -11,7 +11,7 @@
       </div>
     </div>
 
-    <div class="container-fluid py-4">
+    <div class="container-fluid py-4" v-if="user">
       <!-- Nút quay lại Home -->
       <button class="btn btn-secondary mb-3 back-btn" @click="$router.push('/home')">
         ← Quay về Home
@@ -19,7 +19,7 @@
 
       <h2 class="text-center mb-5">🍽️ Quản lý Đặt Tiệc - Giỏ hàng</h2>
 
-      <div v-if="user" class="row gx-4">
+      <div class="row gx-4">
         <!-- LIST BOOKING / SẢNH -->
         <div class="col-lg-8 col-md-7 mb-4">
           <h4 class="section-title mb-3">Danh sách Sảnh & Booking</h4>
@@ -50,7 +50,8 @@
             </div>
 
             <ul class="list-group mb-3" v-else>
-              <li class="list-group-item d-flex justify-content-between align-items-center" v-for="(item,index) in cart" :key="index">
+              <li class="list-group-item d-flex justify-content-between align-items-center"
+                  v-for="(item,index) in cart" :key="index">
                 <div>
                   <strong>{{ item.name }}</strong><br/>
                   <small>{{ formatMoney(item.price) }} đ</small>
@@ -59,10 +60,41 @@
               </li>
             </ul>
 
+            <!-- CHỌN KHUYẾN MÃI -->
+            <div class="mb-3">
+              <label class="form-label">Mã khuyến mãi</label>
+              <select class="form-select" v-model="selectedPromo" @change="applyPromotion">
+                <option value="">-- Không dùng mã --</option>
+                <option
+                  v-for="p in promotions"
+                  :key="p.promotion_id"
+                  :value="JSON.stringify(p)"
+                >
+                  {{ p.promotion_code }} - {{ p.title }}
+                </option>
+              </select>
+
+              <!-- HIỂN THỊ PHẦN TRĂM GIẢM -->
+              <div v-if="promoPercent > 0" class="text-info mt-1">
+                ⭐ Giảm: <strong>{{ promoPercent }}%</strong>
+              </div>
+            </div>
+
+            <!-- HIỂN THỊ SỐ TIỀN GIẢM -->
+            <div v-if="discountAmount > 0" class="alert alert-success py-2">
+              Bạn được giảm: <strong>{{ formatMoney(discountAmount) }} đ</strong>
+            </div>
+
             <div class="border-top pt-3 mt-3">
               <p>Tạm tính: <strong>{{ formatMoney(total) }} đ</strong></p>
               <p>Phụ thu dịch vụ (10%): <strong>{{ formatMoney(serviceFee) }} đ</strong></p>
-              <h4 class="text-success">Tổng: {{ formatMoney(total + serviceFee) }} đ</h4>
+              <p v-if="discountAmount > 0">Giảm giá:
+                <strong class="text-success">-{{ formatMoney(discountAmount) }} đ</strong>
+              </p>
+
+              <h4 class="text-success">
+                Tổng: {{ formatMoney(finalTotal) }} đ
+              </h4>
 
               <button class="btn btn-success w-100 my-2">Thanh toán</button>
               <button class="btn btn-outline-danger w-100" @click="clearCart">Xóa giỏ</button>
@@ -90,103 +122,111 @@ export default {
       cart: JSON.parse(localStorage.getItem("cart")) || [],
       user: (storedUser && storedUser.user_id && storedUser.username) ? storedUser : null,
       bookings: [],
+
+      /* 🎁 KHUYẾN MÃI */
+      promotions: [],
+      selectedPromo: "",
+      discountAmount: 0,
+      promoPercent: 0, // ⭐ lưu phần trăm giảm
     };
   },
   computed: {
     total() { return this.cart.reduce((sum, i) => sum + i.price, 0); },
     serviceFee() { return Math.round(this.total * 0.1); },
+    finalTotal() {
+      return Math.max(0, this.total + this.serviceFee - this.discountAmount);
+    }
   },
   methods: {
-    formatMoney(value) { return value.toLocaleString("vi-VN"); },
-    formatDate(date) { return new Date(date).toLocaleDateString("vi-VN"); },
+    formatMoney(v) { return v.toLocaleString("vi-VN"); },
+    formatDate(d) { return new Date(d).toLocaleDateString("vi-VN"); },
+
     statusClass(status) {
       if(status==='pending') return 'text-warning';
       if(status==='confirmed') return 'text-success';
       if(status==='cancelled') return 'text-danger';
       return '';
     },
+
     removeItem(index) { this.cart.splice(index,1); this.saveCart(); },
     clearCart() { this.cart = []; this.saveCart(); },
+
     saveCart() { localStorage.setItem("cart", JSON.stringify(this.cart)); },
+
     addToCart(item) {
-      if (!this.user) {
-        alert("Bạn cần đăng nhập trước khi thêm vào giỏ hàng!");
-        return;
-      }
-      this.cart.push({ name: item.hall_name || 'Sảnh #' + item.hall_id, price: item.price || 0 });
+      if (!this.user) return alert("Bạn cần đăng nhập!");
+      this.cart.push({
+        name: item.hall_name || 'Sảnh #' + item.hall_id,
+        price: item.price || 0
+      });
       this.saveCart();
     },
+
+    /* 📌 LẤY KHUYẾN MÃI */
+    async fetchPromotions() {
+      try {
+        const res = await api.get("/promotions/all");
+        this.promotions = res.data.data || [];
+      } catch (err) {
+        console.error("Lỗi tải khuyến mãi:", err);
+      }
+    },
+
+    /* 🎁 ÁP DỤNG MÃ KHUYẾN MÃI */
+    applyPromotion() {
+      if (!this.selectedPromo) {
+        this.discountAmount = 0;
+        this.promoPercent = 0;
+        return;
+      }
+
+      const promo = JSON.parse(this.selectedPromo);
+
+      this.discountAmount = 0;
+      this.promoPercent = 0;
+
+      const subtotal = this.total + this.serviceFee;
+
+      if (promo.discount_type === "percent") {
+        this.promoPercent = promo.discount_value; // ⭐ lưu % để hiển thị
+        this.discountAmount = Math.round(subtotal * (promo.discount_value / 100));
+      } else {
+        this.discountAmount = promo.discount_value;
+      }
+    },
+
     async fetchBookings() {
       if (!this.user || !this.user.user_id) return;
       try {
         const res = await api.get(`/bookings/user?user_id=${this.user.user_id}`);
         this.bookings = Array.isArray(res.data)
-          ? res.data.map(b => ({ ...b, hall_name: b.hall_name || 'Sảnh #' + b.hall_id, notes: b.notes || '' }))
+          ? res.data.map(b => ({ ...b, hall_name: b.hall_name || 'Sảnh #' + b.hall_id }))
           : [];
       } catch (err) { console.error(err); }
     }
   },
   mounted() {
     if (!this.user) {
-      setTimeout(() => this.$router.push("/login"), 1000); // tự chuyển sau 1s
+      setTimeout(() => this.$router.push("/login"), 800);
     } else {
       this.fetchBookings();
+      this.fetchPromotions();
     }
   }
 };
 </script>
 
 <style scoped>
-.cart-page {
-  min-height: 100vh;
-  background-color: #f5f6fa;
-}
+.cart-page { background: #f5f6fa; min-height: 100vh; }
 
-/* Thông báo chưa đăng nhập */
-.alert-not-login {
-  background-color: #fff3cd;
-  color: #856404;
+.booking-card, .cart-card {
   border-radius: 12px;
-  margin: 20px auto;
-  max-width: 500px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  background: #fff;
 }
 
-/* Section title */
-.section-title { font-weight: 600; font-size: 1.15rem; }
-
-/* Booking card nhỏ lại, không hover */
-.booking-card {
-  border-radius: 12px;
-  background-color: #fff;
-  padding: 0.8rem;
-  margin-bottom: 1rem; /* cách nhau card trên/dưới */
-}
-
-/* Cart card nhỏ */
-.cart-card {
-  border-radius: 12px;
-  background-color: #fff;
-  padding: 1rem;
-  margin-top: 1rem; /* cách Booking card */
-}
-
-/* Buttons */
-.btn { border-radius: 8px; }
-
-/* Back button đẹp hơn */
 .back-btn {
-  margin-bottom: 1rem;
-  background-color: #17a2b8;
+  background: #17a2b8;
   color: #fff;
-  border: none;
   font-weight: 500;
-  padding: 0.5rem 1rem;
 }
-.back-btn:hover { background-color: #138496; color: #fff; }
-
-/* Status colors */
-.text-warning { color: #ffc107; font-weight: 500; }
-.text-success { color: #28a745; font-weight: 500; }
-.text-danger { color: #dc3545; font-weight: 500; }
 </style>
