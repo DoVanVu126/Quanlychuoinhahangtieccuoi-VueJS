@@ -14,22 +14,22 @@
 
       <!-- Tiêu đề -->
       <h2 class="promotion-title">
-  Tiêu đề: {{ promotion.title || 'Không có tiêu đề' }}
-</h2>
+        Tiêu đề: {{ promotion.title || 'Không có tiêu đề' }}
+      </h2>
 
       <!-- Mã khuyến mãi -->
-<div class="promotion-code-wrapper" v-if="promotion.promotion_code">
-  <span class="promotion-code">Mã KH: {{ promotion.promotion_code }}</span>
-  <div class="code-buttons">
-    <button class="btn-copy" @click="copyCode" title="Copy mã">📋</button>
-    <button class="btn-save" @click="saveCode" title="Lưu mã">💾</button>
-  </div>
-</div>
+      <div class="promotion-code-wrapper" v-if="promotion.promotion_code">
+        <span class="promotion-code">Mã KH: {{ promotion.promotion_code }}</span>
+        <div class="code-buttons">
+          <button class="btn-copy" @click="copyCode" title="Copy mã">📋</button>
+          <button class="btn-save" @click="saveCode" title="Lưu mã">💾</button>
+        </div>
+      </div>
 
       <!-- Mô tả -->
-<p class="promotion-description">
-  Mô tả: {{ promotion.description || 'Không có mô tả' }}
-</p>
+      <p class="promotion-description">
+        Mô tả: {{ promotion.description || 'Không có mô tả' }}
+      </p>
 
       <!-- Giảm giá -->
       <p class="promotion-discount">
@@ -65,7 +65,9 @@ import api from "@/api";
 export default {
   name: "PromotionDetail",
   data() {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
     return {
+      user: storedUser && storedUser.user_id ? storedUser : null,
       promotion: {
         image: "/img/default.jpg",
         title: "",
@@ -77,8 +79,8 @@ export default {
         end_date: "",
         status: ""
       },
-      tooltipMsg: "",           // nội dung tooltip
-      showTooltipFlag: false    // bật/tắt tooltip
+      tooltipMsg: "",
+      showTooltipFlag: false
     };
   },
   computed: {
@@ -130,11 +132,13 @@ export default {
       }
     },
     saveCode() {
+      if (!this.user) return alert("Bạn cần đăng nhập để lưu mã!");
       if (this.promotion.promotion_code) {
-        let saved = JSON.parse(localStorage.getItem("savedCodes") || "[]");
+        const key = `savedCodes_${this.user.user_id}`;
+        let saved = JSON.parse(localStorage.getItem(key) || "[]");
         if (!saved.includes(this.promotion.promotion_code)) {
           saved.push(this.promotion.promotion_code);
-          localStorage.setItem("savedCodes", JSON.stringify(saved));
+          localStorage.setItem(key, JSON.stringify(saved));
         }
         this.showTooltip(`Đã lưu mã: ${this.promotion.promotion_code}`);
       }
@@ -142,11 +146,9 @@ export default {
     showTooltip(msg) {
       this.tooltipMsg = msg;
       this.showTooltipFlag = true;
-      setTimeout(() => {
-        this.showTooltipFlag = false;
-      }, 1500);
+      setTimeout(() => this.showTooltipFlag = false, 1500);
     }
-  },
+  }
 };
 </script>
 
