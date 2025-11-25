@@ -2,68 +2,124 @@
   <div class="container mt-5">
     <h2>Thêm Khuyến Mãi</h2>
 
-    <form @submit.prevent="addPromotion" enctype="multipart/form-data">
+    <b-form @submit.prevent="addPromotion" enctype="multipart/form-data">
 
-      <!-- Chọn nhà hàng từ combobox -->
-      <b-form-group label="Nhà hàng">
-        <b-form-select v-model="form.restaurant_id" :options="restaurantOptions" required>
+      <!-- Mã khuyến mãi -->
+      <b-form-group label="Mã khuyến mãi" label-for="promotion_code">
+        <b-form-input
+          id="promotion_code"
+          v-model="form.promotion_code"
+          required
+          placeholder="Nhập mã khuyến mãi"
+        ></b-form-input>
+      </b-form-group>
+
+      <!-- Tiêu đề -->
+      <b-form-group label="Tiêu đề" label-for="title">
+        <b-form-input
+          id="title"
+          v-model="form.title"
+          required
+          placeholder="Nhập tiêu đề"
+        ></b-form-input>
+      </b-form-group>
+
+      <!-- Mô tả -->
+      <b-form-group label="Mô tả" label-for="description">
+        <b-form-textarea
+          id="description"
+          v-model="form.description"
+          placeholder="Mô tả khuyến mãi"
+          rows="3"
+        ></b-form-textarea>
+      </b-form-group>
+
+      <!-- Loại giảm giá -->
+      <b-form-group label="Loại giảm giá" label-for="discount_type">
+        <b-form-select
+          id="discount_type"
+          v-model="form.discount_type"
+          :options="discountTypeOptions"
+          required
+        ></b-form-select>
+      </b-form-group>
+
+      <!-- Giá trị giảm -->
+      <b-form-group label="Giá trị giảm" label-for="discount_value">
+        <b-form-input
+          id="discount_value"
+          type="number"
+          v-model.number="form.discount_value"
+          min="0"
+          required
+        ></b-form-input>
+      </b-form-group>
+
+      <!-- Ngày bắt đầu -->
+      <b-form-group label="Ngày bắt đầu" label-for="start_date">
+        <b-form-input
+          id="start_date"
+          type="date"
+          v-model="form.start_date"
+          required
+        ></b-form-input>
+      </b-form-group>
+
+      <!-- Ngày kết thúc -->
+      <b-form-group label="Ngày kết thúc" label-for="end_date">
+        <b-form-input
+          id="end_date"
+          type="date"
+          v-model="form.end_date"
+          required
+        ></b-form-input>
+      </b-form-group>
+
+      <!-- Nhà hàng -->
+      <b-form-group label="Nhà hàng" label-for="restaurant_id">
+        <b-form-select
+          id="restaurant_id"
+          v-model="form.restaurant_id"
+          :options="restaurantOptions"
+          required
+        >
           <template #first>
-            <b-form-select-option :value="''" disabled>-- Chọn nhà hàng --</b-form-select-option>
+            <b-form-select-option :value="null" disabled>-- Chọn nhà hàng --</b-form-select-option>
           </template>
         </b-form-select>
       </b-form-group>
 
-      <b-form-group label="Mã khuyến mãi">
-        <b-form-input v-model="form.code" required></b-form-input>
+      <!-- Trạng thái -->
+      <b-form-group label="Trạng thái" label-for="status">
+        <b-form-select
+          id="status"
+          v-model="form.status"
+          :options="statusOptions"
+        ></b-form-select>
       </b-form-group>
 
-      <b-form-group label="Tiêu đề">
-        <b-form-input v-model="form.title" required></b-form-input>
-      </b-form-group>
-
-      <b-form-group label="Mô tả">
-        <b-form-textarea rows="3" v-model="form.description"></b-form-textarea>
-      </b-form-group>
-
-      <b-form-group label="Loại ưu đãi">
-        <b-form-select v-model="form.discount_type" :options="discountTypeOptions"></b-form-select>
-      </b-form-group>
-
-      <b-form-group label="Giá trị ưu đãi">
-        <b-form-input type="number" v-model="form.discount_value" min="0" required></b-form-input>
-      </b-form-group>
-
-      <b-form-group label="Ngày bắt đầu">
-        <b-form-input type="date" v-model="form.start_date" required></b-form-input>
-      </b-form-group>
-
-      <b-form-group label="Ngày kết thúc">
-        <b-form-input type="date" v-model="form.end_date" required></b-form-input>
-      </b-form-group>
-
-      <b-form-group label="Trạng thái">
-        <b-form-select v-model="form.status" :options="statusOptions"></b-form-select>
-      </b-form-group>
-
-      <b-form-group label="Ảnh khuyến mãi">
+      <!-- Ảnh khuyến mãi -->
+      <b-form-group label="Ảnh khuyến mãi" label-for="image">
         <b-form-file
-          @change="handleImageUpload"
+          id="image"
+          :state="Boolean(imageFile)"
           accept="image/*"
-          browse-text="Chọn ảnh"
-          placeholder="Chưa chọn ảnh nào"
+          placeholder="Chọn file ảnh..."
+          @change="handleImageChange"
         ></b-form-file>
 
         <div v-if="previewImage" class="mt-3 text-center">
-          <img :src="previewImage" class="img-thumbnail" style="max-width: 200px" />
+          <img :src="previewImage" class="img-thumbnail" style="max-width: 200px;" />
         </div>
       </b-form-group>
 
+      <!-- Nút lưu -->
       <div class="d-flex justify-content-between">
         <b-button type="submit" variant="success">💾 Lưu</b-button>
-        <b-button variant="secondary" @click="$router.push({ name: 'Promotions' })">⬅ Quay lại</b-button>
+        <b-button variant="secondary" @click="$router.push('/khuyen-mai')">⬅ Quay lại</b-button>
       </div>
 
-    </form>
+    </b-form>
   </div>
 </template>
 
@@ -74,59 +130,50 @@ export default {
   data() {
     return {
       form: {
-        restaurant_id: null,
-        code: "",
+        promotion_code: "",
         title: "",
         description: "",
-        discount_type: "amount",
+        discount_type: "percent",
         discount_value: 0,
         start_date: "",
         end_date: "",
+        restaurant_id: null,
         status: "upcoming",
       },
-      imageFile: null,
-      previewImage: null,
-
-      restaurants: [], // danh sách nhà hàng
-
+      restaurants: [],
       discountTypeOptions: [
-        { value: "amount", text: "Giảm theo số tiền" },
-        { value: "percent", text: "Giảm theo phần trăm" },
+        { value: "percent", text: "Phần trăm (%)" },
+        { value: "amount", text: "Số tiền (VNĐ)" },
       ],
-
       statusOptions: [
-        { value: "upcoming", text: "Sắp diễn ra" },
         { value: "active", text: "Đang diễn ra" },
         { value: "expired", text: "Đã kết thúc" },
+        { value: "upcoming", text: "Sắp diễn ra" },
       ],
+      imageFile: null,
+      previewImage: null,
     };
   },
-
   computed: {
     restaurantOptions() {
-      return this.restaurants.map(r => ({
-        value: r.restaurant_id,
-        text: r.name
-      }));
+      return this.restaurants.map(r => ({ value: r.restaurant_id, text: r.name }));
     }
   },
-
   methods: {
     async fetchRestaurants() {
       try {
-        const res = await api.get("/restaurants"); // API lấy danh sách nhà hàng
-        this.restaurants = res.data;
+        const res = await api.get("/restaurants");
+        const arr = Array.isArray(res.data) ? res.data : res.data.data || [];
+        this.restaurants = arr;
       } catch (err) {
-        console.error("Lỗi tải danh sách nhà hàng:", err);
+        console.error("Lỗi tải nhà hàng:", err);
       }
     },
 
-    handleImageUpload(e) {
-      const file = e.target.files[0];
-      if (file) {
-        this.imageFile = file;
-        this.previewImage = URL.createObjectURL(file);
-      }
+    handleImageChange(event) {
+      const file = event.target.files[0];
+      this.imageFile = file || null;
+      this.previewImage = file ? window.URL.createObjectURL(file) : null;
     },
 
     async addPromotion() {
@@ -137,33 +184,26 @@ export default {
 
       try {
         const formData = new FormData();
-        for (const key in this.form) {
+        for (let key in this.form) {
           formData.append(key, this.form[key]);
         }
+
         if (this.imageFile) {
           formData.append("image", this.imageFile);
         }
 
-        const res = await api.post("/promotions", formData);
+        const res = await api.post("/promotions", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
 
         alert("✅ Đã thêm khuyến mãi: " + res.data.title);
-
-        this.$router.push({ name: "Promotions" });
-
-      } catch (e) {
-        if (e.response && e.response.data.errors) {
-          const messages = Object.values(e.response.data.errors)
-            .flat()
-            .join("\n");
-          alert("❌ Lỗi validation:\n" + messages);
-        } else {
-          console.error(e);
-          alert("❌ Lỗi thêm khuyến mãi!");
-        }
+        this.$router.push("/promotions");
+      } catch (err) {
+        console.error("Lỗi thêm khuyến mãi:", err.response && err.response.data ? err.response.data : err);
+        alert("❌ Thêm khuyến mãi thất bại! Kiểm tra console.");
       }
     },
   },
-
   mounted() {
     this.fetchRestaurants();
   },

@@ -2,7 +2,6 @@
   <div class="cart-page">
     <HomeHeader />
 
-    <!-- Nếu chưa đăng nhập -->
     <div v-if="!user" class="alert-not-login text-center p-4">
       <p>Bạn cần đăng nhập để xem giỏ hàng.</p>
       <div class="d-flex justify-content-center gap-3 mt-2">
@@ -11,16 +10,15 @@
       </div>
     </div>
 
-    <div class="container-fluid py-4" v-if="user">
-      <!-- Nút quay lại Home -->
+    <div class="container-fluid py-4" v-else>
       <button class="btn btn-secondary mb-3 back-btn" @click="$router.push('/home')">
         ← Quay về Home
       </button>
 
-      <h2 class="text-center mb-5">🍽️ Quản lý Đặt Tiệc - Giỏ hàng</h2>
+      <h2 class="text-center mb-5">🍽️ Giỏ hàng của bạn</h2>
 
       <div class="row gx-4">
-        <!-- LIST BOOKING / SẢNH -->
+        <!-- List Booking -->
         <div class="col-lg-8 col-md-7 mb-4">
           <h4 class="section-title mb-3">Danh sách Sảnh & Booking</h4>
           <div class="row gx-3 gy-3">
@@ -40,7 +38,7 @@
           </div>
         </div>
 
-        <!-- GIỎ HÀNG -->
+        <!-- Giỏ hàng -->
         <div class="col-lg-4 col-md-5 mb-4">
           <div class="card cart-card p-3 shadow-sm">
             <h4 class="section-title mb-3">Giỏ hàng</h4>
@@ -60,27 +58,21 @@
               </li>
             </ul>
 
-            <!-- CHỌN KHUYẾN MÃI -->
+            <!-- Chọn khuyến mãi (chỉ mã đã lưu) -->
             <div class="mb-3">
               <label class="form-label">Mã khuyến mãi</label>
               <select class="form-select" v-model="selectedPromo" @change="applyPromotion">
                 <option value="">-- Không dùng mã --</option>
-                <option
-                  v-for="p in promotions"
-                  :key="p.promotion_id"
-                  :value="JSON.stringify(p)"
-                >
+                <option v-for="p in userSavedPromotions" :key="p.promotion_id" :value="JSON.stringify(p)">
                   {{ p.promotion_code }} - {{ p.title }}
                 </option>
               </select>
 
-              <!-- HIỂN THỊ PHẦN TRĂM GIẢM -->
               <div v-if="promoPercent > 0" class="text-info mt-1">
                 ⭐ Giảm: <strong>{{ promoPercent }}%</strong>
               </div>
             </div>
 
-            <!-- HIỂN THỊ SỐ TIỀN GIẢM -->
             <div v-if="discountAmount > 0" class="alert alert-success py-2">
               Bạn được giảm: <strong>{{ formatMoney(discountAmount) }} đ</strong>
             </div>
@@ -101,7 +93,7 @@
             </div>
 
             <p class="mt-2 text-muted small text-center">
-              Ghi chú: Giỏ hàng lưu trong trình duyệt, bạn có thể tải lại trang mà không mất dữ liệu.
+              Giỏ hàng lưu trong trình duyệt, chỉ bạn mới thấy mã khuyến mãi đã lưu.
             </p>
           </div>
         </div>
@@ -120,95 +112,76 @@ export default {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     return {
       cart: JSON.parse(localStorage.getItem("cart")) || [],
-      user: (storedUser && storedUser.user_id && storedUser.username) ? storedUser : null,
+      user: storedUser && storedUser.user_id ? storedUser : null,
       bookings: [],
-
-      /* 🎁 KHUYẾN MÃI */
       promotions: [],
       selectedPromo: "",
       discountAmount: 0,
-      promoPercent: 0, // ⭐ lưu phần trăm giảm
+      promoPercent: 0
     };
   },
   computed: {
-    total() { return this.cart.reduce((sum, i) => sum + i.price, 0); },
-    serviceFee() { return Math.round(this.total * 0.1); },
-    finalTotal() {
-      return Math.max(0, this.total + this.serviceFee - this.discountAmount);
+    total() { return this.cart.reduce((sum,i)=>sum+i.price,0); },
+    serviceFee() { return Math.round(this.total*0.1); },
+    finalTotal() { return Math.max(0,this.total+this.serviceFee-this.discountAmount); },
+
+    userSavedPromotions() {
+      if (!this.user) return [];
+      const key = `savedCodes_${this.user.user_id}`;
+      const savedCodes = JSON.parse(localStorage.getItem(key) || "[]");
+      return this.promotions.filter(p => savedCodes.includes(p.promotion_code));
     }
   },
   methods: {
-    formatMoney(v) { return v.toLocaleString("vi-VN"); },
-    formatDate(d) { return new Date(d).toLocaleDateString("vi-VN"); },
+    formatMoney(v){return v.toLocaleString("vi-VN");},
+    formatDate(d){return new Date(d).toLocaleDateString("vi-VN");},
 
-    statusClass(status) {
+    statusClass(status){
       if(status==='pending') return 'text-warning';
       if(status==='confirmed') return 'text-success';
       if(status==='cancelled') return 'text-danger';
       return '';
     },
 
-    removeItem(index) { this.cart.splice(index,1); this.saveCart(); },
-    clearCart() { this.cart = []; this.saveCart(); },
-
-    saveCart() { localStorage.setItem("cart", JSON.stringify(this.cart)); },
-
-    addToCart(item) {
-      if (!this.user) return alert("Bạn cần đăng nhập!");
-      this.cart.push({
-        name: item.hall_name || 'Sảnh #' + item.hall_id,
-        price: item.price || 0
-      });
+    addToCart(item){
+      if(!this.user) return alert("Bạn cần đăng nhập!");
+      this.cart.push({name: item.hall_name || 'Sảnh #' + item.hall_id, price: item.price || 0});
       this.saveCart();
     },
+    removeItem(index){ this.cart.splice(index,1); this.saveCart(); },
+    clearCart(){ this.cart=[]; this.saveCart(); },
+    saveCart(){ localStorage.setItem("cart", JSON.stringify(this.cart)); },
 
-    /* 📌 LẤY KHUYẾN MÃI */
-    async fetchPromotions() {
-      try {
+    async fetchBookings(){
+      if(!this.user) return;
+      try{
+        const res = await api.get(`/bookings/user?user_id=${this.user.user_id}`);
+        this.bookings = Array.isArray(res.data) ? res.data.map(b=>({...b,hall_name:b.hall_name||'Sảnh #'+b.hall_id})) : [];
+      }catch(err){console.error(err);}
+    },
+
+    async fetchPromotions(){
+      try{
         const res = await api.get("/promotions/all");
         this.promotions = res.data.data || [];
-      } catch (err) {
-        console.error("Lỗi tải khuyến mãi:", err);
-      }
+      }catch(err){console.error(err);}
     },
 
-    /* 🎁 ÁP DỤNG MÃ KHUYẾN MÃI */
-    applyPromotion() {
-      if (!this.selectedPromo) {
-        this.discountAmount = 0;
-        this.promoPercent = 0;
-        return;
-      }
-
+    applyPromotion(){
+      if(!this.selectedPromo){ this.discountAmount=0; this.promoPercent=0; return; }
       const promo = JSON.parse(this.selectedPromo);
-
-      this.discountAmount = 0;
-      this.promoPercent = 0;
-
       const subtotal = this.total + this.serviceFee;
-
-      if (promo.discount_type === "percent") {
-        this.promoPercent = promo.discount_value; // ⭐ lưu % để hiển thị
-        this.discountAmount = Math.round(subtotal * (promo.discount_value / 100));
-      } else {
-        this.discountAmount = promo.discount_value;
-      }
-    },
-
-    async fetchBookings() {
-      if (!this.user || !this.user.user_id) return;
-      try {
-        const res = await api.get(`/bookings/user?user_id=${this.user.user_id}`);
-        this.bookings = Array.isArray(res.data)
-          ? res.data.map(b => ({ ...b, hall_name: b.hall_name || 'Sảnh #' + b.hall_id }))
-          : [];
-      } catch (err) { console.error(err); }
+      this.discountAmount=0; this.promoPercent=0;
+      if(promo.discount_type==='percent'){
+        this.promoPercent = promo.discount_value;
+        this.discountAmount = Math.round(subtotal*(promo.discount_value/100));
+      }else this.discountAmount = promo.discount_value;
     }
   },
-  mounted() {
-    if (!this.user) {
-      setTimeout(() => this.$router.push("/login"), 800);
-    } else {
+  mounted(){
+    if(!this.user){
+      setTimeout(()=>this.$router.push("/login"),800);
+    }else{
       this.fetchBookings();
       this.fetchPromotions();
     }
@@ -217,16 +190,7 @@ export default {
 </script>
 
 <style scoped>
-.cart-page { background: #f5f6fa; min-height: 100vh; }
-
-.booking-card, .cart-card {
-  border-radius: 12px;
-  background: #fff;
-}
-
-.back-btn {
-  background: #17a2b8;
-  color: #fff;
-  font-weight: 500;
-}
+.cart-page{background:#f5f6fa; min-height:100vh;}
+.booking-card,.cart-card{border-radius:12px; background:#fff;}
+.back-btn{background:#17a2b8;color:#fff;font-weight:500;}
 </style>

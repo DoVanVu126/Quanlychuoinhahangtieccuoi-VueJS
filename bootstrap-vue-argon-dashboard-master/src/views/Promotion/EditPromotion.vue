@@ -109,11 +109,11 @@ export default {
         start_date: "",
         end_date: "",
         status: "active",
-        currentImage: null,
-        newImage: null,
+        currentImage: null, // Ảnh cũ
+        newImage: null,     // Ảnh mới
       },
-      previewImage: null,
-      restaurants: [], // danh sách nhà hàng
+      previewImage: null,   // Preview ảnh mới
+      restaurants: [],      // Danh sách nhà hàng
     };
   },
 
@@ -169,6 +169,9 @@ export default {
       if (file) {
         this.form.newImage = file;
         this.previewImage = URL.createObjectURL(file);
+      } else {
+        this.form.newImage = null;
+        this.previewImage = null;
       }
     },
 
@@ -177,10 +180,12 @@ export default {
         const id = this.$route.params.id;
         const formData = new FormData();
 
+        // Gửi tất cả trường
         for (const key of ["promotion_code", "title", "description", "restaurant_id", "discount_type", "discount_value", "start_date", "end_date", "status"]) {
           formData.append(key, this.form[key]);
         }
 
+        // Nếu có ảnh mới thì gửi
         if (this.form.newImage) {
           formData.append("image", this.form.newImage);
         }
