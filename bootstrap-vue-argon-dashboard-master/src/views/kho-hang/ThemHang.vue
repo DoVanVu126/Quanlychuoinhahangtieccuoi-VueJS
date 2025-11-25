@@ -61,6 +61,22 @@ export default {
   methods: {
     async handleSubmit() {
       try {
+        // Lấy toàn bộ danh sách nguyên liệu để kiểm tra trùng lặp phía frontend
+        const allRes = await api.get('/inventories');
+        let allItems = [];
+        if (allRes.data && Array.isArray(allRes.data.data)) {
+          allItems = allRes.data.data;
+        } else if (Array.isArray(allRes.data)) {
+          allItems = allRes.data;
+        }
+        const isDuplicate = allItems.some(item =>
+          String(item.restaurant_id) === String(this.hang.restaurant_id)
+          && item.item_name.trim().toLowerCase() === this.hang.item_name.trim().toLowerCase()
+        );
+        if (isDuplicate) {
+          alert('Tên nguyên liệu đã tồn tại trong kho!');
+          return;
+        }
         const payload = {
           restaurant_id: parseInt(this.hang.restaurant_id),
           item_name: this.hang.item_name,
@@ -68,17 +84,26 @@ export default {
           unit: this.hang.unit,
           reorder_level: parseFloat(this.hang.reorder_level)
         };
-
         if (this.hang.expiry_date) {
           payload.expiry_date = this.hang.expiry_date;
         }
-
         await api.post('/inventories', payload);
         alert("Đã thêm hàng: " + this.hang.item_name);
         this.$router.push("/kho");
       } catch (err) {
         console.error('Lỗi:', err);
-        alert("Không thể thêm. Vui lòng thử lại.");
+        let msg = "Không thể thêm. Vui lòng thử lại.";
+        if (err.response && err.response.data) {
+          if (typeof err.response.data === 'string') {
+            msg = err.response.data;
+          } else if (err.response.data.message) {
+            msg = err.response.data.message;
+          } else if (err.response.data.errors) {
+            // Laravel validation errors
+            msg = Object.values(err.response.data.errors).map(e => Array.isArray(e) ? e.join(', ') : e).join('\n');
+          }
+        }
+        alert(msg);
       }
     },
   },
