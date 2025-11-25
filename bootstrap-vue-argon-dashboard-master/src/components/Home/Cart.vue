@@ -30,6 +30,7 @@
                 <p><strong>Số bàn:</strong> {{ b.number_of_tables }}</p>
                 <p><strong>Trạng thái:</strong> <span :class="statusClass(b.status)">{{ b.status }}</span></p>
                 <p><strong>Ghi chú:</strong> {{ b.notes || 'Không có' }}</p>
+                <p><strong>Giá:</strong> {{ formatMoney(Number(b.price || 0)) }} đ</p>
                 <button class="btn btn-outline-primary w-100 mt-2" @click="addToCart(b)">
                   <i class="fas fa-cart-plus"></i> Thêm vào giỏ
                 </button>
@@ -52,7 +53,7 @@
                   v-for="(item,index) in cart" :key="index">
                 <div>
                   <strong>{{ item.name }}</strong><br/>
-                  <small>{{ formatMoney(item.price) }} đ</small>
+                  <small>{{ formatMoney(Number(item.price || 0)) }} đ</small>
                 </div>
                 <button class="btn btn-sm btn-danger" @click="removeItem(index)">X</button>
               </li>
@@ -121,10 +122,15 @@ export default {
     };
   },
   computed: {
-    total() { return this.cart.reduce((sum,i)=>sum+i.price,0); },
-    serviceFee() { return Math.round(this.total*0.1); },
-    finalTotal() { return Math.max(0,this.total+this.serviceFee-this.discountAmount); },
-
+    total() {
+      return this.cart.reduce((sum, i) => sum + Number(i.price || 0), 0);
+    },
+    serviceFee() {
+      return Math.round(this.total * 0.1);
+    },
+    finalTotal() {
+      return Math.max(0, this.total + this.serviceFee - this.discountAmount);
+    },
     userSavedPromotions() {
       if (!this.user) return [];
       const key = `savedCodes_${this.user.user_id}`;
@@ -133,55 +139,86 @@ export default {
     }
   },
   methods: {
-    formatMoney(v){return v.toLocaleString("vi-VN");},
-    formatDate(d){return new Date(d).toLocaleDateString("vi-VN");},
-
-    statusClass(status){
-      if(status==='pending') return 'text-warning';
-      if(status==='confirmed') return 'text-success';
-      if(status==='cancelled') return 'text-danger';
-      return '';
+    formatMoney(v) {
+      return Number(v).toLocaleString("vi-VN");
     },
-
-    addToCart(item){
-      if(!this.user) return alert("Bạn cần đăng nhập!");
-      this.cart.push({name: item.hall_name || 'Sảnh #' + item.hall_id, price: item.price || 0});
+    formatDate(d) {
+      return new Date(d).toLocaleDateString("vi-VN");
+    },
+    statusClass(status) {
+      if (status === "pending") return "text-warning";
+      if (status === "confirmed") return "text-success";
+      if (status === "cancelled") return "text-danger";
+      return "";
+    },
+    addToCart(item) {
+      if (!this.user) return alert("Bạn cần đăng nhập!");
+      this.cart.push({
+        name: item.hall_name || "Sảnh #" + item.hall_id,
+        price: Number(item.price || 0) // đảm bảo là number
+      });
       this.saveCart();
     },
-    removeItem(index){ this.cart.splice(index,1); this.saveCart(); },
-    clearCart(){ this.cart=[]; this.saveCart(); },
-    saveCart(){ localStorage.setItem("cart", JSON.stringify(this.cart)); },
-
-    async fetchBookings(){
-      if(!this.user) return;
-      try{
-        const res = await api.get(`/bookings/user?user_id=${this.user.user_id}`);
-        this.bookings = Array.isArray(res.data) ? res.data.map(b=>({...b,hall_name:b.hall_name||'Sảnh #'+b.hall_id})) : [];
-      }catch(err){console.error(err);}
+    removeItem(index) {
+      this.cart.splice(index, 1);
+      this.saveCart();
     },
-
-    async fetchPromotions(){
-      try{
+    clearCart() {
+      this.cart = [];
+      this.saveCart();
+    },
+    saveCart() {
+      localStorage.setItem("cart", JSON.stringify(this.cart));
+    },
+    async fetchBookings() {
+      if (!this.user) return;
+      try {
+        const res = await api.get(`/bookings/user?user_id=${this.user.user_id}`);
+        this.bookings = Array.isArray(res.data)
+          ? res.data.map(b => ({
+              ...b,
+              hall_name: b.hall_name || "Sảnh #" + b.hall_id,
+              price: Number(b.price || 0) // convert luôn thành number
+            }))
+          : [];
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    async fetchPromotions() {
+      try {
         const res = await api.get("/promotions/all");
         this.promotions = res.data.data || [];
-      }catch(err){console.error(err);}
+      } catch (err) {
+        console.error(err);
+      }
     },
+    applyPromotion() {
+      if (!this.selectedPromo) {
+        this.discountAmount = 0;
+        this.promoPercent = 0;
+        return;
+      }
 
-    applyPromotion(){
-      if(!this.selectedPromo){ this.discountAmount=0; this.promoPercent=0; return; }
       const promo = JSON.parse(this.selectedPromo);
       const subtotal = this.total + this.serviceFee;
-      this.discountAmount=0; this.promoPercent=0;
-      if(promo.discount_type==='percent'){
+
+      if (promo.discount_type === "percent") {
         this.promoPercent = promo.discount_value;
-        this.discountAmount = Math.round(subtotal*(promo.discount_value/100));
-      }else this.discountAmount = promo.discount_value;
+        this.discountAmount = Math.round(subtotal * (promo.discount_value / 100));
+      } else {
+        this.discountAmount = Number(promo.discount_value);
+      }
+
+      if (this.discountAmount > subtotal) {
+        this.discountAmount = subtotal;
+      }
     }
   },
-  mounted(){
-    if(!this.user){
-      setTimeout(()=>this.$router.push("/login"),800);
-    }else{
+  mounted() {
+    if (!this.user) {
+      setTimeout(() => this.$router.push("/login"), 800);
+    } else {
       this.fetchBookings();
       this.fetchPromotions();
     }

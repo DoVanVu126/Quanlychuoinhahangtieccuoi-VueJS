@@ -26,7 +26,7 @@
 
       <!-- Loại món -->
       <b-form-group label="Loại món ăn">
-        <b-form-select v-model.number="form.food_type_id" :options="foodTypes" required>
+        <b-form-select v-model="form.food_type_id" :options="foodTypes" required>
           <template #first>
             <b-form-select-option disabled value="">-- Chọn loại món --</b-form-select-option>
           </template>
@@ -35,7 +35,7 @@
 
       <!-- Nhà hàng -->
       <b-form-group label="Nhà hàng">
-        <b-form-select v-model.number="form.restaurant_id" :options="restaurants" required>
+        <b-form-select v-model="form.restaurant_id" :options="restaurants" required>
           <template #first>
             <b-form-select-option disabled value="">-- Chọn nhà hàng --</b-form-select-option>
           </template>
@@ -102,11 +102,23 @@ export default {
   },
 
   methods: {
+    // Lấy loại món
     async fetchFoodTypes() {
       try {
         const res = await api.get("/food-types");
-        this.foodTypes = res.data.map(t => ({
-          value: Number(t.food_type_id || t.id),
+
+        const list = Array.isArray(res.data)
+          ? res.data
+          : res.data && res.data.data
+          ? res.data.data
+          : [];
+
+        this.foodTypes = list.map(t => ({
+          value: t.food_type_id
+            ? String(t.food_type_id)
+            : t.id
+            ? String(t.id)
+            : "",
           text: t.name,
         }));
       } catch (err) {
@@ -114,11 +126,23 @@ export default {
       }
     },
 
+    // Lấy nhà hàng
     async fetchRestaurants() {
       try {
         const res = await api.get("/restaurants");
-        this.restaurants = res.data.map(r => ({
-          value: Number(r.restaurant_id || r.id),
+
+        const list = Array.isArray(res.data)
+          ? res.data
+          : res.data && res.data.data
+          ? res.data.data
+          : [];
+
+        this.restaurants = list.map(r => ({
+          value: r.restaurant_id
+            ? String(r.restaurant_id)
+            : r.id
+            ? String(r.id)
+            : "",
           text: r.name,
         }));
       } catch (err) {
@@ -126,6 +150,7 @@ export default {
       }
     },
 
+    // Load món ăn đang sửa
     async loadFood() {
       try {
         const id = this.$route.params.id;
@@ -136,10 +161,14 @@ export default {
         this.form.description = data.description;
         this.form.unit = data.unit || "";
         this.form.price = Number(data.price);
-        this.form.food_type_id = Number(data.food_type_id);
-        this.form.restaurant_id = Number(data.restaurant_id);
-        this.form.image_url = data.image_url;
 
+        this.form.food_type_id =
+          data.food_type_id != null ? String(data.food_type_id) : null;
+
+        this.form.restaurant_id =
+          data.restaurant_id != null ? String(data.restaurant_id) : null;
+
+        this.form.image_url = data.image_url;
         this.previewImage = null;
       } catch (err) {
         console.error("Lỗi tải món ăn:", err);
@@ -162,6 +191,7 @@ export default {
       }
     },
 
+    // Cập nhật món ăn
     async updateFood() {
       try {
         const id = this.$route.params.id;
@@ -184,9 +214,8 @@ export default {
 
         alert("✔ Cập nhật món ăn thành công!");
         this.$router.push("/mon-an");
-
       } catch (err) {
-         console.error("Lỗi cập nhật:", (err.response && err.response.data) ? err.response.data : err);
+        console.error("Lỗi cập nhật:", err);
         alert("Cập nhật thất bại!");
       }
     },
