@@ -83,14 +83,15 @@ export default {
         }
 
         await api.post("/restaurants", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 
-        alert("✅ Đã thêm nhà hàng: " + this.form.name);
-        this.$router.push("/restaurants");
-      } catch (err) {
-        console.error("❌ Lỗi thêm nhà hàng:", err);
-        alert("Thêm nhà hàng thất bại!");
+  alert("✅ Đã thêm nhà hàng: " + this.form.name);
+  // Dùng name route an toàn hơn
+  this.$router.push({ name: "Restaurant" });
+} catch (err) {
+  console.error("❌ Lỗi thêm nhà hàng:", err.response || err);
+  alert("Thêm nhà hàng thất bại!");
       }
     },
   },

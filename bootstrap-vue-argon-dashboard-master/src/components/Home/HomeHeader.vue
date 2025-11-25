@@ -2,7 +2,9 @@
   <header class="home-header">
     <!-- Logo + Thanh tìm kiếm -->
     <div class="logo">
-      <img src="/img/logo.png" alt="Wedding" />
+      <router-link to="/home" class="logo-link">
+        <img src="/img/logo.png" alt="Wedding" />
+      </router-link>
       <div class="search-bar">
         <input
           type="text"
@@ -13,17 +15,15 @@
       </div>
     </div>
 
-    <!-- Thanh điều hướng + icon -->
     <nav>
       <a href="#gioi-thieu">Giới thiệu</a>
       <a href="#ho-tro">Hỗ trợ</a>
 
-      <!-- Icon giỏ hàng -->
-      <div class="cart-icon">
+      <router-link to="/gio-hang" class="cart-icon">
         <i class="fas fa-shopping-cart"></i>
-      </div>
+      </router-link>
 
-      <!-- Chọn ngôn ngữ -->
+      <!-- Language switch -->
       <div class="language-switch">
         <img src="/img/vn-flag.png" alt="VN" class="flag" />
         <select>
@@ -32,19 +32,84 @@
         </select>
       </div>
 
-      <button class="login-btn">Đăng nhập</button>
-      <button class="signup-btn">Tạo tài khoản</button>
+      <!-- Notification -->
+      <div class="notification-wrapper" ref="notifWrapper">
+        <div class="bell-icon" :class="{ shake: hasNew }" @click="toggleNotifDropdown">
+          <i class="fas fa-bell"></i>
+          <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
+        </div>
+
+        <div v-if="notifDropdownOpen" class="notification-list" @click.stop>
+          <h4>Thông báo</h4>
+          <div v-if="notifications.length === 0" class="empty">Không có thông báo</div>
+          <div class="notif-scroll">
+            <div
+              v-for="item in visibleNotifications"
+              :key="item.id"
+              class="notification-item"
+              :class="{ unread: !item.is_read }"
+            >
+              <div @click="markAsRead(item)" class="notif-content">
+                <strong>{{ item.title }}</strong>
+                <p>{{ item.message }}</p>
+                <small>{{ formatDate(item.created_at) }}</small>
+              </div>
+              <button class="delete-btn" @click.stop="deleteNotification(item.id)">×</button>
+            </div>
+          </div>
+          <div v-if="notifications.length > visibleCount" class="see-more">
+            <button @click="loadMore">Xem thêm</button>
+          </div>
+          <div v-if="notifications.length > 0" class="notif-footer">
+            <button @click="markAllRead">Đánh dấu tất cả đã đọc</button>
+            <button @click="deleteAll">Xóa tất cả</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- User login / dropdown -->
+      <div v-if="!user">
+        <button class="homeheader-login-btn" @click="goToLogin">Đăng nhập</button>
+        <button class="homeheader-signup-btn" @click="goToSignup">Tạo tài khoản</button>
+      </div>
+
+      <div v-else class="homeheader-user-dropdown" ref="userDropdownWrapper" @click.stop="toggleDropdown">
+        <span>Chào, {{ user.username }}</span>
+        <i class="fas fa-caret-down"></i>
+        <div v-if="dropdownOpen" class="homeheader-dropdown-menu">
+          <router-link to="/profile">Trang cá nhân</router-link>
+          <a @click="logout">Đăng xuất</a>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <ToastMessage ref="toast" />
     </nav>
   </header>
 </template>
 
 <script>
+import api from "@/api";
+import ToastMessage from "@/components/Notification/ToastMessage.vue";
+
 export default {
-  name: "HomeHeader",
+  components: { ToastMessage },
   data() {
     return {
       keyword: "",
+      user: JSON.parse(localStorage.getItem("user")) || null,
+      dropdownOpen: false,
+      notifications: [],
+      unreadCount: 0,
+      notifDropdownOpen: false,
+      hasNew: false,
+      visibleCount: 5,
     };
+  },
+  computed: {
+    visibleNotifications() {
+      return this.notifications.slice(0, this.visibleCount);
+    }
   },
   methods: {
     goToSearch() {
@@ -52,7 +117,95 @@ export default {
       if (!query) return;
       this.$router.push({ path: "/search", query: { keyword: query } });
     },
+    goToLogin() { this.$router.push("/login"); },
+    goToSignup() { this.$router.push("/register"); },
+    toggleDropdown() { this.dropdownOpen = !this.dropdownOpen; },
+    logout() { localStorage.clear(); this.user = null; this.$router.push("/login"); },
+
+    toggleNotifDropdown() {
+      this.notifDropdownOpen = !this.notifDropdownOpen;
+    },
+
+    async loadNotifications() {
+      if (!this.user) return;
+      try {
+        const res = await api.get(`/notifications/${this.user.user_id}`);
+        this.notifications = res.data;
+        this.updateUnreadCount();
+      } catch (err) { console.error(err); }
+    },
+    async markAsRead(item) {
+      if (!item.is_read) {
+        try {
+          await api.patch(`/notifications/read/${item.id}`);
+          item.is_read = true;
+          this.updateUnreadCount();
+        } catch (err) { console.error(err); }
+      }
+    },
+    async markAllRead() {
+      try {
+        await api.patch(`/notifications/read-all/${this.user.user_id}`);
+        this.notifications.forEach(n => n.is_read = true);
+        this.updateUnreadCount();
+      } catch (err) { console.error(err); }
+    },
+    async deleteNotification(id) {
+      try {
+        await api.delete(`/notifications/${id}`);
+        this.notifications = this.notifications.filter(n => n.id !== id);
+        this.updateUnreadCount();
+      } catch (err) { console.error(err); }
+    },
+    async deleteAll() {
+      try {
+        await api.delete(`/notifications/delete-all/${this.user.user_id}`);
+        this.notifications = [];
+        this.updateUnreadCount();
+      } catch (err) { console.error(err); }
+    },
+    updateUnreadCount() {
+      this.unreadCount = this.notifications.filter(n => !n.is_read).length;
+    },
+    formatDate(date) {
+      return new Date(date).toLocaleString("vi-VN");
+    },
+    listenRealtime() {
+      if (!window.Echo || !this.user) return;
+      window.Echo.channel("notifications")
+        .listen(".new-notification", (data) => {
+          if (data.notification.user_id === this.user.user_id) {
+            this.notifications.unshift(data.notification);
+            this.updateUnreadCount();
+            this.hasNew = true;
+            this.$refs.toast.addToast({
+              title: data.notification.title,
+              message: data.notification.message,
+              type: data.notification.type || 'info'
+            });
+            setTimeout(() => this.hasNew = false, 2000);
+          }
+        });
+    },
+    loadMore() { this.visibleCount += 5; },
+
+    handleClickOutside(e) {
+      if (this.dropdownOpen && !this.$refs.userDropdownWrapper.contains(e.target)) {
+        this.dropdownOpen = false;
+      }
+      if (this.notifDropdownOpen && !this.$refs.notifWrapper.contains(e.target)) {
+        this.notifDropdownOpen = false;
+      }
+    }
   },
+  mounted() {
+    this.loadNotifications();
+    this.listenRealtime();
+    document.addEventListener('click', this.handleClickOutside);
+  },
+  beforeDestroy() {
+    document.removeEventListener('click', this.handleClickOutside);
+  }
 };
 </script>
 

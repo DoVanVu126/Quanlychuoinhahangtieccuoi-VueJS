@@ -18,13 +18,13 @@
         <b-form-input type="number" v-model="form.price" required></b-form-input>
       </b-form-group>
 
-      <!-- Nhà hàng -->
-      <b-form-group label="ID Nhà hàng">
-        <b-form-input
-          type="number"
-          v-model="form.restaurant_id"
-          required
-        ></b-form-input>
+      <!-- Nhà hàng (combobox) -->
+      <b-form-group label="Nhà hàng">
+        <b-form-select v-model="form.restaurant_id" :options="restaurantOptions" required>
+          <template #first>
+            <b-form-select-option :value="''" disabled>-- Chọn nhà hàng --</b-form-select-option>
+          </template>
+        </b-form-select>
       </b-form-group>
 
       <!-- Trạng thái -->
@@ -36,21 +36,20 @@
         </b-form-select>
       </b-form-group>
 
-      <!-- Ảnh hiện tại -->
-      <b-form-group label="Ảnh hiện tại">
-        <div v-if="form.image_url">
-          <img
-            :src="getImageUrl(form.image_url)"
-            alt="Ảnh dịch vụ"
-            class="rounded shadow-sm border mb-2"
-            style="width: 150px; height: 150px; object-fit: cover"
-          />
+      <!-- Ảnh hiện tại & ảnh mới -->
+      <b-form-group label="Ảnh dịch vụ">
+        <div v-if="previewImage">
+          <p>Ảnh mới:</p>
+          <img :src="previewImage" alt="Ảnh mới" class="rounded shadow-sm border mb-2" style="width: 150px; height: 150px; object-fit: cover" />
+        </div>
+        <div v-else-if="form.image_url">
+          <p>Ảnh hiện tại:</p>
+          <img :src="getImageUrl(form.image_url)" alt="Ảnh hiện tại" class="rounded shadow-sm border mb-2" style="width: 150px; height: 150px; object-fit: cover" />
         </div>
         <p v-else class="text-muted">Không có ảnh</p>
 
-        <!-- Chọn ảnh mới -->
         <b-form-file
-          v-model="form.newImage"
+          @change="handleImageUpload"
           accept="image/*"
           placeholder="Chọn ảnh mới nếu muốn thay"
         ></b-form-file>
@@ -59,9 +58,7 @@
       <!-- Nút thao tác -->
       <div class="d-flex gap-2 mt-3">
         <b-button type="submit" variant="primary">💾 Cập nhật</b-button>
-        <b-button variant="secondary" @click="$router.push('/dich-vu')">
-          Hủy
-        </b-button>
+        <b-button variant="secondary" @click="$router.push('/dich-vu')">Hủy</b-button>
       </div>
     </b-form>
   </div>
@@ -79,23 +76,40 @@ export default {
         price: 0,
         restaurant_id: null,
         status: "available",
-        image_url: null,
-        newImage: null, // ảnh mới nếu chọn thay
+        image_url: null, // ảnh cũ
+        newImage: null, // ảnh mới
       },
+      previewImage: null, // hiển thị preview ảnh mới
+      restaurants: [],
     };
   },
+
+  computed: {
+    restaurantOptions() {
+      return this.restaurants.map(r => ({ value: r.restaurant_id, text: r.name }));
+    }
+  },
+
   mounted() {
+    this.fetchRestaurants();
     this.loadService();
   },
+
   methods: {
-    // ✅ Lấy dữ liệu dịch vụ cần sửa
+    async fetchRestaurants() {
+      try {
+        const res = await api.get("/restaurants");
+        this.restaurants = res.data;
+      } catch (err) {
+        console.error("❌ Lỗi tải danh sách nhà hàng:", err);
+      }
+    },
+
     async loadService() {
       try {
         const res = await api.get(`/services/${this.$route.params.id}`);
-        this.form = {
-          ...res.data,
-          newImage: null, // reset ảnh mới
-        };
+        this.form = { ...res.data, newImage: null };
+        this.previewImage = null;
       } catch (err) {
         console.error("❌ Không tải được dịch vụ:", err);
         alert("Không tải được dịch vụ!");
@@ -103,14 +117,20 @@ export default {
       }
     },
 
-    // ✅ Hiển thị đúng URL ảnh
     getImageUrl(url) {
       if (!url) return null;
       if (url.startsWith("http")) return url;
       return `http://127.0.0.1:8088/${url.replace(/^\/+/, "")}`;
     },
 
-    // ✅ Gửi dữ liệu cập nhật (kể cả ảnh mới)
+    handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        this.form.newImage = file;
+        this.previewImage = URL.createObjectURL(file);
+      }
+    },
+
     async updateService() {
       try {
         const formData = new FormData();
@@ -124,11 +144,9 @@ export default {
           formData.append("image", this.form.newImage);
         }
 
-        await api.post(
-          `/services/${this.$route.params.id}?_method=PUT`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
+        await api.post(`/services/${this.$route.params.id}?_method=PUT`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
 
         alert("✅ Cập nhật dịch vụ thành công!");
         this.$router.push("/dich-vu");

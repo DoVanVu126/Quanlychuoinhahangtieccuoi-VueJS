@@ -243,4 +243,11 @@ export default {
 .hall-img.fade-in {
   opacity: 1;
 }
+
+.badge {
+  position: static !important;
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 0.8rem;
+}
 </style>

@@ -2,43 +2,73 @@
   <div class="container mt-5">
     <h2>Thêm Dịch Vụ</h2>
     <b-form @submit.prevent="addService">
+
       <!-- Tên dịch vụ -->
-      <b-form-group label="Tên dịch vụ">
-        <b-form-input v-model="form.name" required></b-form-input>
+      <b-form-group label="Tên dịch vụ" label-for="name">
+        <b-form-input
+          id="name"
+          v-model="form.name"
+          required
+          placeholder="Nhập tên dịch vụ"
+        ></b-form-input>
       </b-form-group>
 
       <!-- Mô tả -->
-      <b-form-group label="Mô tả">
-        <b-form-textarea v-model="form.description" rows="3" required></b-form-textarea>
+      <b-form-group label="Mô tả" label-for="description">
+        <b-form-textarea
+          id="description"
+          v-model="form.description"
+          rows="3"
+          placeholder="Nhập mô tả dịch vụ"
+        ></b-form-textarea>
       </b-form-group>
 
       <!-- Giá -->
-      <b-form-group label="Giá (VNĐ)">
-        <b-form-input type="number" v-model="form.price" min="0" required></b-form-input>
+      <b-form-group label="Giá (VNĐ)" label-for="price">
+        <b-form-input
+          id="price"
+          type="number"
+          v-model.number="form.price"
+          required
+          min="0"
+          placeholder="Nhập giá dịch vụ"
+        ></b-form-input>
       </b-form-group>
 
-      <!-- ID Nhà hàng -->
-      <b-form-group label="ID Nhà hàng">
-        <b-form-input type="number" v-model="form.restaurant_id" min="1" required></b-form-input>
+      <!-- Nhà hàng -->
+      <b-form-group label="Nhà hàng" label-for="restaurant_id">
+        <b-form-select
+          id="restaurant_id"
+          v-model="form.restaurant_id"
+          :options="restaurants"
+          required
+        >
+          <template #first>
+            <b-form-select-option :value="null" disabled>-- Chọn nhà hàng --</b-form-select-option>
+          </template>
+        </b-form-select>
       </b-form-group>
 
       <!-- Trạng thái -->
-      <b-form-group label="Trạng thái">
-        <b-form-select v-model="form.status" :options="statusOptions"></b-form-select>
+      <b-form-group label="Trạng thái" label-for="status">
+        <b-form-select
+          id="status"
+          v-model="form.status"
+          :options="statusOptions"
+        ></b-form-select>
       </b-form-group>
 
       <!-- Upload ảnh -->
-      <b-form-group label="Ảnh dịch vụ">
+      <b-form-group label="Ảnh dịch vụ" label-for="image">
         <b-form-file
+          id="image"
           @change="handleImageUpload"
           accept="image/*"
-          browse-text="Chọn ảnh"
-          placeholder="Chưa chọn ảnh nào"
+          placeholder="Chọn file ảnh..."
         ></b-form-file>
 
-        <!-- Hiển thị ảnh xem trước -->
         <div v-if="previewImage" class="mt-3 text-center">
-          <img :src="previewImage" alt="Preview" class="img-thumbnail" style="max-width: 200px;" />
+          <img :src="previewImage" alt="Preview" class="img-thumbnail" style="max-width: 200px;">
         </div>
       </b-form-group>
 
@@ -71,9 +101,28 @@ export default {
         { value: "unavailable", text: "Không khả dụng" },
         { value: "maintenance", text: "Bảo trì" },
       ],
+      restaurants: [], // combobox nhà hàng
     };
   },
+  mounted() {
+    this.fetchRestaurants();
+  },
   methods: {
+    // Lấy danh sách nhà hàng từ API
+    async fetchRestaurants() {
+      try {
+        const res = await api.get("/restaurants");
+        const dataArray = Array.isArray(res.data) ? res.data : res.data.data || [];
+        this.restaurants = dataArray.map(r => ({
+          value: r.restaurant_id,
+          text: r.name
+        }));
+      } catch (err) {
+        console.error("❌ Lỗi tải nhà hàng:", err);
+        alert("Không thể tải danh sách nhà hàng");
+      }
+    },
+
     // Xử lý upload ảnh và xem trước
     handleImageUpload(e) {
       const file = e.target.files[0];
@@ -85,12 +134,17 @@ export default {
 
     // Gửi form lên server
     async addService() {
+      if (!this.form.restaurant_id) {
+        alert("Vui lòng chọn nhà hàng");
+        return;
+      }
+
       try {
         const formData = new FormData();
         formData.append("name", this.form.name);
         formData.append("description", this.form.description);
         formData.append("price", this.form.price);
-        formData.append("restaurant_id", this.form.restaurant_id);
+        formData.append("restaurant_id", Number(this.form.restaurant_id)); // ép kiểu số
         formData.append("status", this.form.status);
         if (this.imageFile) {
           formData.append("image", this.imageFile);
@@ -103,8 +157,11 @@ export default {
         alert("✅ Đã thêm dịch vụ: " + this.form.name);
         this.$router.push("/dich-vu");
       } catch (err) {
-        console.error("❌ Lỗi thêm dịch vụ:", err);
-        alert("Thêm dịch vụ thất bại!");
+        console.error(
+  "❌ Lỗi thêm dịch vụ:",
+  err && err.response && err.response.data ? err.response.data : err
+);
+        alert("Thêm dịch vụ thất bại! Kiểm tra console để biết chi tiết.");
       }
     },
   },

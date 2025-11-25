@@ -7,15 +7,13 @@
         <b-form-input v-model="form.name" required></b-form-input>
       </b-form-group>
 
-      <!-- Nhập ID nhà hàng -->
-      <b-form-group label="Mã nhà hàng (restaurant_id)">
-        <b-form-input
-          type="number"
-          v-model="form.restaurant_id"
-          min="1"
-          required
-          placeholder="Nhập ID nhà hàng"
-        ></b-form-input>
+      <!-- Chọn Nhà hàng -->
+      <b-form-group label="Nhà hàng">
+        <b-form-select v-model="form.restaurant_id" :options="restaurants">
+          <template #first>
+            <b-form-select-option :value="null" disabled>-- Chọn nhà hàng --</b-form-select-option>
+          </template>
+        </b-form-select>
       </b-form-group>
 
       <!-- Sức chứa -->
@@ -27,11 +25,6 @@
       <b-form-group label="Giá thuê (VNĐ)">
         <b-form-input type="number" v-model="form.price" min="0" required></b-form-input>
       </b-form-group>
-
-      <!-- Vị trí -->
-      <!-- <b-form-group label="Vị trí">
-        <b-form-input v-model="form.location" placeholder="Ví dụ: Tầng 2 - Khu A"></b-form-input>
-      </b-form-group> -->
 
       <!-- Trạng thái -->
       <b-form-group label="Trạng thái">
@@ -47,7 +40,6 @@
           placeholder="Chưa chọn ảnh nào"
         ></b-form-file>
 
-        <!-- Hiển thị ảnh xem trước -->
         <div v-if="previewImage" class="mt-3 text-center">
           <img :src="previewImage" alt="Preview" class="img-thumbnail" style="max-width: 200px;" />
         </div>
@@ -70,14 +62,14 @@ export default {
     return {
       form: {
         name: "",
-        restaurant_id: "", // tự nhập ID
+        restaurant_id: null, // combobox
         capacity: "",
         price: "",
-        // location: "",
         status: "available",
       },
       imageFile: null,
       previewImage: null,
+      restaurants: [], // mảng để hiển thị combobox
       statusOptions: [
         { value: "available", text: "Có sẵn" },
         { value: "unavailable", text: "Đã đặt" },
@@ -86,6 +78,19 @@ export default {
     };
   },
   methods: {
+    async fetchRestaurants() {
+      try {
+        const res = await api.get("/restaurants");
+        const dataArray = Array.isArray(res.data) ? res.data : res.data.data || [];
+        this.restaurants = dataArray.map(r => ({
+          value: r.restaurant_id,
+          text: r.name,
+        }));
+      } catch (err) {
+        console.error("❌ Lỗi tải danh sách nhà hàng:", err);
+      }
+    },
+
     handleImageUpload(e) {
       const file = e.target.files[0];
       if (file) {
@@ -115,6 +120,9 @@ export default {
         alert("Thêm sảnh thất bại!");
       }
     },
+  },
+  mounted() {
+    this.fetchRestaurants();
   },
 };
 </script>

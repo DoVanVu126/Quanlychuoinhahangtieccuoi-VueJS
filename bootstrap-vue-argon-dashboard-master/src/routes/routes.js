@@ -3,7 +3,11 @@ import DashboardLayout from "@/views/Layout/DashboardLayout.vue";
 import AuthLayout from "@/views/Pages/AuthLayout.vue";
 import NotFound from "@/views/NotFoundPage.vue";
 import Home from "@/views/Pages/Home.vue";
+import Login from "@/views/Pages/Login.vue";
+import Register from "@/views/Pages/Register.vue";
+import Profile from "@/views/Pages/Profile.vue";
 import Search from "@/views/Pages/Search.vue";
+import UserLayout from "@/views/KM/UserLayout.vue";
 const routes = [
   {
     path: "/",
@@ -69,6 +73,30 @@ const routes = [
         component: () => import("../views/Service/SuaDichVu.vue"),
       },
 
+      // 👉 KHUYẾN MÃI
+      {
+        path: "/promotions",
+        name: "Promotions",
+        component: () => import("../views/Promotion/Promotions.vue"),
+      },
+      {
+        path: "/promotions/add",
+        name: "AddPromotion",
+        component: () => import("../views/Promotion/AddPromotion.vue"),
+      },
+      {
+        path: "/promotions/edit/:id",
+        name: "EditPromotion",
+        component: () => import("../views/Promotion/EditPromotion.vue"),
+      },
+
+      {
+        path: "/promotions",
+        name: "PromotionList",
+        component: () => import("../components/Home/PromotionList.vue"),
+      },
+
+
       // 👉 SẢNH
       {
         path: "/sanh",
@@ -85,39 +113,21 @@ const routes = [
         name: "SuaSanh",
         component: () => import("../views/SuaSanh.vue"),
       },
-
       // 👉 NHÀ HÀNG
       {
-        path: "/nha-hang",
-        name: "NhaHang",
-        component: () => import("@/views/NhaHang.vue"),
+        path: "/restaurant",
+        name: "Restaurant",
+        component: () => import("../views/Restaurant/Restaurant.vue"),
       },
       {
-        path: "/nha-hang/them",
-        name: "ThemNhaHang",
-        component: () => import("../views/ThemNhaHang.vue"),
+        path: "/restaurant/them",
+        name: "ThemRestaurant",
+        component: () => import("../views/Restaurant/ThemRestaurant.vue"),
       },
       {
-        path: "/nha-hang/sua/:id",
-        name: "SuaNhaHang",
-        component: () => import("../views/SuaNhaHang.vue"),
-      },
-
-      // 👉 GÓI GỢI Ý
-      {
-        path: "/goi-goi-y",
-        name: "GoiGoiY",
-        component: () => import("../views/GoiGoiY.vue"),
-      },
-      {
-        path: "/goi-goi-y/them",
-        name: "ThemGoiGoiY",
-        component: () => import("../views/ThemGoiGoiY.vue"),
-      },
-      {
-        path: "/goi-goi-y/sua/:id",
-        name: "SuaGoiGoiY",
-        component: () => import("../views/SuaGoiGoiY.vue"),
+        path: "/restaurant/sua/:id",
+        name: "SuaRestaurant",
+        component: () => import("../views/Restaurant/SuaRestaurant.vue"),
       },
 
       // 👉 KHO - Quản lý kho
@@ -180,6 +190,9 @@ const routes = [
     name: "Home",
     component: Home,
   },
+  { path: "/login", name: "Login", component: Login },
+  { path: "/register", name: "Register", component: Register },
+  { path: "/profile", name: "Profile", component: Profile },
   { path: "/search", name: "Search", component: Search },
   {
     path: "/dat-tiec",
@@ -191,6 +204,45 @@ const routes = [
       endDate: route.query.endDate || null,
     }),
   },
+
+  {
+    path: "/gio-hang",
+    component: UserLayout,   // Layout người dùng
+    children: [
+      {
+        path: "",
+        name: "CartPage",
+        component: () => import("../components/Home/Cart.vue"),
+      }
+    ]
+  },
+
+  {
+    path: "/promotion/:id",
+    component: UserLayout,
+    children: [
+      {
+        path: "",
+        name: "PromotionDetailUser",
+        component: () => import("../components/Home/PromotionDetail.vue"),
+      }
+    ]
+  },
+
+  // Public restaurant detail (user-facing)
+  {
+    path: "/restaurant/:id",
+    component: UserLayout,
+    children: [
+      {
+        path: "",
+        name: "RestaurantDetail",
+        component: () => import("../components/Home/RestaurantDetail.vue"),
+        props: true,
+      }
+    ]
+  },
+
 
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
   {
@@ -212,5 +264,6 @@ const routes = [
     ],
   },
 ];
+
 
 export default routes;

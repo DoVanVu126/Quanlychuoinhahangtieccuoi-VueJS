@@ -1,0 +1,32 @@
+.booking-restaurantpage-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 5px 0;
+}
+
+.booking-restaurantpage-img {
+  width: 180px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.booking-restaurantpage-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.booking-restaurantpage-name {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.booking-restaurantpage-contact,
+.booking-restaurantpage-address {
+  font-size: 14px;
+  color: #555;
+  margin: 2px 0;
+}
