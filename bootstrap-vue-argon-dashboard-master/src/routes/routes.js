@@ -229,6 +229,20 @@ const routes = [
     ]
   },
 
+  // Public restaurant detail (user-facing)
+  {
+    path: "/restaurant/:id",
+    component: UserLayout,
+    children: [
+      {
+        path: "",
+        name: "RestaurantDetail",
+        component: () => import("../components/Home/RestaurantDetail.vue"),
+        props: true,
+      }
+    ]
+  },
+
 
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
   {

@@ -15,7 +15,7 @@
       <h4>{{ hall.name }}</h4>
       <p>{{ hall.description }}</p>
       <p>
-        <strong>{{ hall.range }}</strong> &nbsp; {{ hall.price }}
+        <strong>{{ hall.range }}</strong>
       </p>
 
       <button

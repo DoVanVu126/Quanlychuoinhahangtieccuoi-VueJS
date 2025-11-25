@@ -57,19 +57,20 @@ export default {
       try {
         // Lấy thông tin nhà hàng
         const res = await axios.get(`http://localhost:8088/api/restaurants/${restaurant_id}`);
-        this.restaurants = res.data;
+        // API may return either the object directly or an envelope { data: {...} }
+        this.restaurants = res.data && res.data.data ? res.data.data : res.data;
 
         // Lấy danh sách sảnh
         const hallsRes = await axios.get(`http://localhost:8088/api/restaurants/${restaurant_id}/halls`);
-        this.halls = hallsRes.data;
+        this.halls = hallsRes.data && hallsRes.data.data ? hallsRes.data.data : hallsRes.data;
 
         // Lấy danh sách món ăn
         const foodsRes = await axios.get(`http://localhost:8088/api/restaurants/${restaurant_id}/foods`);
-        this.foods = foodsRes.data;
+        this.foods = foodsRes.data && foodsRes.data.data ? foodsRes.data.data : foodsRes.data;
 
         // Lấy danh sách dịch vụ
         const servicesRes = await axios.get(`http://localhost:8088/api/restaurants/${restaurant_id}/services`);
-        this.services = servicesRes.data;
+        this.services = servicesRes.data && servicesRes.data.data ? servicesRes.data.data : servicesRes.data;
 
       } catch (err) {
         console.error("Lỗi fetch dữ liệu nhà hàng:", err);

@@ -1,5 +1,5 @@
 .searchpage-header {
-    padding: 20px 75px;
+    padding: 10px 75px;
     background-color: #f9fafc;
 }
 
@@ -127,98 +127,201 @@
   transform: scale(1.1);
 }
 
-/* ✅ Hiệu ứng slide panel từ phải vào */
+/* ✅ Hiệu ứng slide panel từ phải (slide-in) */
 .slide-compare-enter-active,
 .slide-compare-leave-active {
-  transition: transform 0.4s ease;
+  transition: transform 0.28s cubic-bezier(.2,.8,.2,1), opacity 0.22s ease;
 }
 .slide-compare-enter-from,
 .slide-compare-leave-to {
   transform: translateX(100%);
+  opacity: 0;
 }
 
-/* ✅ Panel so sánh */
+/* ✅ Panel so sánh - Góc phải trên */
 .compare-panel {
   position: fixed;
-  top: 0;
-  right: 0;
-  width: 380px;
-  height: 100%;
+  top: 170px;
+  right: 0px;
+  width: 420px;
+  max-width: calc(100% - 40px);
   background: #fff;
-  box-shadow: -3px 0 10px rgba(0, 0, 0, 0.15);
-  padding: 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  padding: 8px 10px;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   z-index: 9999;
 }
 
 .compare-title {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
-  margin-bottom: 20px;
-  text-align: center;
+  margin: 6px 8px;
+  text-align: left;
 }
 
 .compare-selects {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 6px;
 }
 
 .compare-item {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 10px 6px;
+  border-radius: 6px;
+  background: transparent;
+  border-bottom: 1px solid #eee;
 }
 
 .compare-item span {
-  background: #1a73e8;
-  color: white;
-  font-weight: bold;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  width: 28px;
   text-align: center;
-  line-height: 24px;
+  color: #333;
+  font-weight: 600;
 }
 
-.compare-dropdown {
+.compare-slot {
   flex: 1;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.compare-selected {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.compare-selected img {
+  width: 56px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.compare-name {
+  font-size: 16px;
+  color: #111827;
+}
+
+.btn-delete {
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Make delete button stick to the right of the slot */
+.compare-selected {
+  flex: 1; /* allow selected area to grow */
+}
+.btn-delete {
+  margin-left: auto;
+}
+
+.compare-empty {
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .compare-actions {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.compare-actions .left-note {
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .btn-cancel {
-  flex: 1;
-  background: red;
+  background: #ff2d2d;
   color: white;
   border: none;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 8px 22px;
+  border-radius: 22px;
   cursor: pointer;
 }
 
 .btn-start {
-  flex: 1;
-  background: #1a73e8;
+  background: #2f78ff;
   color: white;
   border: none;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 8px 22px;
+  border-radius: 22px;
   cursor: pointer;
 }
 
 .btn-start:disabled {
-  background: #ccc;
+  background: #bfc7d6;
   cursor: not-allowed;
 }
+
+/* Detailed compare modal styles */
+.compare-result-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.compare-result-modal {
+  width: calc(100% - 160px);
+  max-width: 1100px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+  padding: 20px 28px;
+  position: relative;
+}
+.compare-close {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  background: #ff4d4f;
+  color: #fff;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.compare-result-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e6e6e6;
+}
+.compare-result-body { padding-top: 18px; }
+.compare-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f3f3f3;
+}
+.compare-label { color: #4b5563; }
+.compare-value { text-align: center; }
+.fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }

@@ -2,7 +2,9 @@
   <header class="home-header">
     <!-- Logo + Thanh tìm kiếm -->
     <div class="logo">
-      <img src="/img/logo.png" alt="Wedding" />
+      <router-link to="/home" class="logo-link">
+        <img src="/img/logo.png" alt="Wedding" />
+      </router-link>
       <div class="search-bar">
         <input
           type="text"
