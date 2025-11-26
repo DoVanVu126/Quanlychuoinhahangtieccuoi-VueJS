@@ -77,9 +77,11 @@
         <span>Chào, {{ user.username }}</span>
         <i class="fas fa-caret-down"></i>
         <div v-if="dropdownOpen" class="homeheader-dropdown-menu">
-          <router-link to="/profile">Trang cá nhân</router-link>
-          <a @click="logout">Đăng xuất</a>
-        </div>
+  <router-link to="/profile">Trang cá nhân</router-link>
+  <router-link to="/saved-promotions">Mã khuyến mãi đã lưu</router-link>
+  <hr />
+  <a @click="logout">Đăng xuất</a>
+</div>
       </div>
 
       <!-- Toast -->

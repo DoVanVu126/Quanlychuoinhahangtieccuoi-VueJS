@@ -1,59 +1,71 @@
 <template>
   <section class="promotion-detail">
-    <div class="promotion-detail__container fade-in">
 
-      <!-- Nút quay lại -->
+    <div class="card">
+
+      <!-- Back -->
       <button class="back-btn" @click="$router.push('/promotions')">
-        ← Quay lại
+        ← Quay lại danh sách
       </button>
 
-      <!-- Ảnh khuyến mãi -->
-      <div class="image-wrapper">
+      <!-- Image -->
+      <div class="image-box">
         <img
           :src="promotion.image"
-          class="promotion-detail__image"
           @error="handleImageError"
+          class="promo-img"
         />
       </div>
 
-      <!-- Tiêu đề -->
-      <h2 class="promotion-detail__title">{{ promotion.title }}</h2>
+      <!-- Info block -->
+      <div class="info-box">
 
-      <!-- Mã khuyến mãi + nút lưu -->
-      <div class="promotion-code-wrapper">
-        <span class="promotion-detail__code">{{ promotion.promotion_code }}</span>
-        <button class="save-code-btn" @click="saveCode">💾 Lưu mã</button>
+        <h2 class="title">{{ promotion.title }}</h2>
+
+        <!-- Code -->
+        <div class="code-row">
+          <div class="promo-code">{{ promotion.promotion_code }}</div>
+          <button class="btn-save" @click="saveCode">📋 Copy mã</button>
+        </div>
+
+        <p class="desc">{{ promotion.description || "Không có mô tả" }}</p>
+
+        <div class="detail-list">
+
+          <p>
+            <span class="label">💸 Giảm giá:</span>
+            <span class="value highlight">
+              <template v-if="promotion.discount_type === 'percent'">
+                -{{ promotion.discount_value }}%
+              </template>
+              <template v-else>
+                -{{ formatMoney(promotion.discount_value) }}₫
+              </template>
+            </span>
+          </p>
+
+          <p>
+            <span class="label">📅 Thời gian:</span>
+            <span class="value">
+              {{ formatDate(promotion.start_date) }} → {{ formatDate(promotion.end_date) }}
+            </span>
+          </p>
+
+          <p>
+            <span class="label">📌 Trạng thái:</span>
+            <span :class="['status', promotion.status]">
+              {{ promotion.status }}
+            </span>
+          </p>
+
+        </div>
+
       </div>
-
-      <!-- Mô tả -->
-      <p class="promotion-detail__text">{{ promotion.description || 'Không có mô tả' }}</p>
-
-      <!-- Giảm giá -->
-      <p class="promotion-detail__discount">
-        <strong>Giảm giá:</strong>
-        <span v-if="promotion.discount_type === 'percent'">
-          -{{ promotion.discount_value }}%
-        </span>
-        <span v-else>
-          -{{ formatMoney(promotion.discount_value) }} VNĐ
-        </span>
-      </p>
-
-      <!-- Thời gian -->
-      <p class="promotion-detail__time">
-        <strong>Thời gian:</strong>
-        {{ formatDate(promotion.start_date) }} → {{ formatDate(promotion.end_date) }}
-      </p>
-
-      <!-- Trạng thái -->
-      <p class="promotion-detail__status">
-        <strong>Trạng thái:</strong>
-        <span :class="statusClass">{{ promotion.status }}</span>
-      </p>
-
     </div>
+
   </section>
 </template>
+
 
 <script>
 import api from "@/api";
@@ -63,7 +75,7 @@ export default {
   data() {
     return {
       promotion: {
-        image: "/img/default.jpg"
+        image: "/img/default.jpg",
       },
     };
   },
@@ -72,17 +84,12 @@ export default {
     this.loadDetail();
   },
 
-  computed: {
-    statusClass() {
-      return this.promotion.status === "active" ? "status-active" : "status-inactive";
-    }
-  },
-
   methods: {
     async loadDetail() {
       try {
         const id = this.$route.params.id;
-        const res = await api.get(`/promotions/${id}`); // endpoint user
+        const res = await api.get(`/promotions/${id}`);
+
         this.promotion = {
           ...res.data,
           image: res.data.image
@@ -91,18 +98,17 @@ export default {
               : `http://127.0.0.1:8088/${res.data.image.replace(/^\/+/, "")}`
             : "/img/default.jpg",
         };
-      } catch (error) {
-        console.error("❌ Không tải được chi tiết:", error);
+      } catch (err) {
+        console.error("Lỗi tải chi tiết:", err);
       }
     },
 
     handleImageError(e) {
       e.target.src = "/img/default.jpg";
-      e.target.style.border = "1px solid #ddd";
     },
 
     formatMoney(num) {
-      return new Intl.NumberFormat().format(num);
+      return new Intl.NumberFormat("vi-VN").format(num);
     },
 
     formatDate(date) {
@@ -110,116 +116,142 @@ export default {
     },
 
     saveCode() {
-      if (!this.promotion.promotion_code) return;
       navigator.clipboard.writeText(this.promotion.promotion_code);
-      alert(`Đã lưu mã: ${this.promotion.promotion_code}`);
-    }
-  }
+      alert("Đã copy mã!");
+    },
+  },
 };
 </script>
 
+
 <style scoped>
-.promotion-detail__container {
-  max-width: 720px;
-  margin: 40px auto;
-  padding: 25px;
-  border-radius: 20px;
-  background: linear-gradient(180deg, #ffffff, #f9fafb);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-  text-align: center;
-  animation: fadeInSlide 0.8s ease;
+.promotion-detail {
+  display: flex;
+  justify-content: center;
+  padding: 30px 12px;
+  background: #f3f4f6;
+  min-height: 100vh;
 }
 
-@keyframes fadeInSlide {
-  from { opacity: 0; transform: translateY(20px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+.card {
+  width: 100%;
+  max-width: 760px;
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  padding: 24px;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Back button */
 .back-btn {
-  position: relative;
-  left: 0;
-  font-size: 18px;
-  color: #3b82f6;
   background: none;
   border: none;
+  color: #3b82f6;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 18px;
   cursor: pointer;
-  margin-bottom: 20px;
-  transition: 0.3s ease;
 }
-.back-btn:hover { color: #1d4ed8; }
+.back-btn:hover {
+  color: #1d4ed8;
+}
 
 /* Image */
-.image-wrapper {
+.image-box {
+  width: 100%;
+  height: 260px;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 14px;
   margin-bottom: 20px;
 }
-.promotion-detail__image {
+.promo-img {
   width: 100%;
-  height: 360px;
+  height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
+  transition: .3s ease;
 }
-.promotion-detail__image:hover { transform: scale(1.05); }
+.promo-img:hover {
+  transform: scale(1.05);
+}
 
 /* Title */
-.promotion-detail__title {
-  font-size: 30px;
+.title {
+  font-size: 26px;
   font-weight: 700;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
+  color: #111827;
 }
 
-/* Mã khuyến mãi */
-.promotion-code-wrapper {
+/* Code Row */
+.code-row {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
-.promotion-detail__code {
-  font-size: 20px;
-  font-weight: 600;
-  padding: 8px 14px;
-  border-radius: 10px;
-  background-color: #fef3c7;
+.promo-code {
+  padding: 8px 12px;
+  background: #fef3c7;
   color: #b45309;
+  font-weight: 700;
+  border-radius: 8px;
 }
 
-/* Nút lưu mã */
-.save-code-btn {
-  background-color: #f59e0b;
-  color: #fff;
-  border: none;
+.btn-save {
+  background: #3b82f6;
+  color: white;
   padding: 8px 14px;
-  border-radius: 10px;
+  border: none;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.3s ease;
+  transition: .25s ease;
 }
-.save-code-btn:hover { background-color: #d97706; }
+.btn-save:hover {
+  background: #1d4ed8;
+}
 
-/* Text, discount, time */
-.promotion-detail__text {
-  font-size: 16px;
+/* Description */
+.desc {
   color: #4b5563;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  line-height: 1.5;
 }
-.promotion-detail__discount {
-  font-size: 17px;
+
+/* Details List */
+.detail-list p {
+  margin: 8px 0;
+}
+
+.label {
   font-weight: 600;
-  color: #ef4444;
-  margin-bottom: 10px;
-}
-.promotion-detail__time {
-  font-size: 15px;
   color: #374151;
-  margin-bottom: 10px;
+}
+
+.value {
+  margin-left: 6px;
+  color: #111;
+}
+
+.highlight {
+  color: #dc2626;
+  font-weight: 700;
 }
 
 /* Status */
-.status-active { color: #10b981; font-weight: 600; }
-.status-inactive { color: #6b7280; font-weight: 600; }
+.status.active {
+  color: #10b981;
+  font-weight: 700;
+}
+.status.inactive {
+  color: #9ca3af;
+  font-weight: 700;
+}
 </style>
