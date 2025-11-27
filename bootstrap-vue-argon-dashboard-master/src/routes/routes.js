@@ -1,5 +1,6 @@
-// router/routes.js
 import DashboardLayout from "@/views/Layout/DashboardLayout.vue";
+import AuthLayout from "@/views/Pages/AuthLayout.vue";
+import NotFound from "@/views/NotFoundPage.vue";
 import Home from "@/views/Pages/Home.vue";
 import Register from '@/views/Auth/Register.vue';
 import Login from '@/views/Auth/Login.vue';
@@ -16,206 +17,69 @@ const routes = [
     name: "Home",
     component: Home,
   },
+
+  // ---------------- ADMIN DASHBOARD ----------------
   {
-    path: "/dashboard", // <-- Đổi path từ "/" thành "/dashboard"
+    path: "/dashboard",
     component: DashboardLayout,
+    meta: { requiresAuth: true },
     children: [
-      {
-        path: "/dashboard",
-        name: "dashboard",
-        component: () => import("../views/Dashboard.vue"),
-      },
+      { path: "/dashboard", name: "dashboard", component: () => import("../views/Dashboard.vue") },
 
-      // user
-      {
-        path: "/users",
-        name: "User",
-        component: () => import("../views/User.vue"),
-      },
+      // Users
+      { path: "/users", name: "User", component: () => import("../views/User.vue") },
+      { path: "/users/add", name: "AddUser", component: () => import("../views/AddUser.vue") },
+      { path: "/users/edit/:id", name: "EditUser", component: () => import("../views/EditUser.vue") },
 
-      {
-        path: "/users/add",
-        name: "AddUser",
-        component: () => import("../views/AddUser.vue"),
-      },
-      {
-        path: "/users/edit/:id",
-        name: "EditUser",
-        component: () => import("../views/EditUser.vue"),
-      },
+      // Món ăn
+      { path: "/mon-an", name: "MonAn", component: () => import("@/views/Food/MonAn.vue") },
+      { path: "/mon-an/them", name: "ThemMonAn", component: () => import("@/views/Food/ThemMonAn.vue") },
+      { path: "/mon-an/sua/:id", name: "SuaMonAn", component: () => import("@/views/Food/SuaMonAn.vue"), props: true },
 
-      // 👉 MÓN ĂN
-      {
-        path: "/mon-an",
-        name: "MonAn",
-        component: () => import("@/views/Food/MonAn.vue"), // đổi đúng file mà mình vừa tạo (Food.vue)
-      },
-      {
-        path: "/mon-an/them",
-        name: "ThemMonAn",
-        component: () => import("@/views/Food/ThemMonAn.vue"), // file thêm món ăn
-      },
-      {
-        path: "/mon-an/sua/:id",
-        name: "SuaMonAn",
-        component: () => import("@/views/Food/SuaMonAn.vue"), // file sửa món ăn
-        props: true,
-      },
+      // Dịch vụ
+      { path: "/dich-vu", name: "DichVu", component: () => import("../views/Service/DichVu.vue") },
+      { path: "/dich-vu/them", name: "ThemDichVu", component: () => import("../views/Service/ThemDichVu.vue") },
+      { path: "/dich-vu/sua/:id", name: "SuaDichVu", component: () => import("../views/Service/SuaDichVu.vue") },
 
-      // 👉 DỊCH VỤ
-      {
-        path: "/dich-vu",
-        name: "DichVu",
-        component: () => import("../views/Service/DichVu.vue"),
-      },
-      {
-        path: "/dich-vu/them",
-        name: "ThemDichVu",
-        component: () => import("../views/Service/ThemDichVu.vue"),
-      },
-      {
-        path: "/dich-vu/sua/:id",
-        name: "SuaDichVu",
-        component: () => import("../views/Service/SuaDichVu.vue"),
-      },
+      // Khuyến mãi
+      { path: "/promotions", name: "Promotions", component: () => import("../views/Promotion/Promotions.vue") },
+      { path: "/promotions/add", name: "AddPromotion", component: () => import("../views/Promotion/AddPromotion.vue") },
+      { path: "/promotions/edit/:id", name: "EditPromotion", component: () => import("../views/Promotion/EditPromotion.vue") },
 
-      // 👉 KHUYẾN MÃI
-      {
-        path: "/promotions",
-        name: "Promotions",
-        component: () => import("../views/Promotion/Promotions.vue"),
-      },
-      {
-        path: "/promotions/add",
-        name: "AddPromotion",
-        component: () => import("../views/Promotion/AddPromotion.vue"),
-      },
-      {
-        path: "/promotions/edit/:id",
-        name: "EditPromotion",
-        component: () => import("../views/Promotion/EditPromotion.vue"),
-      },
+      // Sảnh
+      { path: "/sanh", name: "Sanh", component: () => import("../views/Sanh.vue") },
+      { path: "/sanh/them", name: "ThemSanh", component: () => import("../views/ThemSanh.vue") },
+      { path: "/sanh/sua/:id", name: "SuaSanh", component: () => import("../views/SuaSanh.vue") },
 
-      {
-        path: "/promotions",
-        name: "PromotionList",
-        component: () => import("../components/Home/PromotionList.vue"),
-      },
+      // Nhà hàng
+      { path: "/nha-hang", name: "NhaHang", component: () => import("@/views/NhaHang.vue") },
+      { path: "/nha-hang/them", name: "ThemNhaHang", component: () => import("../views/ThemNhaHang.vue") },
+      { path: "/nha-hang/sua/:id", name: "SuaNhaHang", component: () => import("../views/SuaNhaHang.vue") },
 
-      // {
-      //   path: "/promotion/:id",
-      //   name: "PromotionDetail",
-      //   component: () => import("../components/Home/PromotionDetail.vue"),
-      // },
+      // Kho
+      { path: "/kho", name: "Kho", component: () => import("../views/Kho.vue") },
+      { path: "/them-hang", name: "ThemHang", component: () => import("../views/kho-hang/ThemHang.vue") },
+      { path: "/sua-hang", name: "SuaHang", component: () => import("../views/kho-hang/SuaHang.vue") },
+      { path: "/xoa-hang", name: "XoaHang", component: () => import("../views/kho-hang/XoaHang.vue") },
+      { path: "/bao-cao-pdf", name: "BaoCaoPDF", component: () => import("../views/kho-hang/BaoCaoPDF.vue") },
+      { path: "/lich-su-kho", name: "LichSuKho", component: () => import("../views/kho-hang/LichSuKho.vue") },
 
+      // Cài đặt
+      { path: "/settings", name: "Settings", component: () => import("../views/Settings.vue") },
 
-      // 👉 SẢNH
-      {
-        path: "/sanh",
-        name: "Sanh",
-        component: () => import("../views/Sanh.vue"),
-      },
-      {
-        path: "/sanh/them",
-        name: "ThemSanh",
-        component: () => import("../views/ThemSanh.vue"),
-      },
-      {
-        path: "/sanh/sua/:id",
-        name: "SuaSanh",
-        component: () => import("../views/SuaSanh.vue"),
-      },
-
-      // 👉 NHÀ HÀNG
-      {
-        path: "/nha-hang",
-        name: "NhaHang",
-        component: () => import("@/views/NhaHang.vue"),
-      },
-      {
-        path: "/nha-hang/them",
-        name: "ThemNhaHang",
-        component: () => import("../views/ThemNhaHang.vue"),
-      },
-      {
-        path: "/nha-hang/sua/:id",
-        name: "SuaNhaHang",
-        component: () => import("../views/SuaNhaHang.vue"),
-      },
-
-      // 👉 GÓI GỢI Ý
-      {
-        path: "/goi-goi-y",
-        name: "GoiGoiY",
-        component: () => import("../views/GoiGoiY.vue"),
-      },
-      {
-        path: "/goi-goi-y/them",
-        name: "ThemGoiGoiY",
-        component: () => import("../views/ThemGoiGoiY.vue"),
-      },
-      {
-        path: "/goi-goi-y/sua/:id",
-        name: "SuaGoiGoiY",
-        component: () => import("../views/SuaGoiGoiY.vue"),
-      },
-
-      // 👉 KHO - Quản lý kho
-      {
-        path: "/kho",
-        name: "Kho",
-        component: () => import("../views/Kho.vue"),
-      },
-      {
-        path: "/them-hang",
-        name: "ThemHang",
-        component: () => import("../views/kho-hang/ThemHang.vue"),
-      },
-      {
-        path: "/sua-hang",
-        name: "SuaHang",
-        component: () => import("../views/kho-hang/SuaHang.vue"),
-      },
-      {
-        path: "/xoa-hang",
-        name: "XoaHang",
-        component: () => import("../views/kho-hang/XoaHang.vue"),
-      },
-      {
-        path: "/bao-cao-pdf",
-        name: "BaoCaoPDF",
-        component: () => import("../views/kho-hang/BaoCaoPDF.vue"),
-      },
-      {
-        path: "/lich-su-kho",
-        name: "LichSuKho",
-        component: () => import("../views/kho-hang/LichSuKho.vue"),
-      },
-      // 👉 CÀI ĐẶT
-      {
-        path: "/settings",
-        name: "Settings",
-        component: () => import("../views/Settings.vue"),
-      },
-
-      // 👉 ĐĂNG XUẤT
-      {
-        path: "/logout",
-        name: "Logout",
-        component: () => import("../views/Pages/Logout.vue"),
-      },
+      // Đăng xuất
+      { path: "/logout", name: "Logout", component: () => import("../views/Pages/Logout.vue") },
     ],
   },
 
-  {
-    path: "/home",
-    name: "Home",
-    component: Home,
-  },
+  { path: "/home", name: "HomePage2", component: Home },
   { path: "/search", name: "Search", component: Search },
+
+  // ------------------ ĐẶT TIỆC (CẦN LOGIN) ------------------
   {
     path: "/dat-tiec",
     name: "DatTiec",
+    meta: { requiresAuth: true },
     component: () => import("@/views/Pages/BookingPage.vue"),
     props: (route) => ({
       restaurant: route.query.restaurant || null,
@@ -224,6 +88,7 @@ const routes = [
     }),
   },
 
+  // ------------------ CHI TIẾT KHUYẾN MÃI ------------------
   {
     path: "/promotion/:id",
     component: UserLayout,
@@ -235,78 +100,39 @@ const routes = [
       }
     ]
   },
-
-
-  // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
-  {
-    path: "/login",
-    name: "Login",
-    component: Login,
+   {
+    path: "/gio-hang",
+    component: UserLayout,   // Layout người dùng
+    children: [
+      {
+        path: "",
+        name: "CartPage",
+        component: () => import("../components/Home/Cart.vue"),
+      }
+    ]
   },
 
-  {
-    path: "/register",
-    name: "Register",
-    component: Register,
-  },
+  // ------------------ AUTH ------------------
+  { path: "/login", name: "Login", component: Login },
+  { path: "/register", name: "Register", component: Register },
+  { path: "/forgot-password", name: "ForgotPassword", component: ForgotPassword },
+  { path: "/verify-otp", name: "VerifyOtp", component: VerifyOtp },
+  { path: "/reset-password", name: "ResetPassword", component: ResetPassword },
 
-  {
-    path: "/forgot-password",
-    name: "ForgotPassword",
-    component: ForgotPassword,
-  },
-  {
-    path: "/verify-otp",
-    name: "VerifyOtp",
-    component: VerifyOtp,
-  },
-
-  {
-    path: "/reset-password",
-    name: "ResetPassword",
-    component: ResetPassword,
-  },
-
-  //Hồ sơ người dùng
+  // ------------------ PROFILE (CẦN LOGIN) ------------------
   {
     path: '/profileUser',
     component: ProfileLayout,
+    meta: { requiresAuth: true },
     children: [
-      {
-        path: '', // Thông tin cá nhân
-        name: 'Profile',
-        component: () => import('@/views/Profile/ProfileInfo.vue'),
-      },
-      {
-        path: 'change-password', //Đổi mật khẩu
-        name: 'ChangePassword',
-        component: () => import('@/views/Profile/ChangePassword.vue'),
-      },
-      {
-        path: 'payment-history', //Lịch sử thanh toán
-        name: 'PaymentHistory',
-        component: () => import('@/views/Profile/PaymentHistory.vue'),
-      },
-      {
-        path: 'payment-history/:id', // Chi tiết thanh toán
-        name: 'PaymentDetail',
-        component: () => import('@/views/Profile/PaymentDetail.vue'), // Bạn sẽ cần tạo file này
-        props: true
-      },
-      {
-        path: 'booking-history', //Lịch sử đặt tiệc
-        name: 'BookingHistory',
-        component: () => import('@/views/Profile/BookingHistory.vue'),
-      },
-      {
-        path: 'booking-history/:id', //Chi tiết đặt tiệc
-        name: 'BookingDetail',
-        component: () => import('@/views/Profile/BookingDetail.vue'),
-        props: true
-      },
+      { path: '', name: 'Profile', component: () => import('@/views/Profile/ProfileInfo.vue') },
+      { path: 'change-password', name: 'ChangePassword', component: () => import('@/views/Profile/ChangePassword.vue') },
+      { path: 'payment-history', name: 'PaymentHistory', component: () => import('@/views/Profile/PaymentHistory.vue') },
+      { path: 'payment-history/:id', name: 'PaymentDetail', component: () => import('@/views/Profile/PaymentDetail.vue'), props: true },
+      { path: 'booking-history', name: 'BookingHistory', component: () => import('@/views/Profile/BookingHistory.vue') },
+      { path: 'booking-history/:id', name: 'BookingDetail', component: () => import('@/views/Profile/BookingDetail.vue'), props: true },
     ],
   },
 ];
-
 
 export default routes;

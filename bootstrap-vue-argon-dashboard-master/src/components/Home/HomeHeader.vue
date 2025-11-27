@@ -14,7 +14,7 @@
       <a href="#ho-tro">Hỗ trợ</a>
 
       <!-- Icon giỏ hàng -->
-      <div class="cart-icon">
+      <div class="cart-icon" @click="goToCart" style="cursor: pointer;">
         <i class="fas fa-shopping-cart"></i>
       </div>
 
@@ -55,24 +55,32 @@ export default {
   data() {
     return {
       keyword: "",
-      user: null, // Ban đầu để null
+      user: null, 
       dropdownOpen: false,
     };
   },
-  // 1. Khi component mới sinh ra -> Kiểm tra ngay
+  
+  // 1. Chạy khi load trang (F5)
   created() {
     this.checkUserStatus();
   },
-  // 2. Khi chuyển trang -> Kiểm tra lại lần nữa
+
+  // 2. Chạy khi chuyển trang (Login -> Home)
   watch: {
     '$route'() {
       this.checkUserStatus();
+      this.dropdownOpen = false; // Tự đóng menu nếu đang mở
     }
   },
+
   methods: {
-    // Hàm lấy thông tin user mới nhất từ localStorage
+    // 3. Logic kiểm tra user (Đã sửa để check cả sessionStorage)
     checkUserStatus() {
-      const userInfo = localStorage.getItem("user_info");
+      let userInfo = localStorage.getItem("user_info");
+      if (!userInfo) {
+        userInfo = sessionStorage.getItem("user_info");
+      }
+
       if (userInfo) {
         try {
           this.user = JSON.parse(userInfo);
@@ -84,6 +92,9 @@ export default {
       }
     },
 
+    goToCart() {
+      this.$router.push('/gio-hang');
+    },
     goToSearch() {
       const query = this.keyword.trim();
       if (!query) return;
@@ -99,16 +110,15 @@ export default {
       this.dropdownOpen = !this.dropdownOpen;
     },
     logout() {
+      // Xóa cả 2 nơi cho chắc
       localStorage.removeItem("user_info");
       localStorage.removeItem("user_token");
-      // Session storage nếu có dùng
       sessionStorage.removeItem("user_info");
       sessionStorage.removeItem("user_token");
       
       this.user = null;
       this.dropdownOpen = false;
       
-      // Chuyển về login và reload trang để sạch sẽ
       this.$router.push("/login");
     },
   },

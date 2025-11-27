@@ -121,10 +121,27 @@ import HomeHeader from "@/components/Home/HomeHeader.vue";
 export default {
   components: { HomeHeader },
   data() {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    return {
-      cart: JSON.parse(localStorage.getItem("cart")) || [],
-      user: storedUser && storedUser.user_id ? storedUser : null,
+  // 1. Lấy User Info (từ cả 2 nơi)
+  let storedUser = null;
+  try {
+    const localUser = localStorage.getItem("user_info");
+    const sessionUser = sessionStorage.getItem("user_info");
+    storedUser = JSON.parse(localUser || sessionUser);
+  } catch (e) {
+    storedUser = null;
+  }
+
+  // 2. Lấy Giỏ hàng (Giỏ hàng nên lưu ở LocalStorage để bền vững)
+  let storedCart = [];
+  try {
+    storedCart = JSON.parse(localStorage.getItem("cart")) || [];
+  } catch (e) {
+    storedCart = [];
+  }
+
+  return {
+    cart: storedCart,
+    user: storedUser,
       bookings: [],
       restaurants: [],
       userSavedPromotions: [],
