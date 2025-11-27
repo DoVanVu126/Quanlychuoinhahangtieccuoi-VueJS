@@ -1,7 +1,13 @@
 <template>
   <section class="promotion-detail-card">
-    <div class="card">
-      <!-- Nút Quay lại nằm bên trong card -->
+    <!-- Loading -->
+    <div v-if="loading" class="loading-box">
+      <div class="spinner"></div>
+      <p>Đang tải chi tiết khuyến mãi...</p>
+    </div>
+
+    <!-- Card chi tiết -->
+    <div v-else class="card">
       <button class="back-btn" @click="$router.push('/home')">← Quay lại</button>
 
       <div class="image-wrapper">
@@ -39,6 +45,7 @@
       </div>
     </div>
 
+    <!-- Tooltip -->
     <div v-if="showTooltipFlag" class="tooltip-msg">{{ tooltipMsg }}</div>
   </section>
 </template>
@@ -67,7 +74,8 @@ export default {
         restaurant_name: "Không rõ"
       },
       tooltipMsg: "",
-      showTooltipFlag: false
+      showTooltipFlag: false,
+      loading: true // ⭐ loading khi chờ dữ liệu
     };
   },
   computed: {
@@ -81,6 +89,7 @@ export default {
   methods: {
     async loadDetail() {
       const id = this.$route.params.id;
+      this.loading = true; // bắt đầu loading
       try {
         const res = await api.get(`/promotions/${id}`);
         const data = res.data;
@@ -105,6 +114,8 @@ export default {
       } catch (err) {
         console.error("Lỗi tải chi tiết:", err);
         this.showTooltip("Không tải được chi tiết khuyến mãi!");
+      } finally {
+        this.loading = false; // kết thúc loading
       }
     },
     handleImageError(e) { e.target.src = "/img/default.jpg"; },
@@ -190,7 +201,7 @@ export default {
   cursor: pointer;
   box-shadow: 0 5px 15px rgba(0,0,0,0.2);
   transition: 0.3s ease;
-  z-index: 10; /* luôn hiển thị trên card */
+  z-index: 10;
 }
 .back-btn:hover { background: #d97706; }
 
@@ -251,5 +262,29 @@ export default {
   10% { opacity: 0.95; transform: translateY(0); }
   90% { opacity: 0.95; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-10px); }
+}
+
+/* Loading spinner */
+.loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 50px 0;
+}
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 6px solid #e5e7eb;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-box p {
+  font-size: 16px;
+  color: #6b7280;
+  font-weight: 600;
 }
 </style>
