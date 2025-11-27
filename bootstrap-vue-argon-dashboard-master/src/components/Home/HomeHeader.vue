@@ -74,14 +74,23 @@
       </div>
 
       <div v-else class="homeheader-user-dropdown" ref="userDropdownWrapper" @click.stop="toggleDropdown">
-        <span>Chào, {{ user.username }}</span>
+        <img
+          v-if="user.image_url"
+          :src="avatarUrl(user.image_url)"
+          alt="avatar"
+          class="user-avatar"
+          @error="handleAvatarError"
+        />
+        <span>{{ user.username }}</span>
+        <span class="user-level">{{ levelName }}</span>
         <i class="fas fa-caret-down"></i>
+
         <div v-if="dropdownOpen" class="homeheader-dropdown-menu">
-  <router-link to="/profile">Trang cá nhân</router-link>
-  <router-link to="/saved-promotions">Mã khuyến mãi đã lưu</router-link>
-  <hr />
-  <a @click="logout">Đăng xuất</a>
-</div>
+          <router-link to="/profile">Trang cá nhân</router-link>
+          <router-link to="/saved-promotions">Mã khuyến mãi đã lưu</router-link>
+          <router-link to="/membership">Xem thẻ hội viên</router-link>
+          <a @click="logout">Đăng xuất</a>
+        </div>
       </div>
 
       <!-- Toast -->
@@ -100,6 +109,7 @@ export default {
     return {
       keyword: "",
       user: JSON.parse(localStorage.getItem("user")) || null,
+      membership: null,
       dropdownOpen: false,
       notifications: [],
       unreadCount: 0,
@@ -111,6 +121,17 @@ export default {
   computed: {
     visibleNotifications() {
       return this.notifications.slice(0, this.visibleCount);
+    },
+    initials() {
+      return this.user && this.user.username ? this.user.username.charAt(0).toUpperCase() : "U";
+    },
+    levelName() {
+      if (!this.membership) return "Bronze";
+      var count = Number(this.membership.booking_count || 0);
+      if (count >= 15) return "Diamond";
+      if (count >= 10) return "Gold";
+      if (count >= 5) return "Silver";
+      return "Bronze";
     }
   },
   methods: {
@@ -122,47 +143,37 @@ export default {
     goToLogin() { this.$router.push("/login"); },
     goToSignup() { this.$router.push("/register"); },
     toggleDropdown() { this.dropdownOpen = !this.dropdownOpen; },
-    logout() { localStorage.clear(); this.user = null; this.$router.push("/login"); },
-
+    logout() {
+      localStorage.clear();
+      this.user = null;
+      this.$router.push("/login");
+    },
+    avatarUrl(path) {
+      if (!path) return "/img/default-avatar.png";
+      if (path.startsWith("http")) return path;
+      return "http://127.0.0.1:8088/" + path.replace(/^\/+/, "");
+    },
+    handleAvatarError(e) {
+      e.target.src = "/img/default-avatar.png";
+    },
+    async loadMembership() {
+      if (!this.user) return;
+      try {
+        const res = await api.get(`/membership/${this.user.user_id}`);
+        this.membership = res.data.membership || { booking_count: 0 };
+      } catch (err) {
+        console.error("Lỗi tải membership:", err);
+        this.membership = { booking_count: 0 };
+      }
+    },
     toggleNotifDropdown() {
       this.notifDropdownOpen = !this.notifDropdownOpen;
     },
-
     async loadNotifications() {
       if (!this.user) return;
       try {
         const res = await api.get(`/notifications/${this.user.user_id}`);
         this.notifications = res.data;
-        this.updateUnreadCount();
-      } catch (err) { console.error(err); }
-    },
-    async markAsRead(item) {
-      if (!item.is_read) {
-        try {
-          await api.patch(`/notifications/read/${item.id}`);
-          item.is_read = true;
-          this.updateUnreadCount();
-        } catch (err) { console.error(err); }
-      }
-    },
-    async markAllRead() {
-      try {
-        await api.patch(`/notifications/read-all/${this.user.user_id}`);
-        this.notifications.forEach(n => n.is_read = true);
-        this.updateUnreadCount();
-      } catch (err) { console.error(err); }
-    },
-    async deleteNotification(id) {
-      try {
-        await api.delete(`/notifications/${id}`);
-        this.notifications = this.notifications.filter(n => n.id !== id);
-        this.updateUnreadCount();
-      } catch (err) { console.error(err); }
-    },
-    async deleteAll() {
-      try {
-        await api.delete(`/notifications/delete-all/${this.user.user_id}`);
-        this.notifications = [];
         this.updateUnreadCount();
       } catch (err) { console.error(err); }
     },
@@ -183,14 +194,12 @@ export default {
             this.$refs.toast.addToast({
               title: data.notification.title,
               message: data.notification.message,
-              type: data.notification.type || 'info'
+              type: data.notification.type || "info"
             });
             setTimeout(() => this.hasNew = false, 2000);
           }
         });
     },
-    loadMore() { this.visibleCount += 5; },
-
     handleClickOutside(e) {
       if (this.dropdownOpen && !this.$refs.userDropdownWrapper.contains(e.target)) {
         this.dropdownOpen = false;
@@ -198,15 +207,17 @@ export default {
       if (this.notifDropdownOpen && !this.$refs.notifWrapper.contains(e.target)) {
         this.notifDropdownOpen = false;
       }
-    }
+    },
+    loadMore() { this.visibleCount += 5; }
   },
   mounted() {
+    this.loadMembership();
     this.loadNotifications();
     this.listenRealtime();
-    document.addEventListener('click', this.handleClickOutside);
+    document.addEventListener("click", this.handleClickOutside);
   },
   beforeDestroy() {
-    document.removeEventListener('click', this.handleClickOutside);
+    document.removeEventListener("click", this.handleClickOutside);
   }
 };
 </script>

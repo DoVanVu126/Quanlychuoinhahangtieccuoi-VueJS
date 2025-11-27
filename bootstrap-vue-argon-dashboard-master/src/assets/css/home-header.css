@@ -171,6 +171,7 @@
     padding: 8px 14px;
   }
 }
+
 .homeheader-login-btn,
 .homeheader-signup-btn {
   border: none;
@@ -199,7 +200,7 @@
   margin-left: 15px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   color: #333;
 }
 
@@ -212,7 +213,7 @@
   border-radius: 6px;
   padding: 10px 0;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  min-width: 150px;
+  min-width: 180px;
   z-index: 100;
   animation: fadeIn 0.2s ease;
 }
@@ -228,11 +229,28 @@
   background: #f5f5f5;
 }
 
+/* Avatar và level */
+.homeheader-user-dropdown .user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.homeheader-user-dropdown .user-level {
+  background: #facc15;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
 /* Hiệu ứng */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
 /* Thông báo */
 /* Notification */
 .notification-wrapper {
@@ -355,20 +373,160 @@
   cursor: pointer;
 }
 
+/* Container nhóm user + notification + language */
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* khoảng cách đều giữa các item */
+}
 
-.user-dropdown {
+/* Dropdown người dùng với avatar + level */
+.homeheader-user-dropdown {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px; /* avatar, tên, level gần nhau */
+  color: #333;
+}
+
+/* Avatar */
+.homeheader-user-dropdown .user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #ddd;
+}
+
+/* Level VIP / Bronze */
+.homeheader-user-dropdown .user-level {
+  background: #facc15;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Dropdown menu */
+.homeheader-user-dropdown .homeheader-dropdown-menu {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px 0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  min-width: 200px;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Notification (chuông) */
+.notification-wrapper {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.bell-icon {
+  font-size: 24px;
+  color: #333;
   position: relative;
   cursor: pointer;
 }
 
-.dropdown-menu {
+.badge {
   position: absolute;
-  top: 100%;
-  right: 0;
-  background: white;
-  border: 1px solid #ccc;
+  top: -6px;
+  right: -6px;
+  background: red;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 50%;
+}
+
+/* Language switch */
+.home-header .language-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
-  min-width: 150px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  z-index: 1000;
+  padding: 3px 8px;
+  background-color: #fafafa;
+  cursor: pointer;
+}
+
+/* Tạo flex container bao tất cả */
+.home-header nav > .header-right-group > * {
+  margin: 0;
+}
+nav {
+  display: flex;
+  align-items: center;
+  gap: 18px; /* khoảng cách đều giữa tất cả items */
+}
+
+/* Gom Language + Notification + User thành một hàng sát nhau */
+.language-switch,
+.notification-wrapper,
+.homeheader-user-dropdown,
+.homeheader-login-btn,
+.homeheader-signup-btn {
+  display: flex;
+  align-items: center;
+}
+
+/* Thu nhỏ khoảng cách giữa Language, Bell, Avatar */
+.language-switch {
+  margin-left: 8px;
+}
+
+.notification-wrapper {
+  margin-left: -4px; /* kéo sát lại */
+}
+
+/* Avatar + Tên + Level gần nhau hơn */
+.homeheader-user-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* bạn chỉnh ít/nhiều nếu muốn */
+  cursor: pointer;
+}
+
+/* Avatar */
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #ccc;
+}
+
+/* Icon chuông */
+.bell-icon {
+  font-size: 22px;
+  position: relative;
+}
+
+/* Badge thông báo */
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  padding: 2px 6px;
+  font-size: 11px;
+  border-radius: 50%;
+  background: red;
+  color: white;
+}
+
+/* Giảm khoảng cách thừa giữa các link bên trái và nhóm icon bên phải */
+nav > * {
+  margin-right: -2px !important;
 }

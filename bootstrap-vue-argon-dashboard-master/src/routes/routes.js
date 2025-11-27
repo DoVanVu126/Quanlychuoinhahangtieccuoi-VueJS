@@ -258,7 +258,19 @@ const routes = [
       }
     ]
   },
+  {
+  path: '/membership',
+  name: 'Membership',
+  component: () => import('@/views/Membership.vue'),
+  meta: { requiresAuth: true }
+},
 
+{
+  path: '/membership/detail',
+  name: 'MembershipDetail',
+  component: () => import('@/views/MembershipDetail.vue'),
+  meta: { requiresAuth: true }
+},
 
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
   {
