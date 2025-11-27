@@ -59,20 +59,32 @@ export default {
 
   methods: {
     async loadPromotions() {
-      try {
-        const res = await api.get("/promotions/all");
-        this.promotions = res.data.data.map((p) => ({
-          ...p,
-          image: p.image
-            ? p.image.startsWith("http")
-              ? p.image
-              : `http://127.0.0.1:8088/${p.image.replace(/^\/+/, "")}`
-            : "/img/default.jpg",
-        }));
-      } catch (err) {
-        console.error("Lỗi tải khuyến mãi:", err);
-      }
-    },
+  try {
+    const res = await api.get("/promotions/all");
+    const today = new Date();
+
+    this.promotions = res.data.data
+      .map((p) => ({
+        ...p,
+        image: p.image
+          ? p.image.startsWith("http")
+            ? p.image
+            : `http://127.0.0.1:8088/${p.image.replace(/^\/+/, "")}`
+          : "/img/default.jpg",
+        start_date: p.start_date ? new Date(p.start_date) : null,
+        end_date: p.end_date ? new Date(p.end_date) : null
+      }))
+      // Lọc các mã khuyến mãi đã bắt đầu hoặc sắp diễn ra, chưa hết hạn
+      .filter(promo => {
+        if (!promo.end_date) return false; // không có ngày kết thúc → bỏ
+        return promo.end_date >= today; // còn hiệu lực
+      })
+      // Optional: sắp xếp theo ngày bắt đầu để mã sắp diễn ra đứng sau mã đang diễn ra
+      .sort((a, b) => a.start_date - b.start_date);
+  } catch (err) {
+    console.error("Lỗi tải khuyến mãi:", err);
+  }
+},
 
     scrollLeft() {
       this.$refs.track.scrollBy({ left: -300, behavior: "smooth" });

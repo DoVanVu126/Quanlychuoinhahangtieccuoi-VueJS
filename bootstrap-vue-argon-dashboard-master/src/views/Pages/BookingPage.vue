@@ -3,10 +3,29 @@
     <HomeHeader />
     <!-- ✅ Thêm Navbar của trang Home -->
     <div class="booking-content">
+      <SuggestionModal v-if="showSuggestionModal" :restaurant-id="restaurants && (restaurants.restaurant_id || restaurants.id)" @apply-package="applySuggestion" @close="showSuggestionModal = false" />
       <!-- Phần nội dung đặt tiệc -->
       <RestaurantHeader :restaurants="restaurants" />
-      <BookingForm :user="user" :restaurant="restaurants" :startDate="startDate" :endDate="endDate" :selectedHall="selectedHall"/>
-      <BookingTabs :halls="halls" @hall-selected="selectedHall = $event" :foods="foods" :services="services" />
+      <BookingForm
+        :user="user"
+        :restaurant="restaurants"
+        :startDate="startDate"
+        :endDate="endDate"
+        :selectedHall="selectedHall"
+        :selectedFoods="selectedFoods"
+        :selectedServices="selectedServices"
+        :suggested-event-type="suggestedEventType"
+        :suggested-number-of-tables="suggestedNumberOfTables"
+        @apply-package="applySuggestion"
+      />
+      <BookingTabs
+        :halls="halls"
+        @hall-selected="selectedHall = $event"
+        :foods="foods"
+        :services="services"
+        @food-selected="onFoodSelected"
+        @service-selected="onServiceSelected"
+      />
 
     </div>
   </div>
@@ -36,8 +55,93 @@ export default {
       startDate: "",
       endDate: "",
       user: null,
+      // selections
+      selectedHall: null,
+      selectedFoods: [],
+      selectedServices: [],
+      // suggestion-driven form fields
+      suggestedEventType: null,
+      suggestedNumberOfTables: null,
     };
   },
+
+  
+
+  // Apply a suggestion package: set selected hall, foods, services
+  methods: {
+    onFoodSelected(item) {
+      if (!item || !item.food_id && !item.id) return;
+      const id = item.food_id || item.id;
+      const idx = this.selectedFoods.findIndex(f => (f.food_id || f.id) == id);
+      if (item.selected) {
+        if (idx === -1) this.selectedFoods.push(item);
+        else this.$set(this.selectedFoods, idx, item);
+      } else {
+        if (idx !== -1) this.selectedFoods.splice(idx, 1);
+      }
+    },
+    onServiceSelected(item) {
+      if (!item || !item.service_id && !item.id) return;
+      const id = item.service_id || item.id;
+      const idx = this.selectedServices.findIndex(s => (s.service_id || s.id) == id);
+      if (item.selected) {
+        if (idx === -1) this.selectedServices.push(item);
+        else this.$set(this.selectedServices, idx, item);
+      } else {
+        if (idx !== -1) this.selectedServices.splice(idx, 1);
+      }
+    },
+    applySuggestion(pkg) {
+      if (!pkg) return;
+      // close modal
+      this.showSuggestionModal = false;
+
+      // set suggested form fields so BookingForm updates type/tables
+      this.suggestedEventType = pkg.event_type || null;
+      this.suggestedNumberOfTables = pkg.number_of_tables || null;
+
+      // Apply hall
+      const packageHallId = pkg.hall_id || (pkg.hall && (pkg.hall.hall_id || pkg.hall.id));
+      if (packageHallId) {
+        const hallIdx = this.halls.findIndex(h => (h.hall_id || h.id) == packageHallId);
+        if (hallIdx !== -1) {
+          // mark only this hall as selected
+          this.halls.forEach((h, i) => {
+            if (i === hallIdx) this.$set(this.halls, i, Object.assign({}, h, { selected: true }));
+            else this.$set(this.halls, i, Object.assign({}, h, { selected: false }));
+          });
+          this.selectedHall = this.halls[hallIdx];
+        } else {
+          // hall not in list; clear selection
+          this.selectedHall = null;
+        }
+      }
+
+      // Apply foods
+      const pkgFoodIds = new Set((pkg.foods || []).map(f => f.food_id || f.id || f.menu_id));
+      this.selectedFoods = [];
+      this.foods.forEach((food, idx) => {
+        const fid = food.food_id || food.id || food.menu_id;
+        const shouldSelect = pkgFoodIds.has(fid);
+        this.$set(this.foods, idx, Object.assign({}, food, { selected: shouldSelect }));
+        if (shouldSelect) this.selectedFoods.push(this.foods[idx]);
+      });
+
+      // Apply services
+      const pkgServiceIds = new Set((pkg.services || []).map(s => s.service_id || s.id));
+      this.selectedServices = [];
+      this.services.forEach((service, idx) => {
+        const sid = service.service_id || service.id;
+        const shouldSelect = pkgServiceIds.has(sid);
+        this.$set(this.services, idx, Object.assign({}, service, { selected: shouldSelect }));
+        if (shouldSelect) this.selectedServices.push(this.services[idx]);
+      });
+    },
+    openSuggestion() {
+      this.showSuggestionModal = true;
+    }
+  },
+
 
   async created() {
     const userData = localStorage.getItem("user");

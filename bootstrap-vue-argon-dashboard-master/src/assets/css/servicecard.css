@@ -1,78 +1,53 @@
-/* 🔹 Layout thẻ dịch vụ nằm ngang */
-.servicecard-container {
-  display: flex;
-  gap: 14px;
-  padding: 14px;
-  border-bottom: 2px solid #e6e6e6;
-}
-
-/* Ảnh hiển thị bên trái */
-.servicecard-img-wrapper {
-  position: relative;
-  width: 160px;
-  height: 130px;
-  overflow: hidden;
+.service-checkbox-container {
+  display: flex; /* giữ flex để checkbox và label thẳng hàng */
+  align-items: center;
+  cursor: pointer;
+  padding: 3px 100px;
   border-radius: 8px;
+  margin: 5px 0; /* mỗi dịch vụ sẽ cách nhau 5px, xuống dòng */
+  width: 100%; /* chiếm nguyên dòng */
+  transition: background-color 0.2s, box-shadow 0.2s;
 }
 
-.servicecard-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.service-checkbox-container:hover {
+  background-color: #f0f0f0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
-/* Nội dung bên phải */
-.servicecard-info {
-  flex: 1;
+/* checkbox */
+.checkbox-square {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #aaa;
+  border-radius: 4px;
+  margin-right: 10px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
-.servicecard-info h4 {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: #111;
+.checkbox-square.checked {
+  background-color: #4caf50;
+  border-color: #4caf50;
 }
 
-.servicecard-info p {
-  color: #555;
-  margin: 4px 0;
-  line-height: 1.45;
+.checkbox-square.checked::after {
+  content: "";
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
-/* Giá */
-.servicecard-price {
-  color: #0076d6;
-  font-size: 18px;
-  font-weight: 600;
-  margin-top: 4px;
+/* label */
+.service-label {
+  font-size: 16px;
+  color: #333;
+  transition: color 0.2s;
 }
 
-/* 🔘 Button full chiều ngang */
-.servicecard-btn-select,
-.servicecard-btn-selected {
-  margin-top: 12px;
-  padding: 12px 0;
-  border-radius: 10px;
-  font-weight: 600;
-  width: 100%;
-  border: none;
-  font-size: 15px;
-  transition: 0.25s;
-}
-
-/* Normal */
-.servicecard-btn-select {
-  background: #00a859;
-  color: white;
-}
-.servicecard-btn-select:hover {
-  background: #008b4b;
-}
-
-/* Selected */
-.servicecard-btn-selected {
-  background: #b1b1b1;
-  color: white;
+.service-checkbox-container:hover .service-label {
+  color: #000;
 }

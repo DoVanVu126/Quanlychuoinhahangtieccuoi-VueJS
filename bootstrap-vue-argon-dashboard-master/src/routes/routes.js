@@ -97,6 +97,9 @@ const routes = [
       },
 
 
+
+
+
       // 👉 SẢNH
       {
         path: "/sanh",
@@ -216,6 +219,19 @@ const routes = [
       }
     ]
   },
+
+  {
+  path: "/saved-promotions",
+  component: () => import("@/views/KM/UserHeaderLayout.vue"), // layout chỉ có header
+  children: [
+    {
+      path: "",
+      name: "SavedPromotions",
+      component: () => import("@/views/SavedPromotions.vue"),
+      meta: { requiresAuth: true }
+    }
+  ]
+},
 
   {
     path: "/promotion/:id",
