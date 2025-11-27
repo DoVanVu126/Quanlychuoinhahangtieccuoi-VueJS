@@ -4,8 +4,13 @@
 
     <b-form @submit.prevent="updatePromotion" enctype="multipart/form-data">
       <!-- Chọn Nhà hàng -->
-      <b-form-group label="Nhà hàng">
-        <b-form-select v-model="form.restaurant_id" :options="restaurantOptions" required>
+      <b-form-group label="Nhà hàng" label-for="restaurant_id">
+        <b-form-select
+          id="restaurant_id"
+          v-model="form.restaurant_id"
+          :options="restaurantOptions"
+          required
+        >
           <template #first>
             <b-form-select-option :value="''" disabled>-- Chọn nhà hàng --</b-form-select-option>
           </template>
@@ -13,46 +18,73 @@
       </b-form-group>
 
       <!-- Mã Khuyến Mãi -->
-      <b-form-group label="Mã Khuyến Mãi">
-        <b-form-input v-model="form.promotion_code" required></b-form-input>
+      <b-form-group label="Mã Khuyến Mãi" label-for="promotion_code">
+        <b-form-input
+          id="promotion_code"
+          v-model="form.promotion_code"
+          required
+        ></b-form-input>
       </b-form-group>
 
       <!-- Tiêu đề -->
-      <b-form-group label="Tiêu đề">
-        <b-form-input v-model="form.title" required></b-form-input>
+      <b-form-group label="Tiêu đề" label-for="title">
+        <b-form-input
+          id="title"
+          v-model="form.title"
+          required
+        ></b-form-input>
       </b-form-group>
 
       <!-- Mô tả -->
-      <b-form-group label="Mô tả">
-        <b-form-textarea v-model="form.description" rows="3"></b-form-textarea>
+      <b-form-group label="Mô tả" label-for="description">
+        <b-form-textarea
+          id="description"
+          v-model="form.description"
+          rows="3"
+        ></b-form-textarea>
       </b-form-group>
 
       <!-- Loại giảm -->
-      <b-form-group label="Loại giảm">
-        <b-form-select v-model="form.discount_type">
+      <b-form-group label="Loại giảm" label-for="discount_type">
+        <b-form-select id="discount_type" v-model="form.discount_type">
           <option value="percent">Phần trăm (%)</option>
           <option value="amount">Số tiền giảm (VNĐ)</option>
         </b-form-select>
       </b-form-group>
 
       <!-- Giá trị giảm -->
-      <b-form-group label="Giá trị giảm">
-        <b-form-input type="number" v-model.number="form.discount_value" required></b-form-input>
+      <b-form-group label="Giá trị giảm" label-for="discount_value">
+        <b-form-input
+          id="discount_value"
+          type="number"
+          v-model.number="form.discount_value"
+          required
+        ></b-form-input>
       </b-form-group>
 
       <!-- Ngày bắt đầu -->
-      <b-form-group label="Ngày bắt đầu">
-        <b-form-input type="date" v-model="form.start_date" required></b-form-input>
+      <b-form-group label="Ngày bắt đầu" label-for="start_date">
+        <b-form-input
+          id="start_date"
+          type="date"
+          v-model="form.start_date"
+          required
+        ></b-form-input>
       </b-form-group>
 
       <!-- Ngày kết thúc -->
-      <b-form-group label="Ngày kết thúc">
-        <b-form-input type="date" v-model="form.end_date" required></b-form-input>
+      <b-form-group label="Ngày kết thúc" label-for="end_date">
+        <b-form-input
+          id="end_date"
+          type="date"
+          v-model="form.end_date"
+          required
+        ></b-form-input>
       </b-form-group>
 
       <!-- Trạng thái -->
-      <b-form-group label="Trạng thái">
-        <b-form-select v-model="form.status">
+      <b-form-group label="Trạng thái" label-for="status">
+        <b-form-select id="status" v-model="form.status">
           <option value="active">Đang hoạt động</option>
           <option value="expired">Hết hạn</option>
           <option value="upcoming">Sắp diễn ra</option>
@@ -61,26 +93,31 @@
 
       <!-- Ảnh hiện tại & chọn ảnh mới -->
       <b-form-group label="Ảnh khuyến mãi">
-        <div v-if="!previewImage && form.currentImage">
+        <div v-if="!previewImage && form.currentImage" class="mb-2">
           <p>Ảnh hiện tại:</p>
           <img
-            :src="form.currentImage"
+            :src="fixImageUrl(form.currentImage)"
             alt="Ảnh khuyến mãi"
-            class="img-thumbnail mb-2"
+            class="img-thumbnail"
             style="max-width: 200px;"
           />
         </div>
 
         <div v-if="previewImage" class="mb-2">
           <p>Ảnh mới:</p>
-          <img :src="previewImage" alt="Preview" class="img-thumbnail" style="max-width: 200px;" />
+          <img
+            :src="previewImage"
+            alt="Preview"
+            class="img-thumbnail"
+            style="max-width: 200px;"
+          />
         </div>
 
         <b-form-file
-          @change="handleImageUpload"
           accept="image/*"
           placeholder="Chọn ảnh mới nếu muốn thay"
           browse-text="Chọn ảnh"
+          @change="handleImageUpload"
         ></b-form-file>
       </b-form-group>
 
@@ -112,22 +149,19 @@ export default {
         currentImage: null, // Ảnh cũ
         newImage: null,     // Ảnh mới
       },
-      previewImage: null,   // Preview ảnh mới
-      restaurants: [],      // Danh sách nhà hàng
+      previewImage: null,
+      restaurants: [],
     };
   },
-
   computed: {
     restaurantOptions() {
       return this.restaurants.map(r => ({ value: r.restaurant_id, text: r.name }));
-    }
+    },
   },
-
   mounted() {
     this.fetchRestaurants();
     this.loadPromotion();
   },
-
   methods: {
     async fetchRestaurants() {
       try {
@@ -142,23 +176,24 @@ export default {
       try {
         const id = this.$route.params.id;
         const res = await api.get(`/promotions/${id}`);
+        const data = res.data;
 
         this.form = {
           ...this.form,
-          promotion_code: res.data.promotion_code,
-          title: res.data.title,
-          description: res.data.description,
-          restaurant_id: res.data.restaurant_id,
-          discount_type: res.data.discount_type,
-          discount_value: res.data.discount_value,
-          start_date: res.data.start_date ? res.data.start_date.slice(0, 10) : "",
-          end_date: res.data.end_date ? res.data.end_date.slice(0, 10) : "",
-          status: res.data.status,
-          currentImage: res.data.image_url || null,
+          promotion_code: data.promotion_code,
+          title: data.title,
+          description: data.description,
+          restaurant_id: data.restaurant_id || null,
+          discount_type: data.discount_type || "percent",
+          discount_value: data.discount_value || 0,
+          start_date: data.start_date ? data.start_date.slice(0, 10) : "",
+          end_date: data.end_date ? data.end_date.slice(0, 10) : "",
+          status: data.status || "active",
+          currentImage: data.image_url || data.image || null,
           newImage: null,
         };
       } catch (err) {
-        console.error("❌ Lỗi tải khuyến mãi:", err);
+        console.error("Lỗi tải khuyến mãi:", err);
         alert("Không tải được dữ liệu!");
         this.$router.push("/promotions");
       }
@@ -175,20 +210,26 @@ export default {
       }
     },
 
+    fixImageUrl(url) {
+      if (!url) return null;
+      if (url.startsWith("http")) return url;
+      return `http://127.0.0.1:8088/${url.replace(/^\/+/, "")}`;
+    },
+
     async updatePromotion() {
+      if (!this.form.restaurant_id || !this.form.promotion_code || !this.form.title || !this.form.discount_value || !this.form.start_date || !this.form.end_date) {
+        return alert("Vui lòng điền đầy đủ các trường bắt buộc!");
+      }
+
       try {
         const id = this.$route.params.id;
         const formData = new FormData();
 
-        // Gửi tất cả trường
-        for (const key of ["promotion_code", "title", "description", "restaurant_id", "discount_type", "discount_value", "start_date", "end_date", "status"]) {
+        ["promotion_code","title","description","restaurant_id","discount_type","discount_value","start_date","end_date","status"].forEach(key => {
           formData.append(key, this.form[key]);
-        }
+        });
 
-        // Nếu có ảnh mới thì gửi
-        if (this.form.newImage) {
-          formData.append("image", this.form.newImage);
-        }
+        if (this.form.newImage) formData.append("image", this.form.newImage);
 
         await api.post(`/promotions/${id}`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
@@ -197,7 +238,7 @@ export default {
         alert("✅ Cập nhật khuyến mãi thành công!");
         this.$router.push("/promotions");
       } catch (err) {
-        console.error("❌ Lỗi cập nhật:", err);
+        console.error("Lỗi cập nhật:", err);
         alert("Cập nhật thất bại!");
       }
     },
@@ -206,17 +247,8 @@ export default {
 </script>
 
 <style scoped>
-.container {
-  max-width: 700px;
-}
-h2 {
-  font-weight: 600;
-}
-.b-form-group {
-  margin-bottom: 1.2rem;
-}
-.img-thumbnail {
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
+.container { max-width: 700px; }
+h2 { font-weight: 600; }
+.b-form-group { margin-bottom: 1.2rem; }
+.img-thumbnail { border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
 </style>
