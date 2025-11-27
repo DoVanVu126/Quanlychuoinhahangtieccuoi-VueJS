@@ -34,9 +34,14 @@
                 <p><strong>Trạng thái:</strong> <span :class="statusClass(b.status)">{{ b.status }}</span></p>
                 <p><strong>Ghi chú:</strong> {{ b.notes || 'Không có' }}</p>
                 <p><strong>Giá:</strong> {{ formatMoney(Number(b.price || 0)) }} đ</p>
-                <button class="btn btn-outline-primary w-100 mt-2" @click="addToCart(b)">
-                  <i class="fas fa-cart-plus"></i> Thêm vào giỏ
-                </button>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-primary flex-grow-1" @click="addToCart(b)">
+                    <i class="fas fa-cart-plus"></i> Thêm vào giỏ
+                  </button>
+                  <button class="btn btn-outline-danger flex-grow-1" @click="cancelBooking(b.booking_id)">
+                    <i class="fas fa-ban"></i> Hủy
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -65,20 +70,19 @@
 
             <div class="mb-3" v-if="cart.length > 0">
               <label class="form-label">Chọn hoặc nhập mã khuyến mãi</label>
-
-              <!-- Select mã đã lưu áp dụng cho nhà hàng trong giỏ -->
               <select class="form-select mb-2" v-model="selectedPromo" @change="applyDiscountFromSelect">
                 <option value="">-- Không dùng mã --</option>
                 <option
                   v-for="p in userSavedPromotions"
                   :key="p.user_promotion_id"
                   :value="JSON.stringify(p)"
+                  :disabled="usedPromoCodes.includes(p.promotion_code)"
                 >
                   {{ p.promotion_code }} - {{ p.title }}
+                  <span v-if="usedPromoCodes.includes(p.promotion_code)"> (Đã dùng)</span>
                 </option>
               </select>
 
-              <!-- Input mã tự nhập -->
               <div class="input-group">
                 <input type="text" class="form-control" placeholder="Nhập mã khuyến mãi" v-model="promoInput">
                 <button class="btn btn-primary" @click="applyPromoInput">Áp dụng</button>
@@ -93,19 +97,24 @@
               Bạn được giảm: <strong>{{ formatMoney(discountAmount) }} đ</strong>
             </div>
 
+            <!-- Giảm giá membership -->
+            <div v-if="membershipDiscount > 0" class="alert alert-info py-2">
+  Giảm giá hội viên ({{ membership.level }} - {{ membershipDiscountPercent }}%):
+  <strong>-{{ formatMoney(membershipDiscount) }} đ</strong>
+</div>
+
             <div class="border-top pt-3 mt-3">
               <p>Tạm tính: <strong>{{ formatMoney(total) }} đ</strong></p>
               <p>Phụ thu dịch vụ (10%): <strong>{{ formatMoney(serviceFee) }} đ</strong></p>
-              <p v-if="discountAmount > 0">Giảm giá: <strong class="text-success">-{{ formatMoney(discountAmount) }} đ</strong></p>
-
+              <p v-if="discountAmount > 0">Giảm giá mã khuyến mãi: <strong class="text-success">-{{ formatMoney(discountAmount) }} đ</strong></p>
               <h4 class="text-success">Tổng: {{ formatMoney(finalTotal) }} đ</h4>
 
-              <button class="btn btn-success w-100 my-2">Thanh toán</button>
+              <button class="btn btn-success w-100 my-2" @click="checkout">Thanh toán</button>
               <button class="btn btn-outline-danger w-100" @click="clearCart">Xóa giỏ</button>
             </div>
 
             <p class="mt-2 text-muted small text-center">
-              Giỏ hàng lưu trong trình duyệt, mã khuyến mãi được lấy từ tài khoản của bạn.
+              Giỏ hàng lưu trong trình duyệt, mã khuyến mãi và ưu đãi hội viên được áp dụng tự động.
             </p>
           </div>
         </div>
@@ -131,13 +140,21 @@ export default {
       selectedPromo: "",
       promoInput: "",
       discountAmount: 0,
-      promoPercent: 0
+      promoPercent: 0,
+      usedPromoCodes: JSON.parse(localStorage.getItem("usedPromoCodes")) || [],
+      membership: null,
+      membershipDiscountPercent: 0
     };
   },
   computed: {
     total() { return this.cart.reduce((sum, i) => sum + Number(i.price || 0), 0); },
     serviceFee() { return Math.round(this.total * 0.1); },
-    finalTotal() { return Math.max(0, this.total + this.serviceFee - this.discountAmount); }
+    membershipDiscount() {
+      if (!this.membership || !this.membershipDiscountPercent) return 0;
+      const subtotal = this.total + this.serviceFee - this.discountAmount;
+      return Math.round(subtotal * (this.membershipDiscountPercent / 100));
+    },
+    finalTotal() { return Math.max(0, this.total + this.serviceFee - this.discountAmount - this.membershipDiscount); }
   },
   methods: {
     formatMoney(v) { return Number(v).toLocaleString("vi-VN"); },
@@ -200,13 +217,19 @@ export default {
         this.userSavedPromotions = (res.data || []).filter(p =>
           restaurantIdsInCart.includes(Number(p.restaurant_id))
         );
-        console.log("Filtered promotions:", this.userSavedPromotions);
+      } catch (err) { console.error(err); }
+    },
+    async fetchMembership() {
+      if (!this.user) return;
+      try {
+        const res = await api.get(`/membership/${this.user.user_id}`);
+        this.membership = res.data.membership;
+        this.membershipDiscountPercent = res.data.discount;
       } catch (err) { console.error(err); }
     },
     applyDiscount(promo) {
       const subtotal = this.total + this.serviceFee;
       const discountValue = parseFloat(promo.discount_value);
-
       if (promo.discount_type === "percent") {
         this.promoPercent = discountValue;
         this.discountAmount = Math.round(subtotal * (discountValue / 100));
@@ -214,7 +237,6 @@ export default {
         this.promoPercent = 0;
         this.discountAmount = discountValue;
       }
-
       if (this.discountAmount > subtotal) this.discountAmount = subtotal;
     },
     applyDiscountFromSelect() {
@@ -224,6 +246,13 @@ export default {
         return;
       }
       const promo = JSON.parse(this.selectedPromo);
+      if (this.usedPromoCodes.includes(promo.promotion_code)) {
+        alert("⚠ Mã này đã được sử dụng, không thể áp dụng lại.");
+        this.selectedPromo = "";
+        this.discountAmount = 0;
+        this.promoPercent = 0;
+        return;
+      }
       this.applyDiscount(promo);
     },
     applyPromoInput() {
@@ -232,21 +261,55 @@ export default {
         this.promoPercent = 0;
         return;
       }
-
       const promoItem = this.userSavedPromotions.find(
         p => p.promotion_code.toLowerCase() === this.promoInput.trim().toLowerCase()
       );
-
       if (!promoItem) {
         alert("Mã khuyến mãi không hợp lệ hoặc không áp dụng cho giỏ hàng hiện tại.");
         this.discountAmount = 0;
         this.promoPercent = 0;
         return;
       }
-
+      if (this.usedPromoCodes.includes(promoItem.promotion_code)) {
+        alert("⚠ Mã này đã được sử dụng, không thể áp dụng lại.");
+        this.promoInput = "";
+        return;
+      }
       this.selectedPromo = JSON.stringify(promoItem);
       this.applyDiscount(promoItem);
       alert(`Áp dụng mã ${promoItem.promotion_code} thành công!`);
+    },
+    checkout() {
+      if (this.cart.length === 0) return alert("Giỏ hàng trống!");
+
+      if (this.selectedPromo) {
+        const appliedPromo = JSON.parse(this.selectedPromo);
+        this.usedPromoCodes.push(appliedPromo.promotion_code);
+        localStorage.setItem("usedPromoCodes", JSON.stringify(this.usedPromoCodes));
+        alert(`Thanh toán thành công! Mã ${appliedPromo.promotion_code} đã được áp dụng và không thể dùng lại.`);
+      } else {
+        alert("Thanh toán thành công!");
+      }
+
+      this.cart = [];
+      this.saveCart();
+      this.selectedPromo = "";
+      this.promoInput = "";
+      this.discountAmount = 0;
+      this.promoPercent = 0;
+      this.loadUserPromotions();
+    },
+    async cancelBooking(bookingId) {
+      if (!confirm("Bạn có chắc chắn muốn hủy đặt tiệc này?")) return;
+
+      try {
+        await api.delete(`/bookings/${bookingId}`);
+        alert("Hủy đặt tiệc thành công!");
+        this.fetchBookings(); // reload danh sách booking
+      } catch (err) {
+        console.error(err);
+        alert("Hủy đặt tiệc thất bại!");
+      }
     }
   },
   mounted() {
@@ -256,6 +319,7 @@ export default {
       this.fetchRestaurants();
       this.fetchBookings();
       this.loadUserPromotions();
+      this.fetchMembership(); // fetch membership khi mounted
     }
   }
 };
