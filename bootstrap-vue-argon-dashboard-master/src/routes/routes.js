@@ -185,6 +185,20 @@ const routes = [
         name: "Logout",
         component: () => import("../views/Pages/Logout.vue"),
       },
+
+      // 👉 ĐẶT TIỆC (Danh sách đặt tiệc quản trị)
+      {
+        path: "/bookings",
+        name: "Bookings",
+        component: () => import("../views/Bookings.vue"),
+      },
+
+      // 👉 GÓI GỢI Ý (Suggestion packages)
+      {
+        path: "/goi-goi-y",
+        name: "GoiGoiY",
+        component: () => import("../views/GoiGoiY.vue"),
+      },
     ],
   },
 
