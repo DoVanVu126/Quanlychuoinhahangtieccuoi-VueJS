@@ -13,7 +13,14 @@
     </base-header>
 
     <!-- Nội dung chính -->
-    <div class="container-fluid mt--7">
+    <div class="container-fluid mt--7 position-relative">
+      <!-- Spinner loading -->
+      <div v-if="loading" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
       <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden">
         <div class="card-body">
           <!-- Thanh công cụ -->
@@ -21,7 +28,7 @@
             <input
               v-model="searchQuery"
               class="form-control w-50"
-              placeholder="🔍 Tìm kiếm dịch vụ theo tên hoặc mô tả..."
+              placeholder="🔍 Tìm kiếm dịch vụ theo tên..."
             />
 
             <div class="d-flex gap-2">
@@ -51,7 +58,7 @@
               </thead>
 
               <tbody>
-                <tr v-for="service in filteredServices" :key="service.service_id">
+                <tr v-for="service in services" :key="service.service_id">
                   <td>{{ service.service_id }}</td>
                   <td>{{ service.name }}</td>
                   <td>{{ service.description }}</td>
@@ -59,13 +66,11 @@
 
                   <td>
                     <img
-                      v-if="service.fixed_image_url"
                       :src="service.fixed_image_url"
                       alt="Ảnh dịch vụ"
                       class="service-img fade-in"
-                      @error="handleImageError($event, service)"
+                      @error="handleImageError($event)"
                     />
-                    <span v-else class="text-muted">Không có</span>
                   </td>
 
                   <td>
@@ -95,7 +100,7 @@
                   </td>
                 </tr>
 
-                <tr v-if="filteredServices.length === 0">
+                <tr v-if="services.length === 0">
                   <td colspan="8" class="text-center text-muted">
                     Không có dịch vụ nào phù hợp
                   </td>
@@ -139,6 +144,8 @@
 
 <script>
 import api from "@/api";
+import defaultImage from "@/assets/no-image.png";
+import _ from "lodash";
 
 export default {
   data() {
@@ -147,75 +154,68 @@ export default {
       currentPage: 1,
       lastPage: 1,
       searchQuery: "",
+      loading: false,
     };
   },
 
-  computed: {
-    filteredServices() {
-      const query = this.searchQuery.trim().toLowerCase();
-      if (!query) return this.services;
-      return this.services.filter(
-        (s) =>
-          (s.name && s.name.toLowerCase().includes(query)) ||
-          (s.description && s.description.toLowerCase().includes(query))
-      );
-    },
+  watch: {
+    // debounce tìm kiếm 300ms, không show spinner
+    searchQuery: _.debounce(function () {
+      this.getServices(1, false);
+    }, 300),
   },
 
   methods: {
-    // ✅ Lấy danh sách dịch vụ
-    async getServices(page = 1) {
+    async getServices(page = 1, showLoading = true) {
+      if (showLoading) this.loading = true;
       try {
-        const res = await api.get(`/services?page=${page}`);
-        console.log("📦 Dữ liệu API:", res.data.data);
+        const res = await api.get("/services", {
+          params: { page, search: this.searchQuery || undefined },
+        });
 
-        // ✅ Xử lý cố định URL ảnh ngay sau khi load
         this.services = res.data.data.map((s) => ({
           ...s,
-          fixed_image_url: this.fixImageUrl(s.image_url),
+          fixed_image_url: s.image_url ? this.fixImageUrl(s.image_url) : defaultImage,
         }));
 
         this.currentPage = res.data.current_page;
         this.lastPage = res.data.last_page;
       } catch (err) {
         console.error("❌ Lỗi tải dịch vụ:", err);
+      } finally {
+        if (showLoading) this.loading = false;
       }
     },
 
-    // ✅ Định dạng giá tiền
     formatPrice(value) {
       return new Intl.NumberFormat("vi-VN").format(value);
     },
 
-    // ✅ Chuẩn hóa URL ảnh
     fixImageUrl(url) {
-      if (!url) return null;
+      if (!url) return defaultImage;
       if (url.startsWith("http")) return url;
       return `http://127.0.0.1:8088/${url.replace(/^\/+/, "")}`;
     },
 
-    // ✅ Khi ảnh lỗi
-    handleImageError(e, service) {
-      console.warn("Ảnh lỗi:", service.image_url);
-      e.target.src = "https://via.placeholder.com/60x60?text=No+Image";
-      e.target.style.border = "2px solid red";
+    handleImageError(e) {
+      e.target.src = defaultImage;
+      e.target.style.border = "1px solid #ddd";
     },
 
     editService(service) {
-      this.$router.push({
-        name: "SuaDichVu",
-        params: { id: service.service_id },
-      });
+      this.$router.push({ name: "SuaDichVu", params: { id: service.service_id } });
     },
 
     async deleteService(id) {
-      if (confirm("Bạn có chắc muốn xóa dịch vụ này không?")) {
-        try {
-          await api.delete(`/services/${id}`);
-          this.getServices(this.currentPage);
-        } catch (err) {
-          console.error("❌ Lỗi xóa dịch vụ:", err);
-        }
+      if (!confirm("Bạn có chắc muốn xóa dịch vụ này không?")) return;
+      this.loading = true;
+      try {
+        await api.delete(`/services/${id}`);
+        this.getServices(this.currentPage);
+      } catch (err) {
+        console.error("❌ Lỗi xóa dịch vụ:", err);
+      } finally {
+        this.loading = false;
       }
     },
 
@@ -246,18 +246,15 @@ export default {
   cursor: pointer;
 }
 
-/* Ảnh dịch vụ */
 .service-img {
   width: 60px;
   height: 60px;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid #ddd;
   transition: opacity 0.3s ease-in-out;
   opacity: 0;
 }
 
-/* Fade-in khi ảnh load xong */
 .service-img.fade-in {
   opacity: 1;
 }
@@ -267,5 +264,18 @@ export default {
   display: inline-block;
   vertical-align: middle;
   font-size: 0.8rem;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
 }
 </style>
