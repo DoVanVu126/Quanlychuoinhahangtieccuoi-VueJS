@@ -26,6 +26,11 @@
         <b-form-input type="number" v-model="form.price" min="0" required></b-form-input>
       </b-form-group>
 
+      <!-- Mô tả -->
+      <b-form-group label="Mô tả">
+        <b-form-textarea v-model="form.description" rows="3" placeholder="Nhập mô tả sảnh (tùy chọn)"></b-form-textarea>
+      </b-form-group>
+
       <!-- Trạng thái -->
       <b-form-group label="Trạng thái">
         <b-form-select v-model="form.status" :options="statusOptions"></b-form-select>
@@ -62,14 +67,15 @@ export default {
     return {
       form: {
         name: "",
-        restaurant_id: null, // combobox
+        restaurant_id: null,
         capacity: "",
         price: "",
+        description: "",   // <-- thêm mô tả
         status: "available",
       },
       imageFile: null,
       previewImage: null,
-      restaurants: [], // mảng để hiển thị combobox
+      restaurants: [],
       statusOptions: [
         { value: "available", text: "Có sẵn" },
         { value: "unavailable", text: "Đã đặt" },
@@ -131,16 +137,13 @@ export default {
 .container {
   max-width: 700px;
 }
-
 h2 {
   font-weight: 600;
   margin-bottom: 20px;
 }
-
 .b-form-group {
   margin-bottom: 1.2rem;
 }
-
 .img-thumbnail {
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
