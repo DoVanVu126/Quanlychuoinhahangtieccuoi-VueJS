@@ -10,8 +10,14 @@
       </div>
     </base-header>
 
+    <!-- LOADING OVERLAY -->
+    <div v-if="loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <p class="loading-text">Đang tải dữ liệu...</p>
+    </div>
+
     <!-- Nội dung chính -->
-    <div class="container-fluid mt--7">
+    <div class="container-fluid mt--7" :class="{ 'blur-content': loading }">
       <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
         <div class="card-body">
           <!-- Thanh công cụ -->
@@ -115,7 +121,8 @@ export default {
       currentPage: 1,
       lastPage: 1,
       searchQuery: "",
-      baseURL: process.env.VUE_APP_BASE_URL || "http://localhost:8088", // URL backend
+      loading: false,
+      baseURL: process.env.VUE_APP_BASE_URL || "http://localhost:8088",
     };
   },
   computed: {
@@ -123,18 +130,19 @@ export default {
       if (!this.foods || !this.foods.data) return [];
       const query = this.searchQuery.trim().toLowerCase();
       return this.foods.data.filter(f => {
-        const name = f.name ? f.name.toLowerCase() : '';
-        const description = f.description ? f.description.toLowerCase() : '';
-        const restaurantName = f.restaurant && f.restaurant.name ? f.restaurant.name.toLowerCase() : '';
+        const name = f.name ? f.name.toLowerCase() : "";
+        const description = f.description ? f.description.toLowerCase() : "";
+        const restaurantName =
+          f.restaurant && f.restaurant.name ? f.restaurant.name.toLowerCase() : "";
         return name.includes(query) || description.includes(query) || restaurantName.includes(query);
       });
     },
   },
   methods: {
     async getFoods(page = 1) {
+      this.loading = true;
       try {
         const res = await api.get(`/foods?page=${page}`);
-        // Thêm trường fixed_image_url để đảm bảo ảnh hiển thị
         this.foods = {
           ...res.data,
           data: res.data.data.map(f => ({
@@ -146,27 +154,29 @@ export default {
         this.lastPage = res.data.last_page;
       } catch (err) {
         console.error("Lỗi tải danh sách món ăn:", err);
+      } finally {
+        this.loading = false;
       }
     },
 
-    // Định dạng giá
     formatPrice(value) {
       return new Intl.NumberFormat("vi-VN").format(value);
     },
 
-    // Sửa món ăn
     editFood(food) {
       this.$router.push({ name: "SuaMonAn", params: { id: food.food_id } });
     },
 
-    // Xóa món ăn
     async deleteFood(id) {
       if (confirm("Bạn có chắc muốn xóa món ăn này không?")) {
+        this.loading = true;
         try {
           await api.delete(`/foods/${id}`);
           this.getFoods(this.currentPage);
         } catch (err) {
           console.error("Lỗi xóa món ăn:", err);
+        } finally {
+          this.loading = false;
         }
       }
     },
@@ -176,21 +186,19 @@ export default {
       this.getFoods();
     },
 
-    // ✅ Chuẩn hóa URL ảnh món ăn
     fixFoodImageUrl(url) {
       if (!url) return null;
       if (url.startsWith("http")) return url;
-      // loại bỏ dấu / đầu nếu có
       return `${this.baseURL}/${url.replace(/^\/+/, "")}`;
     },
 
-    // Khi ảnh lỗi
     handleFoodImageError(e, food) {
       console.warn("Ảnh lỗi:", food.image_url);
       e.target.src = "https://via.placeholder.com/60x60?text=No+Image";
       e.target.style.border = "2px solid red";
     },
   },
+
   mounted() {
     this.getFoods();
   },
@@ -222,5 +230,46 @@ export default {
 }
 .food-img.fade-in {
   opacity: 1;
+}
+
+/* ----- LOADING OVERLAY ----- */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 6px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: white;
+  margin-top: 15px;
+  font-size: 18px;
+}
+
+/* Mờ nội dung khi loading */
+.blur-content {
+  filter: blur(2px);
+  pointer-events: none;
 }
 </style>
