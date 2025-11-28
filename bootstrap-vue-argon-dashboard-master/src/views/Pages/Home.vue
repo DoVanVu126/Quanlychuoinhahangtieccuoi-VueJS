@@ -19,6 +19,7 @@ import WeddingList from '@/components/Home/WeddingList.vue';
 import PromotionList from '@/components/Home/PromotionList.vue';
 import HomeFooter from '@/components/Home/HomeFooter.vue';
 
+
 export default {
   name: 'Home',
   components: {
