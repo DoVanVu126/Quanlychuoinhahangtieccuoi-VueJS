@@ -18,9 +18,9 @@
         <div class="food-type-tabs">
           <button :class="{ active: activeFoodTypeId === 1 }" @click="activeFoodTypeId = 1">Khai vị</button>
           <button :class="{ active: activeFoodTypeId === 2 }" @click="activeFoodTypeId = 2">Món chính</button>
-          <button :class="{ active: activeFoodTypeId === 5 }" @click="activeFoodTypeId = 5">Lẩu</button>
-          <button :class="{ active: activeFoodTypeId === 3 }" @click="activeFoodTypeId = 3">Tráng miệng</button>
-          <button :class="{ active: activeFoodTypeId === 4 }" @click="activeFoodTypeId = 4">Đồ uống</button>
+          <button :class="{ active: activeFoodTypeId === 3 }" @click="activeFoodTypeId = 3">Lẩu</button>
+          <button :class="{ active: activeFoodTypeId === 4 }" @click="activeFoodTypeId = 4">Tráng miệng</button>
+          <button :class="{ active: activeFoodTypeId === 5 }" @click="activeFoodTypeId = 5">Đồ uống</button>
         </div>
 
         <!-- ⬇ danh sách món ăn theo loại đã chọn -->
