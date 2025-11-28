@@ -8,56 +8,57 @@
         <b-form-input v-model="form.name" required></b-form-input>
       </b-form-group>
 
-      <!-- Chọn Nhà hàng -->
+      <!-- Mô tả -->
+      <b-form-group label="Mô tả">
+        <b-form-textarea v-model="form.description" rows="3"></b-form-textarea>
+      </b-form-group>
+
+      <!-- Sức chứa -->
+      <b-form-group label="Sức chứa">
+        <b-form-input type="number" v-model.number="form.capacity"></b-form-input>
+      </b-form-group>
+
+      <!-- Giá -->
+      <b-form-group label="Giá (VNĐ)">
+        <b-form-input type="number" step="0.01" v-model.number="form.price"></b-form-input>
+      </b-form-group>
+
+      <!-- Nhà hàng (combobox) -->
       <b-form-group label="Nhà hàng">
-        <b-form-select v-model="form.restaurant_id" :options="restaurants" required>
+        <b-form-select v-model="form.restaurant_id" :options="restaurantOptions" required>
           <template #first>
             <b-form-select-option :value="null" disabled>-- Chọn nhà hàng --</b-form-select-option>
           </template>
         </b-form-select>
       </b-form-group>
 
-      <!-- Sức chứa -->
-      <b-form-group label="Sức chứa">
-        <b-form-input type="number" v-model="form.capacity"></b-form-input>
-      </b-form-group>
-
-      <!-- Giá -->
-      <b-form-group label="Giá (VNĐ)">
-        <b-form-input type="number" v-model="form.price"></b-form-input>
-      </b-form-group>
-
-      <!-- Mô tả -->
-      <b-form-group label="Mô tả">
-        <b-form-textarea v-model="form.description" rows="3"></b-form-textarea>
-      </b-form-group>
-
       <!-- Trạng thái -->
       <b-form-group label="Trạng thái">
-        <b-form-select v-model="form.status">
+        <b-form-select v-model="form.status" required>
           <b-form-select-option value="available">Có sẵn</b-form-select-option>
           <b-form-select-option value="unavailable">Đã đặt</b-form-select-option>
           <b-form-select-option value="maintenance">Bảo trì</b-form-select-option>
         </b-form-select>
       </b-form-group>
 
-      <!-- Ảnh hiện tại / preview ảnh mới -->
+      <!-- Ảnh hiện tại & ảnh mới -->
       <b-form-group label="Ảnh sảnh">
         <div v-if="previewImage">
-          <p class="mb-1">Ảnh mới:</p>
-          <img :src="previewImage" alt="Preview" class="rounded shadow-sm border mb-2" style="width: 150px; height: 150px; object-fit: cover" />
+          <p>Ảnh mới:</p>
+          <img :src="previewImage" alt="Ảnh mới" class="rounded shadow-sm border mb-2"
+            style="width: 150px; height: 150px; object-fit: cover" />
         </div>
         <div v-else-if="form.image_url">
-          <p class="mb-1">Ảnh hiện tại:</p>
-          <img :src="getImageUrl(form.image_url)" alt="Ảnh sảnh" class="rounded shadow-sm border mb-2" style="width: 150px; height: 150px; object-fit: cover" />
+          <p>Ảnh hiện tại:</p>
+          <img :src="getImageUrl(form.image_url)" alt="Ảnh hiện tại" class="rounded shadow-sm border mb-2"
+            style="width: 150px; height: 150px; object-fit: cover" />
         </div>
         <p v-else class="text-muted">Không có ảnh</p>
 
-        <!-- Chọn ảnh mới -->
         <b-form-file
+          @change="handleImageUpload"
           accept="image/*"
           placeholder="Chọn ảnh mới nếu muốn thay"
-          @change="handleNewImage"
         ></b-form-file>
       </b-form-group>
 
@@ -77,32 +78,37 @@ export default {
   data() {
     return {
       form: {
+        hall_id: null,
         name: "",
-        capacity: 0,
-        price: 0,
-        restaurant_id: null,
         description: "",
+        capacity: null,
+        price: null,
+        restaurant_id: null,
         status: "available",
-        image_url: null,
-        newImage: null,
+        image_url: null, // ảnh cũ
+        newImage: null, // ảnh mới
       },
-      restaurants: [], // combobox nhà hàng
-      previewImage: null, // preview ảnh mới
+      previewImage: null,
+      restaurants: [],
     };
   },
+
+  computed: {
+    restaurantOptions() {
+      return this.restaurants.map(r => ({ value: r.restaurant_id, text: r.name }));
+    }
+  },
+
   mounted() {
     this.fetchRestaurants();
     this.loadHall();
   },
+
   methods: {
     async fetchRestaurants() {
       try {
         const res = await api.get("/restaurants");
-        const dataArray = Array.isArray(res.data) ? res.data : res.data.data || [];
-        this.restaurants = dataArray.map(r => ({
-          value: r.restaurant_id,
-          text: r.name,
-        }));
+        this.restaurants = Array.isArray(res.data) ? res.data : res.data.data || [];
       } catch (err) {
         console.error("❌ Lỗi tải danh sách nhà hàng:", err);
       }
@@ -111,12 +117,8 @@ export default {
     async loadHall() {
       try {
         const res = await api.get(`/halls/${this.$route.params.id}`);
-        this.form = {
-          ...res.data,
-          newImage: null,
-          description: res.data.description || "",
-          restaurant_id: res.data.restaurant_id || null,
-        };
+        this.form = { ...res.data, newImage: null };
+        this.previewImage = null;
       } catch (err) {
         console.error("❌ Không tải được sảnh:", err);
         alert("Không tải được sảnh!");
@@ -125,13 +127,13 @@ export default {
     },
 
     getImageUrl(url) {
-      if (!url) return "/images/no-image.png";
+      if (!url) return null;
       if (url.startsWith("http")) return url;
       return `http://127.0.0.1:8088/${url.replace(/^\/+/, "")}`;
     },
 
-    handleNewImage(event) {
-      const file = event.target.files[0];
+    handleImageUpload(e) {
+      const file = e.target.files[0];
       if (file) {
         this.form.newImage = file;
         this.previewImage = URL.createObjectURL(file);
@@ -141,27 +143,22 @@ export default {
     async updateHall() {
       try {
         const formData = new FormData();
-        formData.append("name", this.form.name);
-        formData.append("capacity", this.form.capacity || 0);
-        formData.append("price", this.form.price || 0);
-        formData.append("status", this.form.status);
-        formData.append("restaurant_id", this.form.restaurant_id || null);
-        formData.append("description", this.form.description || "");
+        if (this.form.name) formData.append("name", this.form.name);
+        if (this.form.description) formData.append("description", this.form.description);
+        if (this.form.capacity != null) formData.append("capacity", this.form.capacity);
+        if (this.form.price != null) formData.append("price", this.form.price);
+        if (this.form.restaurant_id) formData.append("restaurant_id", this.form.restaurant_id);
+        if (this.form.status) formData.append("status", this.form.status);
+        if (this.form.newImage) formData.append("image", this.form.newImage);
 
-        if (this.form.newImage) {
-          formData.append("image", this.form.newImage);
-        }
-
-        await api.post(
-          `/halls/${this.$route.params.id}?_method=PUT`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
+        await api.post(`/halls/${this.form.hall_id}?_method=PUT`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
 
         alert("✅ Cập nhật sảnh thành công!");
         this.$router.push("/sanh");
       } catch (err) {
-        console.error("❌ Lỗi cập nhật:", err);
+        console.error("❌ Lỗi cập nhật:", err.response ? err.response.data : err);
         alert("Cập nhật thất bại! Kiểm tra console để biết chi tiết.");
       }
     },
