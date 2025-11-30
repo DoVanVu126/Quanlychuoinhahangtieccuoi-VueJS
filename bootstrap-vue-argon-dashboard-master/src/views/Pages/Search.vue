@@ -35,7 +35,9 @@
           <button class="searchpage-clear-btn" @click="clearFilters">✕</button>
         </div>
       </div>
-      <div v-if="loading" class="text-gray-600 mt-4">Đang tải...</div>
+      <div v-if="loading" class="loading-overlay" aria-hidden="false">
+        <div class="loading-spinner" role="status" aria-label="Đang tải"></div>
+      </div>
       <div v-else-if="filteredResults.length === 0" class="text-gray-600 mt-4">
         Không tìm thấy kết quả nào.
       </div>
@@ -213,22 +215,37 @@ export default {
       this.keyword = newVal;
       this.fetchResults();
     },
+    selectedPrice() {
+      this.onFilterChange();
+    },
+    selectedStar() {
+      this.onFilterChange();
+    },
+    selectedCity() {
+      this.onFilterChange();
+    },
+    selectedWard() {
+      this.onFilterChange();
+    },
   },
   mounted() {
     this.fetchResults();
     this.fetchCities(); // ✅ Lấy danh sách thành phố khi load trang
   },
   methods: {
-    async fetchResults() {
-      if (!this.keyword) return;
+    async fetchResults(filters = {}) {
+      // Fetch results from backend. `filters` may contain keys like { city, ward, price, star }
+      // If a keyword is present it will be sent as well unless explicitly cleared.
       this.loading = true;
       try {
-        const response = await axios.get("http://localhost:8088/api/restaurants/search", {
-          params: { keyword: this.keyword },
-        });
-        this.results = response.data;
+        const params = Object.assign({}, filters || {});
+        if (this.keyword) params.keyword = this.keyword;
+
+        const response = await axios.get("http://localhost:8088/api/restaurants/search", { params });
+        this.results = response.data || [];
       } catch (error) {
         console.error("Lỗi khi tải kết quả:", error);
+        this.results = [];
       } finally {
         this.loading = false;
       }
@@ -248,6 +265,8 @@ export default {
     async fetchWardsByCity() {
       if (!this.selectedCity) {
         this.wards = [];
+        // clear any previously selected ward when city is cleared
+        this.selectedWard = "";
         return;
       }
       try {
@@ -255,6 +274,11 @@ export default {
           params: { city: this.selectedCity },
         });
         this.wards = res.data.wards;
+        // If the previously selected ward is not in the newly loaded wards,
+        // clear it to avoid stale selection (e.g., switching from Q.3 to another city).
+        if (this.selectedWard && !this.wards.includes(this.selectedWard)) {
+          this.selectedWard = "";
+        }
       } catch (error) {
         console.error("Lỗi khi tải danh sách phường/xã:", error);
       }
@@ -266,6 +290,38 @@ export default {
       this.selectedWard = "";
       this.selectedCity = "";
       this.wards = [];
+      // When filters are cleared we should also remove any preserved keyword
+      // from the route so the page shows unfiltered results.
+      if (this.$route.query && this.$route.query.keyword) {
+        const q = Object.assign({}, this.$route.query);
+        delete q.keyword;
+        this.$router.replace({ path: this.$route.path, query: q }).catch(() => {});
+      }
+      this.fetchResults();
+    },
+
+    // Called whenever a filter value changes. Remove keyword from route
+    // (so a prior search term doesn't interfere) then re-fetch results with
+    // the currently-selected filter values so the backend returns restaurants
+    // matching the selected city/ward/price/star.
+    onFilterChange() {
+      // build filters to send to backend
+      const filters = {};
+      if (this.selectedCity) filters.city = this.selectedCity;
+      if (this.selectedWard) filters.ward = this.selectedWard;
+      if (this.selectedPrice) filters.price = this.selectedPrice;
+      if (this.selectedStar) filters.star = this.selectedStar;
+
+      // remove keyword from URL and client state
+      if (this.$route.query && this.$route.query.keyword) {
+        const q = Object.assign({}, this.$route.query);
+        delete q.keyword;
+        this.$router.replace({ path: this.$route.path, query: q }).catch(() => {});
+        this.keyword = "";
+      }
+
+      // fetch results using filter params (this will show restaurants for the selected city)
+      this.fetchResults(filters);
     },
 
     formatPrice(value) {
@@ -422,3 +478,27 @@ export default {
 
 
 <style src="../../assets/css/search.css"></style>
+
+<style scoped>
+/* Simple spinner */
+/* Full-screen loading overlay */
+.loading-overlay {
+  position: fixed;
+  inset: 0; /* top:0; right:0; bottom:0; left:0; */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100; /* above most UI elements */
+}
+.loading-spinner {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 6px solid rgba(0,0,0,0.08);
+  border-top-color: #2563eb; /* blue-600 */
+  animation: spin 0.9s linear infinite;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+</style>
