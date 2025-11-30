@@ -10,8 +10,7 @@
           @focus="showSuggestions = true" @blur="hideSuggestions" />
 
         <!-- Danh sách gợi ý -->
-        <ul v-if="showSuggestions && results.length > 0"
-          class="suggestion-list absolute left-0 top-full w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50">
+        <ul v-if="showSuggestions && results.length > 0">
           <li v-for="(item, index) in results" :key="index" class="wedding-suggestion-item"
             @mousedown.prevent="selectSuggestion(item)">
             <!-- use normalized image URL -->
@@ -37,11 +36,11 @@
       <div class="wedding-date-row">
         <div class="wedding-date-group">
           <label>Ngày đặt</label>
-          <input type="date" v-model="startDate" />
+          <input type="date" v-model="startDate" :min="today" @change="onStartDateChange" />
         </div>
         <div class="wedding-date-group">
           <label>Ngày trả</label>
-          <input type="date" v-model="endDate" />
+          <input type="date" v-model="endDate" :min="today" @change="onEndDateChange" />
         </div>
       </div>
 
@@ -50,7 +49,7 @@
         {{ errorMessage }}
       </p>
 
-      <button class="wedding-search-btn" @click="goToBookingPage">TÌM</button>
+      <button class="wedding-search-btn" @click="goToBookingPage" :disabled="!isDateValid">TÌM</button>
     </div>
   </div>
 </template>
@@ -61,14 +60,18 @@ import _ from "lodash";
 
 export default {
   data() {
+    // default dates to today in YYYY-MM-DD format
+    const today = new Date().toISOString().substr(0, 10);
     return {
       keyword: "",
-      startDate: "",
-      endDate: "",
+      startDate: today,
+      endDate: today,
+      today,
       results: [],
       showSuggestions: false,
       selectedRestaurant: null,
       errorMessage: "", // ✅ Biến hiển thị lỗi
+      isDateValid: true,
     };
   },
   methods: {
@@ -135,6 +138,9 @@ export default {
         return;
       }
 
+      // validate date logic (start <= end and not before today)
+      if (!this.validateDates()) return;
+
       this.$router.push({
         name: "DatTiec",
         query: {
@@ -183,7 +189,46 @@ export default {
       this.errorMessage = message;
       setTimeout(() => {
         this.errorMessage = "";
-      }, 3000);
+      }, 5000);
+    },
+    validateDates() {
+      // reset
+      this.isDateValid = true;
+      if (!this.startDate || !this.endDate) return true;
+      if (this.startDate > this.endDate) {
+        this.isDateValid = false;
+        this.showError('Ngày đặt không được sau ngày trả');
+        return false;
+      }
+      if (this.startDate < this.today || this.endDate < this.today) {
+        this.isDateValid = false;
+        this.showError('Ngày đặt/Ngày trả không được trước ngày hiện tại');
+        return false;
+      }
+      // limit: endDate must not be more than 14 days after startDate
+      try {
+        const s = new Date(this.startDate);
+        const e = new Date(this.endDate);
+        const diffMs = e.getTime() - s.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays > 14) {
+          this.isDateValid = false;
+          this.showError('Ngày trả không được quá 2 tuần so với ngày đặt');
+          return false;
+        }
+      } catch (err) {
+        // ignore parse errors and allow validation to continue
+      }
+      this.isDateValid = true;
+      return true;
+    },
+
+    onStartDateChange() {
+      this.validateDates();
+    },
+
+    onEndDateChange() {
+      this.validateDates();
     },
   },
 };
