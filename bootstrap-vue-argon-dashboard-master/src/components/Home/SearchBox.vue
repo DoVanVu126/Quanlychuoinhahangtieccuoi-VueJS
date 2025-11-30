@@ -14,8 +14,8 @@
           class="suggestion-list absolute left-0 top-full w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50">
           <li v-for="(item, index) in results" :key="index" class="wedding-suggestion-item"
             @mousedown.prevent="selectSuggestion(item)">
-            <!-- SỬA: dùng image_url theo cấu trúc DB -->
-            <img :src="item.image_url || '/images/default-restaurant.jpg'" alt="Restaurant" />
+            <!-- use normalized image URL -->
+            <img :src="getImageUrl(item.image_url)" alt="Restaurant" @error="onImgError($event)" />
             <span class="font-medium text-gray-800">{{ item.name }}</span>
           </li>
         </ul>
@@ -23,9 +23,9 @@
 
       <!-- Nhà hàng được chọn -->
       <div v-if="selectedRestaurant" class="wedding-selected-restaurant">
-        <!-- SỬA: dùng image_url theo cấu trúc DB -->
-        <img :src="selectedRestaurant.image_url || '/images/default-restaurant.jpg'" alt="Restaurant"
-          class="wedding-selected-img" />
+        <!-- selected restaurant image (normalized) -->
+        <img :src="getImageUrl(selectedRestaurant.image_url)" alt="Restaurant"
+          class="wedding-selected-img" @error="onImgError($event)" />
         <div class="wedding-selected-info">
           <h3 class="wedding-selected-name font-semibold text-lg">{{ selectedRestaurant.name }}</h3>
           <!-- Nếu cần hiển thị địa chỉ: dùng ward + city (nếu backend không trả address) -->
@@ -145,6 +145,37 @@ export default {
       });
 
 
+    },
+
+    /** Normalize image URL values from backend and provide placeholder when needed */
+    getImageUrl(url) {
+      const DEFAULT = '/images/default.png';
+      try {
+        if (!url) return DEFAULT;
+        const str = String(url).trim();
+
+        // absolute URL or data URI -> return as-is
+        if (/^(data:|https?:)\/\//i.test(str)) return str;
+        if (/^\/\//.test(str)) return str; // protocol-relative
+
+        // placeholder shorthand like "009900?text=..."
+        const m = str.match(/^([0-9a-fA-F]{3,6})\?text=(.*)$/);
+        if (m) return `https://via.placeholder.com/300x200/${m[1]}/ffffff?text=${m[2]}`;
+
+        // clean leading public/ and slashes
+        let clean = str.replace(/^public\//i, '').replace(/^\/+/, '');
+        if (!clean.includes('/')) clean = 'uploads/restaurants/' + clean;
+
+        const backend = (process.env.VUE_APP_BACKEND_URL || 'http://127.0.0.1:8088').replace(/\/+$/, '');
+        return backend + '/' + clean.replace(/^\/+/, '');
+      } catch (e) {
+        console.error('getImageUrl error', e, url);
+        return '/images/default.png';
+      }
+    },
+
+    onImgError(e) {
+      e.target.src = '/images/default.png';
     },
 
     // ✅ Hàm hiển thị lỗi trong 3 giây

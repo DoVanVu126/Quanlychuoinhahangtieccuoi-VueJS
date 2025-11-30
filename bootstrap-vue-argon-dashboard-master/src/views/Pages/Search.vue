@@ -370,36 +370,51 @@ export default {
     clearSlot(index) {
       if (index === 0 || index === 1) this.$set(this.compareSelection, index, null);
     },
-    /** Normalize image URL values from backend and provide placeholder when needed */
+    /**
+     * Normalize image URL values from backend and provide placeholder when needed.
+     * Accepts:
+     * - Absolute URLs (http/https) -> returned as-is
+     * - Protocol-relative URLs (//...)
+     * - Paths like '/uploads/...' or 'uploads/...' or 'public/uploads/...'
+     * - Bare filenames like 'hinh1.jpg' -> assumed under 'uploads/restaurants/'
+     * Uses `VUE_APP_BACKEND_URL` when available, falling back to http://127.0.0.1:8088
+     */
     getImageUrl(url) {
-      const DEFAULT = "/img/default-restaurant.jpg";
-      if (!url) return DEFAULT;
-      // already full URL
-      if (typeof url === "string" && url.startsWith("http")) return url;
+      const DEFAULT = "/images/default.png";
+      try {
+        if (!url) return DEFAULT;
+        const str = String(url).trim();
 
-      // relative path from backend (e.g. "uploads/...")
-      if (typeof url === "string" && url.startsWith("/")) {
-        return `http://127.0.0.1:8088${url}`;
+        // already an absolute URL (http/https) or data: URI
+        if (/^(data:|https?:)\/\//i.test(str)) return str;
+        // protocol-relative
+        if (/^\/\//.test(str)) return str;
+
+        // handle placeholder shorthand like "009900?text=..."
+        const m = str.match(/^([0-9a-fA-F]{3,6})\?text=(.*)$/);
+        if (m) {
+          const color = m[1];
+          const text = m[2];
+          return `https://via.placeholder.com/300x200/${color}/ffffff?text=${text}`;
+        }
+
+        // clean leading 'public/' and leading slashes
+        let clean = str.replace(/^public\//i, '').replace(/^\/+/, '');
+
+        // if bare filename, assume uploads/restaurants
+        if (!clean.includes('/')) clean = 'uploads/restaurants/' + clean;
+
+        // backend base URL (set VUE_APP_BACKEND_URL in your .env if frontend runs separately)
+        const backend = (process.env.VUE_APP_BACKEND_URL || 'http://127.0.0.1:8088').replace(/\/+$/, '');
+        return backend + '/' + clean.replace(/^\/+/, '');
+      } catch (e) {
+        console.error('getImageUrl error', e, url);
+        return "/images/default.png";
       }
-
-      // handle cases like "009900?text=restaurant+Nh%C3%A0+h%C3%A0ng+illo"
-      // expect color?text=... where color is hex without leading #
-      const m = String(url).match(/^([0-9a-fA-F]{3,6})\?text=(.*)$/);
-      if (m) {
-        const color = m[1];
-        const text = m[2];
-        // via.placeholder.com requires size; use 300x200 and white text color
-        return `https://via.placeholder.com/300x200/${color}/ffffff?text=${text}`;
-      }
-
-      // fallback: if looks like a path without leading slash, assume backend host
-      if (typeof url === "string") return `http://127.0.0.1:8088/${url.replace(/^\/+/, "")}`;
-
-      return DEFAULT;
     },
 
     onImgError(e) {
-      e.target.src = '/img/default-restaurant.jpg';
+      e.target.src = '/images/default.png';
     },
   },
 };
