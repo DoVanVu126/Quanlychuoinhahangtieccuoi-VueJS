@@ -96,8 +96,23 @@ const routes = [
         component: () => import("../components/Home/PromotionList.vue"),
       },
 
+      {
+        path: "/customer",
+        name: "Customer",
+        component: () => import("../views/Customer.vue"),
+      },
 
+      {
+        path: "/customers/:id",
+        name: "CustomerDetail",
+        component: () => import("../views/CustomerDetail.vue"),
+      },
 
+      {
+        path: "/support",
+        name: "Support",
+        component: () => import("../views/SupportTickets.vue"),
+      },
 
 
       // 👉 SẢNH
