@@ -43,7 +43,7 @@
       </div>
 
       <div v-else class="searchpage-grid">
-        <div v-for="r in filteredResults" :key="r.restaurant_id" class="searchpage-card">
+        <div v-for="r in paginatedResults" :key="r.restaurant_id" class="searchpage-card">
           <img :src="getImageUrl(r.image_url)" alt="Restaurant" @error="onImgError($event)" />
           <div class="searchpage-card-content">
             <h3>{{ r.name }}</h3>
@@ -60,6 +60,16 @@
             </button>
 
           </div>
+        </div>
+      </div>
+
+      <!-- Pagination controls -->
+      <div v-if="totalPages > 1" class="searchpage-pagination">
+        <div class="pagination-info">Hiển thị {{ (currentPage-1)*perPage + 1 }} - {{ Math.min(currentPage*perPage, filteredResults.length) }} trên {{ filteredResults.length }} nhà hàng</div>
+        <div class="pagination-controls">
+          <button @click="currentPage = Math.max(1, currentPage-1)" :disabled="currentPage===1">‹ Trước</button>
+          <button v-for="p in totalPages" :key="p" @click="currentPage = p" :class="{ active: p === currentPage }">{{ p }}</button>
+          <button @click="currentPage = Math.min(totalPages, currentPage+1)" :disabled="currentPage===totalPages">Tiếp ›</button>
         </div>
       </div>
     </div>
@@ -164,6 +174,10 @@ export default {
       results: [],
       loading: false,
 
+      // pagination
+      currentPage: 1,
+      perPage: 16,
+
       // Bộ lọc
       selectedPrice: "",
       selectedStar: "",
@@ -196,6 +210,17 @@ export default {
       });
     },
 
+      // total pages based on filtered results
+      totalPages() {
+        return Math.max(1, Math.ceil(this.filteredResults.length / this.perPage));
+      },
+
+      // results for current page
+      paginatedResults() {
+        const start = (this.currentPage - 1) * this.perPage;
+        return this.filteredResults.slice(start, start + this.perPage);
+      },
+
     /** Kiểm tra đủ 2 nhà hàng mới bật nút "Bắt đầu" */
     canCompare() {
       return (
@@ -213,20 +238,19 @@ export default {
   watch: {
     "$route.query.keyword"(newVal) {
       this.keyword = newVal;
+      this.currentPage = 1;
       this.fetchResults();
+      this.currentPage = 1;
     },
-    selectedPrice() {
-      this.onFilterChange();
-    },
-    selectedStar() {
-      this.onFilterChange();
-    },
-    selectedCity() {
-      this.onFilterChange();
-    },
-    selectedWard() {
-      this.onFilterChange();
-    },
+    selectedPrice() { this.onFilterChange(); },
+    selectedStar() { this.onFilterChange(); },
+    selectedCity() { this.onFilterChange(); },
+    selectedWard() { this.onFilterChange(); },
+
+    // ensure current page within bounds when filteredResults change
+    filteredResults() {
+      if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
+    }
   },
   mounted() {
     this.fetchResults();
@@ -320,7 +344,8 @@ export default {
         this.keyword = "";
       }
 
-      // fetch results using filter params (this will show restaurants for the selected city)
+      // reset to first page and fetch results using filter params
+      this.currentPage = 1;
       this.fetchResults(filters);
     },
 
@@ -500,5 +525,36 @@ export default {
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.searchpage-pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 0 6px;
+  text-align: center;
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.pagination-controls button {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  padding: 6px 10px;
+  margin: 0 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.pagination-controls button.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+.pagination-controls button:disabled { opacity: 0.5; cursor: default; }
+.pagination-info { color: #374151; font-size: 14px; }
 
 </style>
