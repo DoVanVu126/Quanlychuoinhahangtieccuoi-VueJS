@@ -68,6 +68,26 @@ const routes = [
       { path: "/bao-cao-pdf", name: "BaoCaoPDF", component: () => import("../views/kho-hang/BaoCaoPDF.vue") },
       { path: "/lich-su-kho", name: "LichSuKho", component: () => import("../views/kho-hang/LichSuKho.vue") },
 
+      // Quản lí khách hàng
+      {
+        path: "/customer",
+        name: "Customer",
+        component: () => import("../views/Customer.vue"),
+      },
+
+      {
+        path: "/customers/:id",
+        name: "CustomerDetail",
+        component: () => import("../views/CustomerDetail.vue"),
+      },
+
+      // Hỗ trợ khách hàng
+      {
+        path: "/support",
+        name: "Support",
+        component: () => import("../views/SupportTickets.vue"),
+      },
+
       // Cài đặt
       { path: "/settings", name: "Settings", component: () => import("../views/Settings.vue") },
 

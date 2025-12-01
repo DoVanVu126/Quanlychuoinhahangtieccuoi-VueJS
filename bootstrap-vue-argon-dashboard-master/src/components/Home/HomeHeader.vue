@@ -93,7 +93,7 @@
         <i class="fas fa-caret-down"></i>
 
         <div v-if="dropdownOpen" class="homeheader-dropdown-menu">
-          <router-link to="/profile">Trang cá nhân</router-link>
+          <router-link to="/profileUser">Trang cá nhân</router-link>
           <router-link to="/saved-promotions">Mã khuyến mãi đã lưu</router-link>
           <router-link to="/membership">Xem thẻ hội viên</router-link>
           <a @click="logout">Đăng xuất</a>
