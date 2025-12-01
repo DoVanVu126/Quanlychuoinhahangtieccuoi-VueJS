@@ -144,7 +144,7 @@ export default {
 
 
   async created() {
-    const userData = localStorage.getItem("user");
+    const userData = localStorage.getItem("user_info");
     if (userData) {
       try {
         this.user = JSON.parse(userData);

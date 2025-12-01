@@ -56,7 +56,7 @@ import api from "@/api";
 export default {
   name: "PromotionDetailCard",
   data() {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const storedUser = JSON.parse(localStorage.getItem("user_info"));
     return {
       user: storedUser && storedUser.user_id ? storedUser : null,
       promotion: {

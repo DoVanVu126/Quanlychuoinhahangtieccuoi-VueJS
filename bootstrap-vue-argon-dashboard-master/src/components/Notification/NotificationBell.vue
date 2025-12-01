@@ -37,7 +37,7 @@ export default {
       unreadCount: 0,
       showList: false,
       hasNew: false,
-      userId: (JSON.parse(localStorage.getItem("user")) || {}).user_id,
+      userId: (JSON.parse(localStorage.getItem("user_info")) || {}).user_id,
     };
   },
   methods: {

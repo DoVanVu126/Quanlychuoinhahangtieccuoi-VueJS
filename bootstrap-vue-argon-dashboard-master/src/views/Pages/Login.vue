@@ -58,8 +58,8 @@ export default {
           password: this.password,
         });
 
-        localStorage.setItem("user", JSON.stringify(res.data.user));
-        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user_info", JSON.stringify(res.data.user));
+        localStorage.setItem("user_token", res.data.token);
 
         this.$router.push("/home");
       } catch (error) {

@@ -10,7 +10,7 @@ export default {
   name: "ProfilePage",
   data() {
     return {
-      user: JSON.parse(localStorage.getItem("user")) || { name: "Khách" },
+      user: JSON.parse(localStorage.getItem("user_info")) || { name: "Khách" },
     };
   },
 };

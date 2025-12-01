@@ -123,36 +123,67 @@
   outline: none;
 }
 
-/* Nút đăng nhập / tạo tài khoản */
-.home-header .login-btn {
-  color: #555;
-  background: none;
-  border: none;
-  font-size: 15px;
+/* Nút Đăng nhập: Đơn giản, text màu */
+.btn-login {
+  background: transparent;
+  color: #5e72e4;
+}
+.btn-login:hover {
+  background: #f4f5f7;
+}
+
+/* Nút Đăng ký: Gradient, nổi bật */
+.btn-signup {
+  background: linear-gradient(87deg, #2dce89 0, #2dcecc 100%); /* Gradient xanh Argon */
+  color: white;
+  box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.btn-signup:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* === USER PROFILE AREA (ĐÃ ĐĂNG NHẬP) === */
+.user-profile-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
-  transition: color 0.3s ease;
+  padding: 5px 10px;
+  border-radius: 50px;
+  transition: background 0.2s;
+  position: relative; /* Để dropdown định vị */
 }
 
-.home-header .login-btn:hover {
-  color: #8c6fff;
+.user-profile-area:hover, .user-profile-area.active {
+  background: #f6f9fc;
 }
 
-.home-header .signup-btn {
-  background: linear-gradient(90deg, #8c6fff, #7c4dff);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.3s ease;
+/* Avatar tròn */
+.avatar-circle {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(87deg, #5e72e4 0, #825ee4 100%); /* Gradient tím */
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
 }
 
-.home-header .signup-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3);
+.user-name {
+  font-weight: 600;
+  color: #32325d;
+  margin-right: 5px;
 }
 
+.arrow-icon {
+  color: #adb5bd;
+  font-size: 0.8rem;
+  transition: transform 0.3s;
+}
 /* Responsive */
 @media (max-width: 992px) {
   .home-header {

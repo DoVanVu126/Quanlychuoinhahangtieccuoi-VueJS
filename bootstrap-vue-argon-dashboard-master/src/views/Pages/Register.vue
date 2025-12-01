@@ -17,7 +17,7 @@ export default {
     register() {
       // Giả lập tạo tài khoản
       const user = { name: this.name, email: this.email };
-      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("user_info", JSON.stringify(user));
       this.$router.push("/");
     },
   },

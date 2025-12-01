@@ -209,7 +209,7 @@ export default {
 
       console.log("Payload sẽ gửi:", payload);
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("user_token");
         const headers = token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {};
         const res = await axios.post("http://localhost:8088/api/bookings", payload, { headers });
         this.successMessage = "Đặt tiệc thành công!<br>đơn đặt đã thêm vào giỏ hàng.";

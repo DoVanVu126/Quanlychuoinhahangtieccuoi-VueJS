@@ -116,7 +116,7 @@ export default {
   data() {
     return {
       keyword: "",
-      user: JSON.parse(localStorage.getItem("user")) || null,
+      user: null,
       membership: null,
       dropdownOpen: false,
       notifications: [],
@@ -145,6 +145,38 @@ export default {
   },
 
   methods: {
+    // ⭐ PHƯƠNG THỨC QUAN TRỌNG: Load user từ CẢNH localStorage VÀ sessionStorage
+    loadUserFromStorage() {
+      // Đọc từ localStorage trước (khi user chọn "Nhớ tài khoản")
+      let userInfo = localStorage.getItem("user_info");
+      let userToken = localStorage.getItem("user_token");
+      
+      // Nếu không có trong localStorage, kiểm tra sessionStorage
+      if (!userInfo || !userToken) {
+        userInfo = sessionStorage.getItem("user_info");
+        userToken = sessionStorage.getItem("user_token");
+      }
+
+      // Parse và gán user
+      if (userInfo && userToken) {
+        try {
+          this.user = JSON.parse(userInfo);
+          console.log("✅ User loaded:", this.user);
+          
+          // Load thêm membership và notifications
+          this.loadMembership();
+          this.loadNotifications();
+          this.listenRealtime();
+        } catch (e) {
+          console.error("❌ Error parsing user_info:", e);
+          this.user = null;
+        }
+      } else {
+        console.log("ℹ️ No user found in storage");
+        this.user = null;
+      }
+    },
+
     goToSearch() {
       const query = this.keyword.trim();
       if (!query) return;
@@ -154,9 +186,15 @@ export default {
     goToLogin() { this.$router.push("/login"); },
     goToSignup() { this.$router.push("/register"); },
     toggleDropdown() { this.dropdownOpen = !this.dropdownOpen; },
+    
     logout() {
+      // Xóa CẢNH localStorage VÀ sessionStorage
       localStorage.clear();
+      sessionStorage.clear();
+      
       this.user = null;
+      this.membership = null;
+      this.notifications = [];
       this.$router.push("/login");
     },
 
@@ -238,10 +276,10 @@ export default {
     loadMore() { this.visibleCount += 5; },
 
     handleClickOutside(e) {
-      if (this.dropdownOpen && !this.$refs.userDropdownWrapper.contains(e.target)) {
+      if (this.dropdownOpen && this.$refs.userDropdownWrapper && !this.$refs.userDropdownWrapper.contains(e.target)) {
         this.dropdownOpen = false;
       }
-      if (this.notifDropdownOpen && !this.$refs.notifWrapper.contains(e.target)) {
+      if (this.notifDropdownOpen && this.$refs.notifWrapper && !this.$refs.notifWrapper.contains(e.target)) {
         this.notifDropdownOpen = false;
       }
     },
@@ -253,11 +291,13 @@ export default {
           this.notifications.unshift(data.notification);
           this.updateUnreadCount();
 
-          this.$refs.toast.addToast({
-            title: data.notification.title,
-            message: data.notification.message,
-            type: data.notification.type || "info",
-          });
+          if (this.$refs.toast) {
+            this.$refs.toast.addToast({
+              title: data.notification.title,
+              message: data.notification.message,
+              type: data.notification.type || "info",
+            });
+          }
 
           this.hasNew = true;
           setTimeout(() => this.hasNew = false, 1500);
@@ -266,14 +306,23 @@ export default {
   },
 
   mounted() {
-    this.loadMembership();
-    this.loadNotifications();
-    this.listenRealtime();
+    // Load user khi component mount
+    this.loadUserFromStorage();
+    
+    // Click outside handler
     document.addEventListener("click", this.handleClickOutside);
   },
 
   beforeDestroy() {
     document.removeEventListener("click", this.handleClickOutside);
+  },
+
+  // ⭐ QUAN TRỌNG: Watch route để reload user khi chuyển trang
+  watch: {
+    '$route'() {
+      // Khi route thay đổi (ví dụ từ /login về /home), reload user
+      this.loadUserFromStorage();
+    }
   }
 };
 </script>

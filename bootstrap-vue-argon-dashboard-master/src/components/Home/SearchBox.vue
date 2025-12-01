@@ -118,7 +118,7 @@ export default {
 
     // ✅ Khi nhấn "TÌM"
     goToBookingPage() {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("user_token");
 
       if (!token || token === "undefined") {
         this.showError("⚠️ Vui lòng đăng nhập trước khi đặt tiệc!");

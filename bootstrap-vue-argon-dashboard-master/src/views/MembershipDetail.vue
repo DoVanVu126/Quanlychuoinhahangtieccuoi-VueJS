@@ -87,7 +87,7 @@ export default {
 
   data() {
     return {
-      user: JSON.parse(localStorage.getItem("user")) || null,
+      user: JSON.parse(localStorage.getItem("user_info")) || null,
       membership: null,
       apiBase: "http://localhost:8088",
       loading: true
@@ -191,7 +191,7 @@ export default {
         );
 
         this.user.image_url = res.data.image_url;
-        localStorage.setItem("user", JSON.stringify(this.user));
+        localStorage.setItem("user_info", JSON.stringify(this.user));
         alert("Cập nhật avatar thành công!");
       } catch (err) {
         alert("Cập nhật avatar thất bại!");

@@ -100,7 +100,7 @@ export default {
   name: "SavedPromotions",
   data() {
     return {
-      user: JSON.parse(localStorage.getItem("user")),
+      user: JSON.parse(localStorage.getItem("user_info")),
       savedPromotions: [],
       filteredPromotions: [],
       restaurants: [],

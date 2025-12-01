@@ -47,7 +47,7 @@ export default {
   },
   mounted() {
     try {
-      this.user = JSON.parse(localStorage.getItem("user"));
+      this.user = JSON.parse(localStorage.getItem("user_info"));
     } catch (e) {
       this.user = null;
     }

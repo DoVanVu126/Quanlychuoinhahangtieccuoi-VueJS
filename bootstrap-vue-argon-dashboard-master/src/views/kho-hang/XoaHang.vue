@@ -27,7 +27,7 @@ export default {
   mounted() {
     this.ma = this.$route.query.ma;
     // Kiểm tra token xác thực (ví dụ lưu ở localStorage)
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('user_token');
     this.isAuthenticated = !!token;
     if (!this.isAuthenticated) {
       // Nếu không có token, chuyển về trang đăng nhập sau 1s
@@ -49,7 +49,7 @@ export default {
       this.loading = true;
       this.error = null;
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('user_token');
         // Gọi API xóa, gửi token trong header Authorization
         await api.delete(`/inventories/${this.ma}`, {
           headers: {
