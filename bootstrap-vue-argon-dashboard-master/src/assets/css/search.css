@@ -283,7 +283,7 @@
 }
 .compare-result-modal {
   width: calc(100% - 160px);
-  max-width: 1100px;
+  max-width: 1000px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 18px 60px rgba(0,0,0,0.25);
@@ -305,10 +305,10 @@
 .compare-result-header {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
   text-align: center;
   font-size: 20px;
   font-weight: 600;
+  padding-left: 200px;
   padding-bottom: 12px;
   border-bottom: 1px solid #e6e6e6;
 }
@@ -316,7 +316,6 @@
 .compare-row {
   display: grid;
   grid-template-columns: 200px 1fr 1fr;
-  gap: 18px;
   align-items: center;
   padding: 12px 0;
   border-bottom: 1px solid #f3f3f3;

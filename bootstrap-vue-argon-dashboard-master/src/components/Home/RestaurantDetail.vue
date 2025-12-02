@@ -10,11 +10,11 @@
           <img :src="getImageUrl(restaurant.image_url)" alt="restaurant" @error="onImgError($event)" class="detail-image" />
           <div class="detail-meta">
             <h1>{{ restaurant.name }}</h1>
-            <p class="muted">{{ restaurant.ward }}, {{ restaurant.city }}</p>
-            <p>Giá trung bình / bàn: từ ~ {{ formatPrice(restaurant.price_table) }}đ</p>
-            <p>Sức chứa: {{ restaurant.capacity || '—' }}</p>
-            <p>Số sảnh: {{ getHalls(restaurant) }}</p>
-            <p>Khuyến mãi: {{ getHasPromo(restaurant) ? 'Có' : 'Không' }}</p>
+            <p class="muted"><i class="fa fa-map-marker detail-icon" aria-hidden="true"></i>{{ restaurant.ward }}, {{ restaurant.city }}</p>
+            <p><i class="fa fa-tag detail-icon" aria-hidden="true"></i><span class="price-label">Giá trung bình / bàn:</span> từ ~ {{ formatPrice(restaurant.price_table) }}đ</p>
+            <p><i class="fa fa-users detail-icon" aria-hidden="true"></i>Sức chứa: {{ restaurant.capacity || '—' }}</p>
+            <p><i class="fa fa-building detail-icon" aria-hidden="true"></i>Số sảnh: {{ getHalls(restaurant) }}</p>
+            <p><i class="fa fa-gift detail-icon" aria-hidden="true"></i>Khuyến mãi: {{ getHasPromo(restaurant) ? 'Có' : 'Không' }}</p>
             <div class="detail-actions">
               <button @click="goToBooking" class="btn btn-primary">Đặt tiệc</button>
               <button @click="goBack" class="btn btn-secondary">Quay lại</button>
@@ -39,7 +39,10 @@
       </div>
     </div>
 
-    <div v-if="loading" class="text-gray-600 mt-4">Đang tải chi tiết nhà hàng...</div>
+    <div v-if="loading" class="detail-loading">
+      <div class="detail-spinner" aria-hidden="true"></div>
+      <div class="detail-loading-text">Đang tải chi tiết nhà hàng...</div>
+    </div>
   </section>
 </template>
 
@@ -144,26 +147,120 @@ export default {
 </script>
 
 <style scoped>
+/* Luxurious, elegant styling for Restaurant detail page */
 .detail-container {
-  max-width: 1000px;
-  margin: 24px auto;
+  max-width: 1100px;
+  margin: 36px auto;
+  padding: 28px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(250,250,250,0.86));
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(16,24,40,0.04);
 }
+
 .detail-header {
   display: flex;
-  gap: 20px;
+  gap: 28px;
+  align-items: flex-start;
 }
+
 .detail-image {
-  width: 360px;
-  height: 240px;
+  width: 420px;
+  height: 280px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(17,24,39,0.18);
+  border: 1px solid rgba(255, 215, 0, 0.06); /* subtle gold edge */
+  transition: transform 240ms ease, box-shadow 240ms ease;
 }
+.detail-image:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 50px rgba(17,24,39,0.22);
+}
+
+.detail-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .detail-meta h1 {
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
+  font-size: 28px;
+  letter-spacing: 0.6px;
+  color: #0f172a; /* deep slate */
+  font-weight: 700;
 }
-.detail-actions { margin-top: 12px; }
-.btn { padding: 8px 14px; border-radius: 6px; cursor: pointer; }
-.btn-primary { background: #4f46e5; color: #fff; border: none; }
-.btn-secondary { background: #f3f4f6; color: #111827; border: none; margin-left: 8px; }
+
+.detail-meta p { margin: 2px 0; color: #374151; }
+.detail-meta p.muted { color: #6b7280; font-style: italic; }
+
+.price-label { color: #b08b3b; font-weight: 700; } /* warm gold */
+
+.detail-actions { margin-top: 18px; display:flex; gap:10px; align-items:center; }
+.btn { padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight:600; transition: all 180ms ease; border: 1px solid transparent; }
+.btn-primary {
+  background: linear-gradient(90deg,#2b2b7a,#5a50ff);
+  color: #fff;
+  border-color: rgba(255,215,0,0.08);
+  box-shadow: 0 8px 20px rgba(79,70,229,0.18);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(79,70,229,0.22); }
+.btn-secondary {
+  background: transparent;
+  color: #0f172a;
+  border: 1px solid rgba(15,23,42,0.06);
+  margin-left: 0;
+}
+.btn-secondary:hover { background: rgba(15,23,42,0.02); transform: translateY(-2px); }
+
 .muted { color: #6b7280; }
+
+.detail-body {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(15,23,42,0.04);
+}
+.detail-body h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: #111827;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.detail-body p {
+  color: #374151;
+  line-height: 1.75;
+}
+
+.detail-body ul { padding-left: 18px; margin-top: 8px; }
+.detail-body li { margin-bottom: 8px; color: #374151; }
+
+/* Responsive tweaks */
+@media (max-width: 880px) {
+  .detail-header { flex-direction: column; align-items: center; }
+  .detail-image { width: 100%; height: 220px; }
+  .detail-container { padding: 20px; }
+  .detail-meta h1 { text-align: center; }
+  .detail-actions { justify-content: center; }
+}
+
+/* Loading spinner for detail page */
+.detail-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 12px; }
+.detail-loading-text { margin-top:12px; color:#374151; font-weight:600; }
+.detail-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(0,0,0,0.08);
+  border-top-color: rgba(176,139,59,0.95); /* warm gold */
+  border-radius: 50%;
+  animation: detail-spin 0.85s linear infinite;
+}
+@keyframes detail-spin { to { transform: rotate(360deg); } }
+
+/* Icons near data labels */
+.detail-icon { color: #b08b3b; margin-right: 8px; font-size: 16px; width: 18px; text-align:center; }
+
 </style>

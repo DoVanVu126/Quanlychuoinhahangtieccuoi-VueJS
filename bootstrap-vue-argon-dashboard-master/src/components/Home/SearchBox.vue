@@ -9,6 +9,9 @@
         <input v-model="keyword" type="text" placeholder="Nhập tên nhà hàng" @input="debouncedSearch"
           @focus="showSuggestions = true" @blur="hideSuggestions" />
 
+          <!-- small inline spinner while searching -->
+          <div v-if="searchLoading" class="searchbox-spinner" aria-hidden="true"></div>
+
         <!-- Danh sách gợi ý -->
         <ul v-if="showSuggestions && results.length > 0">
           <li v-for="(item, index) in results" :key="index" class="wedding-suggestion-item"
@@ -70,6 +73,7 @@ export default {
       results: [],
       showSuggestions: false,
       selectedRestaurant: null,
+      searchLoading: false,
       errorMessage: "", // ✅ Biến hiển thị lỗi
       isDateValid: true,
     };
@@ -78,21 +82,21 @@ export default {
     async searchRestaurants() {
       if (!this.keyword.trim()) {
         this.results = [];
+        this.searchLoading = false;
         return;
       }
 
+      this.searchLoading = true;
       try {
         const res = await axios.get("http://localhost:8088/api/restaurants/search", {
           params: { keyword: this.keyword },
         });
-
-        // Nếu backend trả về image_url và các trường khác thì dùng trực tiếp.
-        // Nếu backend trả image thay vì image_url, bạn có thể map ở đây.
-        // Ví dụ: const data = res.data.map(r => ({ ...r, image_url: r.image || r.image_url }));
-        // Mình giữ nguyên dữ liệu trả về từ backend:
         this.results = res.data;
       } catch (error) {
         console.error("Lỗi tìm kiếm:", error);
+        this.results = [];
+      } finally {
+        this.searchLoading = false;
       }
     },
 
