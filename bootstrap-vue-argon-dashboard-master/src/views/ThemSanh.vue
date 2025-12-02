@@ -2,6 +2,7 @@
   <div class="container mt-5">
     <h2>Thêm Sảnh</h2>
     <b-form @submit.prevent="addHall">
+
       <!-- Tên sảnh -->
       <b-form-group label="Tên sảnh">
         <b-form-input v-model="form.name" required></b-form-input>
@@ -31,9 +32,9 @@
         <b-form-textarea v-model="form.description" rows="3" placeholder="Nhập mô tả sảnh (tùy chọn)"></b-form-textarea>
       </b-form-group>
 
-      <!-- Trạng thái -->
-      <b-form-group label="Trạng thái">
-        <b-form-select v-model="form.status" :options="statusOptions"></b-form-select>
+      <!-- Trạng thái (Mặc định và KHÔNG CHO ĐỔI) -->
+      <b-form-group label="Trạng thái (mặc định)">
+        <b-form-input value="Có sẵn" disabled></b-form-input>
       </b-form-group>
 
       <!-- Upload ảnh -->
@@ -55,6 +56,7 @@
         <b-button type="submit" variant="success">💾 Lưu</b-button>
         <b-button variant="secondary" @click="$router.push('/sanh')">⬅ Quay lại</b-button>
       </div>
+
     </b-form>
   </div>
 </template>
@@ -70,24 +72,22 @@ export default {
         restaurant_id: null,
         capacity: "",
         price: "",
-        description: "",   // <-- thêm mô tả
-        status: "available",
+        description: "",
+        status: "available",   // 🔥 luôn luôn là "available"
       },
+
       imageFile: null,
       previewImage: null,
       restaurants: [],
-      statusOptions: [
-        { value: "available", text: "Có sẵn" },
-        { value: "unavailable", text: "Đã đặt" },
-        { value: "maintenance", text: "Bảo trì" },
-      ],
     };
   },
+
   methods: {
     async fetchRestaurants() {
       try {
         const res = await api.get("/restaurants");
         const dataArray = Array.isArray(res.data) ? res.data : res.data.data || [];
+
         this.restaurants = dataArray.map(r => ({
           value: r.restaurant_id,
           text: r.name,
@@ -111,6 +111,7 @@ export default {
         for (const key in this.form) {
           formData.append(key, this.form[key]);
         }
+
         if (this.imageFile) {
           formData.append("image", this.imageFile);
         }
@@ -127,6 +128,7 @@ export default {
       }
     },
   },
+
   mounted() {
     this.fetchRestaurants();
   },
