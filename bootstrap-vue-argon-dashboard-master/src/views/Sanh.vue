@@ -10,17 +10,10 @@
       </div>
     </base-header>
 
-    <!-- LOADING OVERLAY -->
-    <div v-if="loading" class="loading-overlay">
-      <div class="spinner"></div>
-      <p class="loading-text">Đang tải dữ liệu...</p>
-    </div>
-
-    <!-- Nội dung chính -->
-    <div class="container-fluid mt--7" :class="{ 'blur-content': loading }">
+    <div class="container-fluid mt--7">
+      <!-- Thanh công cụ -->
       <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
         <div class="card-body">
-          <!-- Thanh công cụ -->
           <div class="d-flex justify-content-between align-items-center mb-3">
             <input
               v-model="searchQuery"
@@ -33,62 +26,67 @@
             </div>
           </div>
 
-          <!-- Bảng danh sách -->
-          <div class="table-responsive">
-            <table class="table table-hover align-items-center">
-              <thead class="thead-light">
-                <tr>
-                  <th>ID</th>
-                  <th>Tên sảnh</th>
-                  <th>Sức chứa</th>
-                  <th>Giá (VNĐ)</th>
-                  <th>Mô tả</th> <!-- cột mô tả -->
-                  <th>Ảnh</th>
-                  <th>Trạng thái</th>
-                  <th>Nhà hàng</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="hall in halls.data" :key="hall.hall_id">
-                  <td>{{ hall.hall_id }}</td>
-                  <td>{{ hall.name }}</td>
-                  <td>{{ hall.capacity || '—' }}</td>
-                  <td>{{ formatPrice(hall.price) }}</td>
-                  <td class="hall-description">{{ hall.description || '—' }}</td> <!-- mô tả -->
-                  <td>
-                    <img
-                      v-if="hall.fixed_image_url"
-                      :src="hall.fixed_image_url"
-                      alt="Ảnh sảnh"
-                      class="hall-img fade-in"
-                      @error="handleImageError($event, hall)"
-                    />
-                    <span v-else class="text-muted">Không có</span>
-                  </td>
-                  <td>
-                    <span
-                      class="badge"
-                      :class="{
-                        'bg-success': hall.status === 'available',
-                        'bg-warning text-dark': hall.status === 'maintenance',
-                        'bg-secondary': hall.status === 'unavailable'
-                      }"
-                    >
-                      {{ hall.status }}
-                    </span>
-                  </td>
-                  <td>{{ hall.restaurant && hall.restaurant.name ? hall.restaurant.name : 'Không có' }}</td>
-                  <td>
-                    <b-button size="sm" variant="outline-primary" @click="editHall(hall)">Sửa</b-button>
-                    <b-button size="sm" variant="outline-danger" @click="deleteHall(hall.hall_id)">Xóa</b-button>
-                  </td>
-                </tr>
-                <tr v-if="halls.data.length === 0">
-                  <td colspan="9" class="text-center text-muted">Không có sảnh nào phù hợp</td>
-                </tr>
-              </tbody>
-            </table>
+          <!-- Bảng + overlay loading -->
+          <div class="table-wrapper">
+            <div v-if="loading" class="table-loading-overlay">
+              <div class="spinner"></div>
+            </div>
+
+            <div class="table-responsive" :class="{ 'blur-content': loading }">
+              <table class="table table-hover align-items-center">
+                <thead class="thead-light">
+                  <tr>
+                    <th>ID</th>
+                    <th>Tên sảnh</th>
+                    <th>Sức chứa</th>
+                    <th>Giá (VNĐ)</th>
+                    <th style="min-width: 300px;">Mô tả</th>
+                    <th>Ảnh</th>
+                    <th>Trạng thái</th>
+                    <th>Nhà hàng</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="hall in halls.data" :key="hall.hall_id">
+                    <td>{{ hall.hall_id }}</td>
+                    <td>{{ hall.name }}</td>
+                    <td>{{ hall.capacity || '—' }}</td>
+                    <td>{{ formatPrice(hall.price) }}</td>
+                    <td class="hall-description">{{ hall.description || '—' }}</td>
+                    <td>
+                      <img
+                        :src="hall.fixed_image_url"
+                        alt="Ảnh sảnh"
+                        class="food-img fade-in"
+                        @error="handleImageError"
+                      />
+                    </td>
+                    <td>
+                      <span
+                        class="badge"
+                        :class="{
+                          'bg-success': hall.status === 'available',
+                          'bg-warning text-dark': hall.status === 'maintenance',
+                          'bg-secondary': hall.status === 'unavailable'
+                        }"
+                      >
+                        {{ hall.status }}
+                      </span>
+                    </td>
+                    <td>{{ hall.restaurant && hall.restaurant.name ? hall.restaurant.name : "Không có" }}</td>
+                    <td>
+                      <b-button size="sm" variant="outline-primary" @click="editHall(hall)">Sửa</b-button>
+                      <b-button size="sm" variant="outline-danger" @click="deleteHall(hall.hall_id)">Xóa</b-button>
+                    </td>
+                  </tr>
+
+                  <tr v-if="halls.data.length === 0">
+                    <td colspan="9" class="text-center text-muted">Không có sảnh nào phù hợp</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <!-- Phân trang -->
@@ -118,6 +116,7 @@
 
 <script>
 import api from "@/api";
+import defaultImage from "@/assets/no-image.png";
 
 export default {
   data() {
@@ -127,28 +126,24 @@ export default {
       lastPage: 1,
       searchQuery: "",
       loading: false,
+      baseURL: process.env.VUE_APP_BASE_URL || "http://localhost:8088",
     };
-  },
-  watch: {
-    searchQuery() {
-      this.getHalls(1);
-    }
   },
   methods: {
     async getHalls(page = 1) {
       this.loading = true;
       try {
         const res = await api.get("/halls", {
-          params: { page, search: this.searchQuery }
+          params: { page, search: this.searchQuery },
         });
         this.halls = {
           ...res.data,
           data: res.data.data.map(h => ({
             ...h,
-            fixed_image_url: h.image_url && h.image_url.startsWith("http")
-              ? h.image_url
-              : "http://127.0.0.1:8088/" + (h.image_url ? h.image_url.replace(/^\/+/, "") : "")
-          }))
+            fixed_image_url: h.image_url
+              ? this.fixHallImageUrl(h.image_url)
+              : defaultImage,
+          })),
         };
         this.currentPage = res.data.current_page;
         this.lastPage = res.data.last_page;
@@ -158,37 +153,52 @@ export default {
         this.loading = false;
       }
     },
+
+    fixHallImageUrl(url) {
+      if (!url) return defaultImage;
+      if (url.startsWith("http")) return url;
+      return `${this.baseURL}/${url.replace(/^\/+/, "")}`;
+    },
+
     formatPrice(value) {
       return value ? new Intl.NumberFormat("vi-VN").format(value) : "—";
     },
-    handleImageError(e, hall) {
-      e.target.src = "https://via.placeholder.com/60x60?text=No+Image";
-      e.target.style.border = "2px solid red";
+
+    handleImageError(e) {
+      e.target.src = defaultImage;
+      e.target.style.border = "1px solid #ddd";
     },
+
     editHall(hall) {
       this.$router.push({ name: "SuaSanh", params: { id: hall.hall_id } });
     },
+
     async deleteHall(id) {
-      if (confirm("Bạn có chắc muốn xóa sảnh này không?")) {
-        this.loading = true;
-        try {
-          await api.delete("/halls/" + id);
-          this.getHalls(this.currentPage);
-        } catch (err) {
-          console.error("❌ Lỗi xóa sảnh:", err);
-        } finally {
-          this.loading = false;
-        }
+      if (!confirm("Bạn có chắc muốn xóa sảnh này không?")) return;
+      this.loading = true;
+      try {
+        await api.delete(`/halls/${id}`);
+        this.getHalls(this.currentPage);
+      } catch (err) {
+        console.error("❌ Lỗi xóa sảnh:", err);
+      } finally {
+        this.loading = false;
       }
     },
+
     refreshList() {
       this.searchQuery = "";
       this.getHalls(1);
-    }
+    },
+  },
+  watch: {
+    searchQuery() {
+      this.getHalls(1);
+    },
   },
   mounted() {
     this.getHalls();
-  }
+  },
 };
 </script>
 
@@ -206,7 +216,9 @@ export default {
 .pagination .page-link {
   cursor: pointer;
 }
-.hall-img {
+
+/* ----- ẢNH SẢNH giống món ăn ----- */
+.food-img {
   width: 60px;
   height: 60px;
   object-fit: cover;
@@ -215,54 +227,78 @@ export default {
   transition: opacity 0.3s ease-in-out;
   opacity: 0;
 }
-.hall-img.fade-in {
+.food-img.fade-in {
   opacity: 1;
 }
-/* wrap mô tả dài */
+
+/* ----- Mô tả dài ----- */
 .hall-description {
-  max-width: 250px;
+  max-width: 300px;
   word-wrap: break-word;
   white-space: normal;
 }
 
-/* ----- LOADING OVERLAY ----- */
-.loading-overlay {
-  position: fixed;
+/* ----- LOADING CHỈ TRONG BẢNG ----- */
+.table-wrapper {
+  position: relative;
+}
+.table-loading-overlay {
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.45);
-  z-index: 9999;
+  background: rgba(255,255,255,0.7);
+  z-index: 10;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
 }
-.spinner {
-  width: 60px;
-  height: 60px;
-  border: 6px solid #fff;
+.table-loading-overlay .spinner {
+  width: 45px;
+  height: 45px;
+  border: 5px solid #007bff;
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-text {
-  color: white;
-  margin-top: 15px;
-  font-size: 18px;
-}
 .blur-content {
-  filter: blur(2px);
+  filter: blur(1px);
   pointer-events: none;
 }
 
 /* Badge */
+.badge {
+  display: inline-block;
+  font-size: 0.8rem;
+}
+
+/* Badge trạng thái đồng đều */
 .badge {
   position: static !important;
   display: inline-block;
   vertical-align: middle;
   font-size: 0.8rem;
 }
+
+/* Màu sắc */
+.bg-success {
+  background-color: #28a745 !important;
+  color: white;
+}
+.bg-warning {
+  background-color: #ffc107 !important;
+  color: #212529 !important;
+}
+.bg-secondary {
+  background-color: #6c757d !important;
+  color: white;
+}
+
+/* Căn thẳng hàng với text cell */
+.table td .badge {
+  vertical-align: middle;
+}
+
 </style>

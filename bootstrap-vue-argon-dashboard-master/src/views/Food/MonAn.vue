@@ -33,6 +33,7 @@
                 + Thêm Món ăn
               </router-link>
               <b-button variant="success" @click="refreshList">↻ Làm mới</b-button>
+              <b-button variant="danger" @click="exportPDF">⬇ Xuất PDF</b-button> <!-- nút PDF -->
             </div>
           </div>
 
@@ -53,23 +54,21 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="food in filteredFoods" :key="food.food_id">
+                <tr v-for="food in foods.data" :key="food.food_id">
                   <td>{{ food.food_id }}</td>
                   <td>{{ food.name }}</td>
                   <td>{{ food.food_type && food.food_type.name ? food.food_type.name : "Không có" }}</td>
                   <td>{{ food.restaurant && food.restaurant.name ? food.restaurant.name : "Không có" }}</td>
                   <td>{{ formatPrice(food.price) }}</td>
-                  <td>{{ food.unit ? food.unit : "Chưa có" }}</td>
-                  <td>{{ food.description ? food.description : "" }}</td>
+                  <td>{{ food.unit || "Chưa có" }}</td>
+                  <td>{{ food.description || "" }}</td>
                   <td>
                     <img
-                      v-if="food.image_url"
-                      :src="fixFoodImageUrl(food.image_url)"
+                      :src="food.fixed_image_url"
                       alt="Hình món ăn"
                       class="food-img fade-in"
-                      @error="handleFoodImageError($event, food)"
+                      @error="handleFoodImageError"
                     />
-                    <span v-else>Không có</span>
                   </td>
                   <td>
                     <b-button size="sm" variant="outline-primary" @click="editFood(food)">Sửa</b-button>
@@ -77,7 +76,7 @@
                   </td>
                 </tr>
 
-                <tr v-if="filteredFoods.length === 0">
+                <tr v-if="foods.data.length === 0">
                   <td colspan="9" class="text-center text-muted">Không có món ăn nào phù hợp</td>
                 </tr>
               </tbody>
@@ -113,30 +112,18 @@
 
 <script>
 import api from "@/api";
+import defaultImage from "@/assets/no-image.png";
 
 export default {
   data() {
     return {
-      foods: [],
+      foods: { data: [] },
       currentPage: 1,
       lastPage: 1,
       searchQuery: "",
       loading: false,
       baseURL: process.env.VUE_APP_BASE_URL || "http://localhost:8088",
     };
-  },
-  computed: {
-    filteredFoods() {
-      if (!this.foods || !this.foods.data) return [];
-      const query = this.searchQuery.trim().toLowerCase();
-      return this.foods.data.filter(f => {
-        const name = f.name ? f.name.toLowerCase() : "";
-        const description = f.description ? f.description.toLowerCase() : "";
-        const restaurantName =
-          f.restaurant && f.restaurant.name ? f.restaurant.name.toLowerCase() : "";
-        return name.includes(query) || description.includes(query) || restaurantName.includes(query);
-      });
-    },
   },
   methods: {
     async getFoods(page = 1) {
@@ -147,7 +134,7 @@ export default {
           ...res.data,
           data: res.data.data.map(f => ({
             ...f,
-            fixed_image_url: this.fixFoodImageUrl(f.image_url),
+            fixed_image_url: f.image_url ? this.fixFoodImageUrl(f.image_url) : defaultImage,
           })),
         };
         this.currentPage = res.data.current_page;
@@ -168,16 +155,15 @@ export default {
     },
 
     async deleteFood(id) {
-      if (confirm("Bạn có chắc muốn xóa món ăn này không?")) {
-        this.loading = true;
-        try {
-          await api.delete(`/foods/${id}`);
-          this.getFoods(this.currentPage);
-        } catch (err) {
-          console.error("Lỗi xóa món ăn:", err);
-        } finally {
-          this.loading = false;
-        }
+      if (!confirm("Bạn có chắc muốn xóa món ăn này không?")) return;
+      this.loading = true;
+      try {
+        await api.delete(`/foods/${id}`);
+        this.getFoods(this.currentPage);
+      } catch (err) {
+        console.error("Lỗi xóa món ăn:", err);
+      } finally {
+        this.loading = false;
       }
     },
 
@@ -187,18 +173,21 @@ export default {
     },
 
     fixFoodImageUrl(url) {
-      if (!url) return null;
+      if (!url) return defaultImage;
       if (url.startsWith("http")) return url;
       return `${this.baseURL}/${url.replace(/^\/+/, "")}`;
     },
 
-    handleFoodImageError(e, food) {
-      console.warn("Ảnh lỗi:", food.image_url);
-      e.target.src = "https://via.placeholder.com/60x60?text=No+Image";
-      e.target.style.border = "2px solid red";
+    handleFoodImageError(e) {
+      e.target.src = defaultImage;
+      e.target.style.border = "1px solid #ddd";
+    },
+
+    exportPDF() {
+      window.open(`${this.baseURL}/api/foods/export-pdf`, "_blank");
     },
   },
-
+ 
   mounted() {
     this.getFoods();
   },
