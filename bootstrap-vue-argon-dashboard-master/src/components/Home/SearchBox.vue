@@ -9,13 +9,15 @@
         <input v-model="keyword" type="text" placeholder="Nhập tên nhà hàng" @input="debouncedSearch"
           @focus="showSuggestions = true" @blur="hideSuggestions" />
 
+          <!-- small inline spinner while searching -->
+          <div v-if="searchLoading" class="searchbox-spinner" aria-hidden="true"></div>
+
         <!-- Danh sách gợi ý -->
-        <ul v-if="showSuggestions && results.length > 0"
-          class="suggestion-list absolute left-0 top-full w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50">
+        <ul v-if="showSuggestions && results.length > 0">
           <li v-for="(item, index) in results" :key="index" class="wedding-suggestion-item"
             @mousedown.prevent="selectSuggestion(item)">
-            <!-- SỬA: dùng image_url theo cấu trúc DB -->
-            <img :src="item.image_url || '/images/default-restaurant.jpg'" alt="Restaurant" />
+            <!-- use normalized image URL -->
+            <img :src="getImageUrl(item.image_url)" alt="Restaurant" @error="onImgError($event)" />
             <span class="font-medium text-gray-800">{{ item.name }}</span>
           </li>
         </ul>
@@ -23,9 +25,9 @@
 
       <!-- Nhà hàng được chọn -->
       <div v-if="selectedRestaurant" class="wedding-selected-restaurant">
-        <!-- SỬA: dùng image_url theo cấu trúc DB -->
-        <img :src="selectedRestaurant.image_url || '/images/default-restaurant.jpg'" alt="Restaurant"
-          class="wedding-selected-img" />
+        <!-- selected restaurant image (normalized) -->
+        <img :src="getImageUrl(selectedRestaurant.image_url)" alt="Restaurant"
+          class="wedding-selected-img" @error="onImgError($event)" />
         <div class="wedding-selected-info">
           <h3 class="wedding-selected-name font-semibold text-lg">{{ selectedRestaurant.name }}</h3>
           <!-- Nếu cần hiển thị địa chỉ: dùng ward + city (nếu backend không trả address) -->
@@ -37,11 +39,11 @@
       <div class="wedding-date-row">
         <div class="wedding-date-group">
           <label>Ngày đặt</label>
-          <input type="date" v-model="startDate" />
+          <input type="date" v-model="startDate" :min="today" @change="onStartDateChange" />
         </div>
         <div class="wedding-date-group">
           <label>Ngày trả</label>
-          <input type="date" v-model="endDate" />
+          <input type="date" v-model="endDate" :min="today" @change="onEndDateChange" />
         </div>
       </div>
 
@@ -50,7 +52,7 @@
         {{ errorMessage }}
       </p>
 
-      <button class="wedding-search-btn" @click="goToBookingPage">TÌM</button>
+      <button class="wedding-search-btn" @click="goToBookingPage" :disabled="!isDateValid">TÌM</button>
     </div>
   </div>
 </template>
@@ -61,35 +63,40 @@ import _ from "lodash";
 
 export default {
   data() {
+    // default dates to today in YYYY-MM-DD format
+    const today = new Date().toISOString().substr(0, 10);
     return {
       keyword: "",
-      startDate: "",
-      endDate: "",
+      startDate: today,
+      endDate: today,
+      today,
       results: [],
       showSuggestions: false,
       selectedRestaurant: null,
+      searchLoading: false,
       errorMessage: "", // ✅ Biến hiển thị lỗi
+      isDateValid: true,
     };
   },
   methods: {
     async searchRestaurants() {
       if (!this.keyword.trim()) {
         this.results = [];
+        this.searchLoading = false;
         return;
       }
 
+      this.searchLoading = true;
       try {
         const res = await axios.get("http://localhost:8088/api/restaurants/search", {
           params: { keyword: this.keyword },
         });
-
-        // Nếu backend trả về image_url và các trường khác thì dùng trực tiếp.
-        // Nếu backend trả image thay vì image_url, bạn có thể map ở đây.
-        // Ví dụ: const data = res.data.map(r => ({ ...r, image_url: r.image || r.image_url }));
-        // Mình giữ nguyên dữ liệu trả về từ backend:
         this.results = res.data;
       } catch (error) {
         console.error("Lỗi tìm kiếm:", error);
+        this.results = [];
+      } finally {
+        this.searchLoading = false;
       }
     },
 
@@ -135,6 +142,9 @@ export default {
         return;
       }
 
+      // validate date logic (start <= end and not before today)
+      if (!this.validateDates()) return;
+
       this.$router.push({
         name: "DatTiec",
         query: {
@@ -147,12 +157,82 @@ export default {
 
     },
 
+    /** Normalize image URL values from backend and provide placeholder when needed */
+    getImageUrl(url) {
+      const DEFAULT = '/images/default.png';
+      try {
+        if (!url) return DEFAULT;
+        const str = String(url).trim();
+
+        // absolute URL or data URI -> return as-is
+        if (/^(data:|https?:)\/\//i.test(str)) return str;
+        if (/^\/\//.test(str)) return str; // protocol-relative
+
+        // placeholder shorthand like "009900?text=..."
+        const m = str.match(/^([0-9a-fA-F]{3,6})\?text=(.*)$/);
+        if (m) return `https://via.placeholder.com/300x200/${m[1]}/ffffff?text=${m[2]}`;
+
+        // clean leading public/ and slashes
+        let clean = str.replace(/^public\//i, '').replace(/^\/+/, '');
+        if (!clean.includes('/')) clean = 'uploads/restaurants/' + clean;
+
+        const backend = (process.env.VUE_APP_BACKEND_URL || 'http://127.0.0.1:8088').replace(/\/+$/, '');
+        return backend + '/' + clean.replace(/^\/+/, '');
+      } catch (e) {
+        console.error('getImageUrl error', e, url);
+        return '/images/default.png';
+      }
+    },
+
+    onImgError(e) {
+      e.target.src = '/images/default.png';
+    },
+
     // ✅ Hàm hiển thị lỗi trong 3 giây
     showError(message) {
       this.errorMessage = message;
       setTimeout(() => {
         this.errorMessage = "";
-      }, 3000);
+      }, 5000);
+    },
+    validateDates() {
+      // reset
+      this.isDateValid = true;
+      if (!this.startDate || !this.endDate) return true;
+      if (this.startDate > this.endDate) {
+        this.isDateValid = false;
+        this.showError('Ngày đặt không được sau ngày trả');
+        return false;
+      }
+      if (this.startDate < this.today || this.endDate < this.today) {
+        this.isDateValid = false;
+        this.showError('Ngày đặt/Ngày trả không được trước ngày hiện tại');
+        return false;
+      }
+      // limit: endDate must not be more than 14 days after startDate
+      try {
+        const s = new Date(this.startDate);
+        const e = new Date(this.endDate);
+        const diffMs = e.getTime() - s.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays > 14) {
+          this.isDateValid = false;
+          this.showError('Ngày trả không được quá 2 tuần so với ngày đặt');
+          return false;
+        }
+      } catch (err) {
+        // ignore parse errors and allow validation to continue
+      }
+      this.isDateValid = true;
+      return true;
+    },
+
+    onStartDateChange() {
+      this.validateDates();
+    },
+
+    onEndDateChange() {
+      this.validateDates();
     },
   },
 };

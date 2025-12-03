@@ -210,12 +210,29 @@ export default {
       const drinks = byKeyword(foods, ['nước', 'drink', 'nước ép', 'nước trái cây', 'cola', 'soda', 'beer', 'rượu', 'tea', 'trà', 'juice']);
       // mains: anything not matched as appetizer/hotpot/dessert/drink
       const usedIds = new Set();
-      const filterUnique = (arr) => arr.filter(a => { const id = a.food_id || a.id || a.menu_id || JSON.stringify(a); if (usedIds.has(id)) return false; usedIds.add(id); return true; });
+      // normalize ids as strings for consistent uniqueness checks
+      const filterUnique = (arr) => arr.filter(a => {
+        const id = String(a.food_id || a.id || a.menu_id || JSON.stringify(a));
+        if (usedIds.has(id)) return false;
+        usedIds.add(id);
+        return true;
+      });
 
       const pickRandomFrom = (arr, count) => {
         if (!arr || arr.length === 0) return [];
         const pool = arr.slice().sort(() => 0.5 - Math.random());
-        return filterUnique(pool).slice(0, count).map(f => ({ ...f }));
+        const uniques = filterUnique(pool);
+        // If not enough unique items, allow filling remaining slots with random picks (may duplicate)
+        if (uniques.length >= count) {
+          return uniques.slice(0, count).map(f => ({ ...f }));
+        }
+        const result = uniques.map(f => ({ ...f }));
+        while (result.length < count) {
+          // pick random from original arr (allow duplicates if necessary)
+          const pick = arr[Math.floor(Math.random() * arr.length)];
+          result.push({ ...pick });
+        }
+        return result;
       };
 
       const chosenFoods = [];
@@ -231,9 +248,9 @@ export default {
       const remainingForMains = foods.filter(f => !usedIds.has(f.food_id || f.id || f.menu_id || JSON.stringify(f)));
       chosenFoods.push(...pickRandomFrom(remainingForMains.length ? remainingForMains : foods, 2));
 
-      // choose between 0..3 services
+      // choose between 1..3 services if any services available
       const maxServices = Math.min(3, services.length);
-      const sCount = maxServices > 0 ? Math.floor(Math.random() * (maxServices + 1)) : 0;
+      const sCount = maxServices > 0 ? Math.max(1, Math.floor(Math.random() * (maxServices + 1))) : 0;
       const chosenServices = (services.slice().sort(() => 0.5 - Math.random())).slice(0, sCount).map(s => ({ ...s }));
 
       // determine number of tables: try to use hall capacity if available, else random 5..80

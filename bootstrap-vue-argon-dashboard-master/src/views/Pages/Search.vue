@@ -35,13 +35,15 @@
           <button class="searchpage-clear-btn" @click="clearFilters">✕</button>
         </div>
       </div>
-      <div v-if="loading" class="text-gray-600 mt-4">Đang tải...</div>
+      <div v-if="loading" class="loading-overlay" aria-hidden="false">
+        <div class="loading-spinner" role="status" aria-label="Đang tải"></div>
+      </div>
       <div v-else-if="filteredResults.length === 0" class="text-gray-600 mt-4">
         Không tìm thấy kết quả nào.
       </div>
 
       <div v-else class="searchpage-grid">
-        <div v-for="r in filteredResults" :key="r.restaurant_id" class="searchpage-card">
+        <div v-for="r in paginatedResults" :key="r.restaurant_id" class="searchpage-card">
           <img :src="getImageUrl(r.image_url)" alt="Restaurant" @error="onImgError($event)" />
           <div class="searchpage-card-content">
             <h3>{{ r.name }}</h3>
@@ -58,6 +60,16 @@
             </button>
 
           </div>
+        </div>
+      </div>
+
+      <!-- Pagination controls -->
+      <div v-if="totalPages > 1" class="searchpage-pagination">
+        <div class="pagination-info">Hiển thị {{ (currentPage-1)*perPage + 1 }} - {{ Math.min(currentPage*perPage, filteredResults.length) }} trên {{ filteredResults.length }} nhà hàng</div>
+        <div class="pagination-controls">
+          <button @click="currentPage = Math.max(1, currentPage-1)" :disabled="currentPage===1">‹ Trước</button>
+          <button v-for="p in totalPages" :key="p" @click="currentPage = p" :class="{ active: p === currentPage }">{{ p }}</button>
+          <button @click="currentPage = Math.min(totalPages, currentPage+1)" :disabled="currentPage===totalPages">Tiếp ›</button>
         </div>
       </div>
     </div>
@@ -162,6 +174,10 @@ export default {
       results: [],
       loading: false,
 
+      // pagination
+      currentPage: 1,
+      perPage: 16,
+
       // Bộ lọc
       selectedPrice: "",
       selectedStar: "",
@@ -194,6 +210,17 @@ export default {
       });
     },
 
+      // total pages based on filtered results
+      totalPages() {
+        return Math.max(1, Math.ceil(this.filteredResults.length / this.perPage));
+      },
+
+      // results for current page
+      paginatedResults() {
+        const start = (this.currentPage - 1) * this.perPage;
+        return this.filteredResults.slice(start, start + this.perPage);
+      },
+
     /** Kiểm tra đủ 2 nhà hàng mới bật nút "Bắt đầu" */
     canCompare() {
       return (
@@ -211,24 +238,38 @@ export default {
   watch: {
     "$route.query.keyword"(newVal) {
       this.keyword = newVal;
+      this.currentPage = 1;
       this.fetchResults();
+      this.currentPage = 1;
     },
+    selectedPrice() { this.onFilterChange(); },
+    selectedStar() { this.onFilterChange(); },
+    selectedCity() { this.onFilterChange(); },
+    selectedWard() { this.onFilterChange(); },
+
+    // ensure current page within bounds when filteredResults change
+    filteredResults() {
+      if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
+    }
   },
   mounted() {
     this.fetchResults();
     this.fetchCities(); // ✅ Lấy danh sách thành phố khi load trang
   },
   methods: {
-    async fetchResults() {
-      if (!this.keyword) return;
+    async fetchResults(filters = {}) {
+      // Fetch results from backend. `filters` may contain keys like { city, ward, price, star }
+      // If a keyword is present it will be sent as well unless explicitly cleared.
       this.loading = true;
       try {
-        const response = await axios.get("http://localhost:8088/api/restaurants/search", {
-          params: { keyword: this.keyword },
-        });
-        this.results = response.data;
+        const params = Object.assign({}, filters || {});
+        if (this.keyword) params.keyword = this.keyword;
+
+        const response = await axios.get("http://localhost:8088/api/restaurants/search", { params });
+        this.results = response.data || [];
       } catch (error) {
         console.error("Lỗi khi tải kết quả:", error);
+        this.results = [];
       } finally {
         this.loading = false;
       }
@@ -248,6 +289,8 @@ export default {
     async fetchWardsByCity() {
       if (!this.selectedCity) {
         this.wards = [];
+        // clear any previously selected ward when city is cleared
+        this.selectedWard = "";
         return;
       }
       try {
@@ -255,6 +298,11 @@ export default {
           params: { city: this.selectedCity },
         });
         this.wards = res.data.wards;
+        // If the previously selected ward is not in the newly loaded wards,
+        // clear it to avoid stale selection (e.g., switching from Q.3 to another city).
+        if (this.selectedWard && !this.wards.includes(this.selectedWard)) {
+          this.selectedWard = "";
+        }
       } catch (error) {
         console.error("Lỗi khi tải danh sách phường/xã:", error);
       }
@@ -266,6 +314,39 @@ export default {
       this.selectedWard = "";
       this.selectedCity = "";
       this.wards = [];
+      // When filters are cleared we should also remove any preserved keyword
+      // from the route so the page shows unfiltered results.
+      if (this.$route.query && this.$route.query.keyword) {
+        const q = Object.assign({}, this.$route.query);
+        delete q.keyword;
+        this.$router.replace({ path: this.$route.path, query: q }).catch(() => {});
+      }
+      this.fetchResults();
+    },
+
+    // Called whenever a filter value changes. Remove keyword from route
+    // (so a prior search term doesn't interfere) then re-fetch results with
+    // the currently-selected filter values so the backend returns restaurants
+    // matching the selected city/ward/price/star.
+    onFilterChange() {
+      // build filters to send to backend
+      const filters = {};
+      if (this.selectedCity) filters.city = this.selectedCity;
+      if (this.selectedWard) filters.ward = this.selectedWard;
+      if (this.selectedPrice) filters.price = this.selectedPrice;
+      if (this.selectedStar) filters.star = this.selectedStar;
+
+      // remove keyword from URL and client state
+      if (this.$route.query && this.$route.query.keyword) {
+        const q = Object.assign({}, this.$route.query);
+        delete q.keyword;
+        this.$router.replace({ path: this.$route.path, query: q }).catch(() => {});
+        this.keyword = "";
+      }
+
+      // reset to first page and fetch results using filter params
+      this.currentPage = 1;
+      this.fetchResults(filters);
     },
 
     formatPrice(value) {
@@ -370,36 +451,51 @@ export default {
     clearSlot(index) {
       if (index === 0 || index === 1) this.$set(this.compareSelection, index, null);
     },
-    /** Normalize image URL values from backend and provide placeholder when needed */
+    /**
+     * Normalize image URL values from backend and provide placeholder when needed.
+     * Accepts:
+     * - Absolute URLs (http/https) -> returned as-is
+     * - Protocol-relative URLs (//...)
+     * - Paths like '/uploads/...' or 'uploads/...' or 'public/uploads/...'
+     * - Bare filenames like 'hinh1.jpg' -> assumed under 'uploads/restaurants/'
+     * Uses `VUE_APP_BACKEND_URL` when available, falling back to http://127.0.0.1:8088
+     */
     getImageUrl(url) {
-      const DEFAULT = "/img/default-restaurant.jpg";
-      if (!url) return DEFAULT;
-      // already full URL
-      if (typeof url === "string" && url.startsWith("http")) return url;
+      const DEFAULT = "/images/default.png";
+      try {
+        if (!url) return DEFAULT;
+        const str = String(url).trim();
 
-      // relative path from backend (e.g. "uploads/...")
-      if (typeof url === "string" && url.startsWith("/")) {
-        return `http://127.0.0.1:8088${url}`;
+        // already an absolute URL (http/https) or data: URI
+        if (/^(data:|https?:)\/\//i.test(str)) return str;
+        // protocol-relative
+        if (/^\/\//.test(str)) return str;
+
+        // handle placeholder shorthand like "009900?text=..."
+        const m = str.match(/^([0-9a-fA-F]{3,6})\?text=(.*)$/);
+        if (m) {
+          const color = m[1];
+          const text = m[2];
+          return `https://via.placeholder.com/300x200/${color}/ffffff?text=${text}`;
+        }
+
+        // clean leading 'public/' and leading slashes
+        let clean = str.replace(/^public\//i, '').replace(/^\/+/, '');
+
+        // if bare filename, assume uploads/restaurants
+        if (!clean.includes('/')) clean = 'uploads/restaurants/' + clean;
+
+        // backend base URL (set VUE_APP_BACKEND_URL in your .env if frontend runs separately)
+        const backend = (process.env.VUE_APP_BACKEND_URL || 'http://127.0.0.1:8088').replace(/\/+$/, '');
+        return backend + '/' + clean.replace(/^\/+/, '');
+      } catch (e) {
+        console.error('getImageUrl error', e, url);
+        return "/images/default.png";
       }
-
-      // handle cases like "009900?text=restaurant+Nh%C3%A0+h%C3%A0ng+illo"
-      // expect color?text=... where color is hex without leading #
-      const m = String(url).match(/^([0-9a-fA-F]{3,6})\?text=(.*)$/);
-      if (m) {
-        const color = m[1];
-        const text = m[2];
-        // via.placeholder.com requires size; use 300x200 and white text color
-        return `https://via.placeholder.com/300x200/${color}/ffffff?text=${text}`;
-      }
-
-      // fallback: if looks like a path without leading slash, assume backend host
-      if (typeof url === "string") return `http://127.0.0.1:8088/${url.replace(/^\/+/, "")}`;
-
-      return DEFAULT;
     },
 
     onImgError(e) {
-      e.target.src = '/img/default-restaurant.jpg';
+      e.target.src = '/images/default.png';
     },
   },
 };
@@ -407,3 +503,58 @@ export default {
 
 
 <style src="../../assets/css/search.css"></style>
+
+<style scoped>
+/* Simple spinner */
+/* Full-screen loading overlay */
+.loading-overlay {
+  position: fixed;
+  inset: 0; /* top:0; right:0; bottom:0; left:0; */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100; /* above most UI elements */
+}
+.loading-spinner {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 6px solid rgba(0,0,0,0.08);
+  border-top-color: #2563eb; /* blue-600 */
+  animation: spin 0.9s linear infinite;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.searchpage-pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 0 6px;
+  text-align: center;
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.pagination-controls button {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  padding: 6px 10px;
+  margin: 0 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.pagination-controls button.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+.pagination-controls button:disabled { opacity: 0.5; cursor: default; }
+.pagination-info { color: #374151; font-size: 14px; }
+
+</style>
