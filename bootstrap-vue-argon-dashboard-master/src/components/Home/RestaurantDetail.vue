@@ -6,142 +6,349 @@
       <div v-if="error" class="text-red-600">{{ error }}</div>
 
       <div v-else>
+        <!-- ===================== THÔNG TIN NHÀ HÀNG ====================== -->
         <div class="detail-header">
-          <img :src="getImageUrl(restaurant.image_url)" alt="restaurant" @error="onImgError($event)" class="detail-image" />
+          <img
+            :src="getImageUrl(restaurant.image_url)"
+            alt="restaurant"
+            @error="onImgError($event)"
+            class="detail-image"
+          />
+
           <div class="detail-meta">
             <h1>{{ restaurant.name }}</h1>
-            <p class="muted"><i class="fa fa-map-marker detail-icon" aria-hidden="true"></i>{{ restaurant.ward }}, {{ restaurant.city }}</p>
-            <p><i class="fa fa-tag detail-icon" aria-hidden="true"></i><span class="price-label">Giá trung bình / bàn:</span> từ ~ {{ formatPrice(restaurant.price_table) }}đ</p>
-            <p><i class="fa fa-users detail-icon" aria-hidden="true"></i>Sức chứa: {{ restaurant.capacity || '—' }}</p>
-            <p><i class="fa fa-building detail-icon" aria-hidden="true"></i>Số sảnh: {{ getHalls(restaurant) }}</p>
-            <p><i class="fa fa-gift detail-icon" aria-hidden="true"></i>Khuyến mãi: {{ getHasPromo(restaurant) ? 'Có' : 'Không' }}</p>
+
+            <p class="muted">
+              <i class="fa fa-map-marker detail-icon"></i>
+              {{ restaurant.ward }}, {{ restaurant.city }}
+            </p>
+
+            <p>
+              <i class="fa fa-tag detail-icon"></i>
+              <span class="price-label">Giá trung bình / bàn:</span>
+              từ ~ {{ formatPrice(restaurant.price_table) }}đ
+            </p>
+
+            <p>
+              <i class="fa fa-users detail-icon"></i>
+              Sức chứa: {{ restaurant.capacity || "—" }}
+            </p>
+
+            <p>
+              <i class="fa fa-building detail-icon"></i>
+              Số sảnh: {{ getHalls(restaurant) }}
+            </p>
+
+            <p>
+              <i class="fa fa-gift detail-icon"></i>
+              Khuyến mãi: {{ getHasPromo(restaurant) ? "Có" : "Không" }}
+            </p>
+
             <div class="detail-actions">
-              <button @click="goToBooking" class="btn btn-primary">Đặt tiệc</button>
+              <button @click="goToBooking" class="btn btn-primary">
+                Đặt tiệc
+              </button>
               <button @click="goBack" class="btn btn-secondary">Quay lại</button>
             </div>
           </div>
         </div>
 
+        <!-- ===================== MÔ TẢ ====================== -->
         <div class="detail-body">
           <h3>Mô tả</h3>
           <p v-html="restaurant.description || 'Chưa có mô tả.'"></p>
 
-          <!-- Optionally show halls list if present -->
           <div v-if="restaurant.halls && restaurant.halls.length">
             <h3>Danh sách sảnh</h3>
             <ul>
               <li v-for="(h, idx) in restaurant.halls" :key="idx">
-                <strong>{{ h.name || ('Sảnh ' + (idx+1)) }}</strong> — Sức chứa: {{ h.capacity || '—' }}
+                <strong>{{ h.name || 'Sảnh ' + (idx + 1) }}</strong>
+                — Sức chứa: {{ h.capacity || "—" }}
               </li>
             </ul>
+          </div>
+        </div>
+
+        <!-- ===================== ĐÁNH GIÁ ========================== -->
+        <div class="reviews-section mt-5">
+          <h2 class="review-title">
+            <i class="fas fa-star-half-alt"></i> Đánh giá & Nhận xét
+          </h2>
+
+          <!-- FORM REVIEW -->
+          <div class="review-form-card" v-if="userId">
+            <h4 class="review-form-title">
+              {{ editing ? "Chỉnh sửa đánh giá" : "Gửi đánh giá của bạn" }}
+            </h4>
+
+            <div class="user-info">
+              <img
+                v-if="user && user.image_url"
+                :src="avatarUrl(user.image_url)"
+                class="user-avatar"
+                @error="handleAvatarError"
+              />
+              <span>{{ user && user.username ? user.username : 'Bạn' }}</span>
+            </div>
+
+            <div
+              class="stars-select"
+              :class="{ disabled: userHasReview && !editing }"
+            >
+              <span
+                v-for="s in 5"
+                :key="s"
+                class="star"
+                :class="{ active: reviewForm.star_rating >= s }"
+                @click="!userHasReview || editing ? (reviewForm.star_rating = s) : null"
+              >★</span>
+            </div>
+
+            <textarea
+              v-model="reviewForm.comment"
+              class="review-input"
+              :disabled="userHasReview && !editing"
+              placeholder="Chia sẻ trải nghiệm của bạn..."
+              rows="3"
+            ></textarea>
+
+            <div class="review-btns">
+              <button
+  @click="submitReview"
+  class="btn-submit"
+  :disabled="userHasReview && !editing || submittingReview"
+>
+  <span v-if="submittingReview">Đang gửi...</span>
+  <span v-else>{{ editing ? "Cập nhật" : "Gửi đánh giá" }}</span>
+</button>
+
+              <button v-if="editing" @click="cancelEdit" class="btn-cancel">
+                Hủy
+              </button>
+            </div>
+          </div>
+
+          <!-- LIST REVIEW -->
+          <div class="review-list mt-4">
+             <div v-if="reviewsLoading" class="reviews-loading">
+    <div class="reviews-spinner"></div>
+    <div class="reviews-loading-text">Đang tải đánh giá...</div>
+  </div>
+            <p v-if="reviews.length === 0" class="no-review">
+              Chưa có đánh giá nào.
+            </p>
+
+            <div class="review-card" v-for="r in reviews" :key="r.review_id">
+              <img
+                :src="r.avatar ? avatarUrl(r.avatar) : defaultAvatar"
+                class="review-avatar"
+                @error="handleAvatarError"
+              />
+
+              <div class="review-info">
+                <div class="review-head">
+                  <div class="left">
+                    <strong>{{ r.user_name }}</strong>
+                    <div class="review-stars">
+                      <span v-for="n in r.star_rating" :key="n">⭐</span>
+                    </div>
+                  </div>
+
+                  <div v-if="r.user_id === userId" class="menu-wrapper">
+                    <button class="menu-btn" @click="toggleMenu(r.review_id)">⋮</button>
+
+                    <div
+                      v-if="openMenuId === r.review_id"
+                      class="menu-dropdown"
+                      @mouseleave="openMenuId = null"
+                    >
+                      <div class="menu-item" @click="editReview(r)">✏ Sửa</div>
+                      <div class="menu-item delete" @click="deleteReview(r.review_id)">🗑 Xóa</div>
+                    </div>
+                  </div>
+                </div>
+
+                <p class="review-text">{{ r.comment }}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- LOADING -->
     <div v-if="loading" class="detail-loading">
-      <div class="detail-spinner" aria-hidden="true"></div>
+      <div class="detail-spinner"></div>
       <div class="detail-loading-text">Đang tải chi tiết nhà hàng...</div>
     </div>
   </section>
 </template>
 
 <script>
-import axios from 'axios';
-import HomeHeader from '@/components/Home/HomeHeader.vue';
+import axios from "axios";
+import HomeHeader from "@/components/Home/HomeHeader.vue";
 
 export default {
-  name: 'RestaurantDetail',
+  name: "RestaurantDetail",
   components: { HomeHeader },
-  props: {
-    id: {
-      type: [String, Number],
-      required: true,
-    },
-  },
+  props: { id: { type: [String, Number], required: true } },
+
   data() {
     return {
       restaurant: {},
       loading: true,
       error: null,
+      reviews: [],
+      reviewsLoading: false, // ← loading đánh giá
+      reviewForm: { star_rating: 0, comment: "" },
+      editing: false,
+      editingId: null,
+      submittingReview: false,
+      openMenuId: null,
+      userId: (JSON.parse(localStorage.getItem("user")) || {}).user_id || null,
+      user: JSON.parse(localStorage.getItem("user")) || null,
+      defaultAvatar: "/img/default-avatar.png",
     };
   },
+
+  computed: {
+    userHasReview() {
+      return this.reviews.some(r => r.user_id === this.userId);
+    }
+  },
+
   mounted() {
     this.fetchRestaurant();
+    this.fetchReviews();
   },
+
   methods: {
     async fetchRestaurant() {
       this.loading = true;
       try {
         const res = await axios.get(`http://localhost:8088/api/restaurants/${this.id}`);
-        // API may return data nested or as object; adapt accordingly
-        this.restaurant = res.data.data ? res.data.data : res.data;
-      } catch (err) {
-        console.error('Lỗi khi tải chi tiết nhà hàng', err);
-        this.error = 'Không thể tải thông tin nhà hàng. Vui lòng thử lại.';
+        this.restaurant = res.data.data || res.data;
+      } catch {
+        this.error = "Không thể tải thông tin nhà hàng.";
       } finally {
         this.loading = false;
       }
     },
+
+    async fetchReviews() {
+      this.reviewsLoading = true;
+      try {
+        const res = await axios.get(`http://localhost:8088/api/reviews/${this.id}`);
+        this.reviews = res.data.data || res.data;
+      } catch (err) {
+        console.error("Lỗi tải đánh giá:", err);
+      } finally {
+        this.reviewsLoading = false;
+      }
+    },
+
+    async submitReview() {
+  if (this.submittingReview) return; // đang gửi, không làm gì
+  if (!this.reviewForm.star_rating) return alert("Bạn chưa chọn số sao!");
+  if (!this.editing && this.userHasReview) return alert("Bạn đã đánh giá nhà hàng này rồi!");
+
+  this.submittingReview = true; // khóa nút
+  try {
+    if (this.editing) {
+      await axios.put(`http://localhost:8088/api/reviews/${this.editingId}`, {
+        ...this.reviewForm,
+      });
+    } else {
+      await axios.post("http://localhost:8088/api/reviews", {
+        restaurant_id: this.id,
+        user_id: this.userId,
+        ...this.reviewForm,
+      });
+    }
+    await this.fetchReviews(); // tải lại danh sách sau khi submit
+    this.cancelEdit();
+  } catch (err) {
+    console.error("Lỗi gửi đánh giá:", err);
+  } finally {
+    this.submittingReview = false; // mở khóa nút
+  }
+},
+
+    editReview(rv) {
+      this.editing = true;
+      this.editingId = rv.review_id;
+      this.reviewForm.star_rating = rv.star_rating;
+      this.reviewForm.comment = rv.comment;
+    },
+
+    cancelEdit() {
+      this.editing = false;
+      this.editingId = null;
+      this.reviewForm = { star_rating: 0, comment: "" };
+    },
+
+    async deleteReview(id) {
+      if (!confirm("Xóa đánh giá này?")) return;
+      try {
+        await axios.delete(`http://localhost:8088/api/reviews/${id}`);
+        this.fetchReviews();
+      } catch (err) {
+        console.error("Lỗi xóa đánh giá:", err);
+      }
+    },
+
+    toggleMenu(id) {
+      this.openMenuId = this.openMenuId === id ? null : id;
+    },
+
+    handleAvatarError(e) {
+      e.target.src = this.defaultAvatar;
+    },
+
+    avatarUrl(url) {
+      if (!url) return this.defaultAvatar;
+      return url.startsWith("http") ? url : `http://127.0.0.1:8088/${url}`;
+    },
+
     goToBooking() {
-      // navigate to booking page with restaurant id in query
-      // BookingPage expects `restaurant_id` or `restaurantId` in the query
-      this.$router.push({ name: 'DatTiec', query: { restaurant_id: this.id } });
+      this.$router.push({ name: "DatTiec", query: { restaurant_id: this.id } });
     },
-    goBack() {
-      this.$router.go(-1);
-    },
+    goBack() { this.$router.go(-1); },
+
     formatPrice(value) {
-      if (!value) return '0';
-      return new Intl.NumberFormat('vi-VN').format(value);
+      if (!value) return "0";
+      return new Intl.NumberFormat("vi-VN").format(value);
     },
-    // copy of helpers used in Search.vue
+
     getHalls(rest) {
-      if (!rest) return '—';
-      if (rest.halls_count != null) return rest.halls_count;
-      if (rest.halls != null && typeof rest.halls === 'number') return rest.halls;
-      if (rest.sanh != null && Array.isArray(rest.sanh)) return rest.sanh.length;
-      if (rest.halls_list && Array.isArray(rest.halls_list)) return rest.halls_list.length;
-      if (rest.sanhList && Array.isArray(rest.sanhList)) return rest.sanhList.length;
-      if (rest.sanh_count != null) return rest.sanh_count;
-      if (rest.hall_count != null) return rest.hall_count;
-      if (rest.number_of_halls != null) return rest.number_of_halls;
-      if (rest.count_halls != null) return rest.count_halls;
-      return '—';
+      if (!rest) return "—";
+      return (
+        rest.halls_count ||
+        rest.hall_count ||
+        rest.sanh_count ||
+        rest.number_of_halls ||
+        (rest.halls && rest.halls.length) ||
+        "—"
+      );
     },
+
     getHasPromo(rest) {
       if (!rest) return false;
-      if (typeof rest.has_promo === 'boolean') return rest.has_promo;
-      if (typeof rest.has_promotion === 'boolean') return rest.has_promotion;
-      if (typeof rest.hasPromotion === 'boolean') return rest.hasPromotion;
-      if (rest.active_promotions_count != null) return Number(rest.active_promotions_count) > 0;
-      if (rest.active_promos_count != null) return Number(rest.active_promos_count) > 0;
-      if (rest.promotion) return true;
-      if (rest.promotions && Array.isArray(rest.promotions) && rest.promotions.length > 0) return true;
-      if (rest.promos && Array.isArray(rest.promos) && rest.promos.length > 0) return true;
-      if (rest.promo && (typeof rest.promo === 'object' || rest.promo === true)) return true;
-      if (rest.discount && Number(rest.discount) > 0) return true;
-      return false;
+      return (
+        rest.has_promo ||
+        rest.hasPromotion ||
+        rest.promo ||
+        (rest.promotions && rest.promotions.length > 0)
+      );
     },
+
     getImageUrl(url) {
-      const DEFAULT = '/img/default-restaurant.jpg';
+      const DEFAULT = "/img/default-restaurant.jpg";
       if (!url) return DEFAULT;
-      if (typeof url === 'string' && url.startsWith('http')) return url;
-      if (typeof url === 'string' && url.startsWith('/')) {
-        return `http://127.0.0.1:8088${url}`;
-      }
-      const m = String(url).match(/^([0-9a-fA-F]{3,6})\?text=(.*)$/);
-      if (m) {
-        const color = m[1];
-        const text = m[2];
-        return `https://via.placeholder.com/600x400/${color}/ffffff?text=${text}`;
-      }
-      if (typeof url === 'string') return `http://127.0.0.1:8088/${url.replace(/^\/+/, '')}`;
-      return DEFAULT;
+      return url.startsWith("http") ? url : `http://127.0.0.1:8088/${url}`;
     },
-    onImgError(e) {
-      e.target.src = '/img/default-restaurant.jpg';
-    },
+
+    onImgError(e) { e.target.src = "/img/default-restaurant.jpg"; },
   },
 };
 </script>
@@ -263,4 +470,233 @@ export default {
 /* Icons near data labels */
 .detail-icon { color: #b08b3b; margin-right: 8px; font-size: 16px; width: 18px; text-align:center; }
 
+
+/* Title */
+.review-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  color: #222;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Form Card */
+.review-form-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 3px 20px rgba(0,0,0,0.06);
+  border: 1px solid #f0f0f0;
+}
+
+.review-form-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* Stars Select */
+.stars-select {
+  font-size: 30px;
+  margin: 5px 0 10px;
+}
+
+.star {
+  cursor: pointer;
+  color: #ddd;
+  transition: 0.25s;
+}
+
+.star.active {
+  color: #ffba00;
+  text-shadow: 0 0 8px rgba(255,186,0,0.6);
+}
+
+.star:hover {
+  transform: scale(1.15);
+}
+
+/* Input */
+.review-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  resize: none;
+  font-size: 15px;
+}
+
+/* Buttons */
+.review-btns {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.btn-submit {
+  background: #ff6d00;
+  color: white;
+  border: none;
+  padding: 9px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.btn-submit:hover {
+  background: #e65f00;
+}
+
+.btn-cancel {
+  background: #ddd;
+  padding: 9px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Review Card */
+.review-card {
+  display: flex;
+  gap: 15px;
+  background: #fff;
+  padding: 18px;
+  border-radius: 14px;
+  margin-bottom: 15px;
+  box-shadow: 0 3px 20px rgba(0,0,0,0.05);
+  border: 1px solid #efefef;
+}
+
+.review-avatar {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.review-info {
+  flex: 1;
+}
+
+.review-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-stars {
+  color: #ffba00;
+}
+
+.review-text {
+  margin: 6px 0;
+  line-height: 1.5;
+  color: #444;
+}
+
+.review-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+}
+
+/* Action Buttons */
+.act-edit {
+  background: #ffc107;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.act-delete {
+  background: #dc3545;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+}
+
+/* Menu 3 chấm */
+.menu-wrapper {
+  position: relative;
+}
+
+.menu-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.menu-btn:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: 26px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  border: 1px solid #ddd;
+  min-width: 110px;
+  z-index: 99;
+}
+
+.menu-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  transition: background 0.2s;
+  border-bottom: 1px solid #eee;
+}
+
+.menu-item:last-child { border-bottom: none; }
+
+.menu-item:hover {
+  background: #f5f5f5;
+}
+
+.menu-item.delete {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.reviews-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.reviews-spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid rgba(0,0,0,0.08);
+  border-top-color: #ffba00;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.reviews-loading-text {
+  margin-top: 10px;
+  color: #374151;
+  font-weight: 600;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 </style>
