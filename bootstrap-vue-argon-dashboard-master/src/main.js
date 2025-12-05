@@ -16,12 +16,15 @@
 */
 import Vue from 'vue';
 import DashboardPlugin from './plugins/dashboard-plugin';
+import SimpleI18n from './plugins/simple-i18n';
 import App from './App.vue';
 
 // router setup
 import router from './routes/router';
 // plugin setup
 Vue.use(DashboardPlugin);
+// simple i18n plugin (lightweight)
+Vue.use(SimpleI18n, { default: 'vi' });
 
 /* eslint-disable no-new */
 new Vue({

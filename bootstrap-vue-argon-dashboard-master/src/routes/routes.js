@@ -8,6 +8,7 @@ import Register from "@/views/Pages/Register.vue";
 import Profile from "@/views/Pages/Profile.vue";
 import Search from "@/views/Pages/Search.vue";
 import UserLayout from "@/views/KM/UserLayout.vue";
+
 const routes = [
   {
     path: "/",
@@ -193,6 +194,14 @@ const routes = [
         component: () => import("../views/Bookings.vue"),
       },
 
+      // 👉 TRẠNG THÁI THANH TOÁN (Admin view to inspect payment result)
+      {
+        path: "/admin/payment-status",
+        name: "AdminPayment",
+        component: () => import("@/views/Pages/AdminPayment.vue"),
+        props: true,
+      },
+
       // 👉 GÓI GỢI Ý (Suggestion packages)
       {
         path: "/goi-goi-y",
@@ -233,6 +242,7 @@ const routes = [
       }
     ]
   },
+ 
   
 
   {
@@ -261,6 +271,18 @@ const routes = [
   },
 
   // Public restaurant detail (user-facing)
+  {
+    path: '/thanh-toan',
+    name: 'Payment',
+    component: () => import('@/views/Pages/Payment.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/thanh-toan-thanh-cong',
+    name: 'PaymentSuccess',
+    component: () => import('@/views/Pages/PaymentSuccess.vue'),
+    meta: { requiresAuth: false }
+  },
   {
     path: "/restaurant/:id",
     component: UserLayout,

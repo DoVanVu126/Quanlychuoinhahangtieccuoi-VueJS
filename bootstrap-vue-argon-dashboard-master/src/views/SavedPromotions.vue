@@ -6,16 +6,16 @@
 
       <!-- Nút Home -->
       <button class="btn-home" @click="$router.push('/home')">
-        ⬅️ Trang chủ
+        ⬅️ {{ $t('intro') }}
       </button>
 
       <!-- Các bộ lọc -->
       <div class="filters">
 
         <div class="filter-box">
-          <label>🍽 Nhà hàng</label>
+          <label>🍽 {{ $t('profile') }}</label>
           <select v-model="selectedRestaurant" @change="filterPromotions">
-            <option value="">Tất cả</option>
+            <option value="">{{ $t('no_data') }}</option>
             <option
               v-for="r in restaurants"
               :key="r.restaurant_id"
@@ -27,9 +27,9 @@
         </div>
 
         <div class="filter-box">
-          <label>💸 Mức giảm</label>
+          <label>💸 {{ $t('see_more') }}</label>
           <select v-model="selectedDiscount" @change="filterPromotions">
-            <option value="">Tất cả</option>
+            <option value="">{{ $t('no_data') }}</option>
             <option value="10">Từ 10%</option>
             <option value="20">Từ 20%</option>
             <option value="30">Từ 30%</option>
@@ -41,10 +41,10 @@
       </div>
     </div>
 
-    <h2 class="page-title">Mã khuyến mãi đã lưu</h2>
+    <h2 class="page-title">{{ $t('saved_promotions') }}</h2>
 
     <div v-if="filteredPromotions.length === 0" class="no-promos">
-      Không có mã khuyến mãi phù hợp
+      {{ $t('no_notifications') }}
     </div>
 
     <!-- PHẦN DANH SÁCH -->
@@ -80,12 +80,12 @@
           <h3 class="promo-title">{{ promo.title }}</h3>
           <p class="restaurant">🍽 {{ getRestaurantName(promo.restaurant_id) }}</p>
           <p class="date">📅 {{ formatDate(promo.start_date) }} → {{ formatDate(promo.end_date) }}</p>
-          <p class="desc">{{ promo.description || "Không có mô tả" }}</p>
+          <p class="desc">{{ promo.description || $t('no_data') }}</p>
         </div>
 
         <div class="promo-actions">
-          <button class="btn copy" @click="copyPromoCode(promo.promotion_code)">📋 Copy</button>
-          <button class="btn delete" @click="removeSavedPromo(promo.user_promotion_id)">🗑️ Xóa</button>
+          <button class="btn copy" @click="copyPromoCode(promo.promotion_code)">📋 {{ $t('see_more') }}</button>
+          <button class="btn delete" @click="removeSavedPromo(promo.user_promotion_id)">🗑️ {{ $t('delete_all') }}</button>
         </div>
 
       </div>
@@ -184,16 +184,16 @@ export default {
 
     getRestaurantName(id) {
       const r = this.restaurants.find(r => r.restaurant_id === id);
-      return r ? r.name : "Không xác định";
+      return r ? r.name : this.$t('no_data');
     },
 
     copyPromoCode(code) {
       navigator.clipboard.writeText(code);
-      alert(`Đã copy mã: ${code}`);
+      alert(`${this.$t('success_alert')} ${code}`);
     },
 
     async removeSavedPromo(id) {
-      if (!confirm("Bạn chắc chắn muốn xóa?")) return;
+      if (!confirm(this.$t('delete_all') + ' ?')) return;
 
       try {
         await api.delete(`/user-promotions/${id}`);

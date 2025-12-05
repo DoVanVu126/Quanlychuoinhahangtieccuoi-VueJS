@@ -8,7 +8,7 @@
       <div class="search-bar">
         <input
           type="text"
-          placeholder="Tìm nhà hàng, địa điểm..."
+          :placeholder="$t('search_placeholder')"
           v-model="keyword"
           @keyup.enter="goToSearch"
         />
@@ -16,8 +16,8 @@
     </div>
 
     <nav>
-      <a href="#gioi-thieu">Giới thiệu</a>
-      <a href="#ho-tro">Hỗ trợ</a>
+      <a href="#gioi-thieu">{{ $t('intro') }}</a>
+      <a href="#ho-tro">{{ $t('support') }}</a>
 
       <router-link to="/gio-hang" class="cart-icon">
         <i class="fas fa-shopping-cart"></i>
@@ -25,10 +25,10 @@
 
       <!-- Language switch -->
       <div class="language-switch">
-        <img src="/img/vn-flag.png" alt="VN" class="flag" />
-        <select>
-          <option>VN</option>
-          <option>EN</option>
+        <img :src="locale === 'vi' ? '/img/vn-flag.png' : '/img/america.png'" :alt="locale === 'vi' ? 'VN' : 'EN'" class="flag" />
+        <select v-model="locale" @change="changeLocale">
+          <option value="vi">VN</option>
+          <option value="en">EN</option>
         </select>
       </div>
 
@@ -42,9 +42,9 @@
 
         <!-- Dropdown -->
         <div v-if="notifDropdownOpen" class="notification-list" @click.stop>
-          <h4>Thông báo</h4>
+          <h4>{{ $t('notifications') }}</h4>
 
-          <div v-if="notifications.length === 0" class="empty">Không có thông báo</div>
+            <div v-if="notifications.length === 0" class="empty">{{ $t('no_notifications') }}</div>
 
           <div class="notif-scroll">
             <div
@@ -63,21 +63,21 @@
             </div>
           </div>
 
-          <div v-if="notifications.length > visibleCount" class="see-more">
-            <button @click="loadMore">Xem thêm</button>
+            <div v-if="notifications.length > visibleCount" class="see-more">
+            <button @click="loadMore">{{ $t('see_more') }}</button>
           </div>
 
           <div v-if="notifications.length > 0" class="notif-footer">
-            <button @click="markAllRead">Đánh dấu tất cả</button>
-            <button @click="deleteAll">Xóa tất cả</button>
+            <button @click="markAllRead">{{ $t('mark_all') }}</button>
+            <button @click="deleteAll">{{ $t('delete_all') }}</button>
           </div>
         </div>
       </div>
 
       <!-- User login / dropdown -->
       <div v-if="!user">
-        <button class="homeheader-login-btn" @click="goToLogin">Đăng nhập</button>
-        <button class="homeheader-signup-btn" @click="goToSignup">Tạo tài khoản</button>
+        <button class="homeheader-login-btn" @click="goToLogin">{{ $t('login') }}</button>
+        <button class="homeheader-signup-btn" @click="goToSignup">{{ $t('signup') }}</button>
       </div>
 
       <div v-else class="homeheader-user-dropdown" ref="userDropdownWrapper" @click.stop="toggleDropdown">
@@ -93,10 +93,10 @@
         <i class="fas fa-caret-down"></i>
 
         <div v-if="dropdownOpen" class="homeheader-dropdown-menu">
-          <router-link to="/profile">Trang cá nhân</router-link>
-          <router-link to="/saved-promotions">Mã khuyến mãi đã lưu</router-link>
-          <router-link to="/membership">Xem thẻ hội viên</router-link>
-          <a @click="logout">Đăng xuất</a>
+          <router-link to="/profile">{{ $t('profile') }}</router-link>
+          <router-link to="/saved-promotions">{{ $t('saved_promotions') }}</router-link>
+          <router-link to="/membership">{{ $t('membership') }}</router-link>
+          <a @click="logout">{{ $t('logout') }}</a>
         </div>
       </div>
 
@@ -123,13 +123,21 @@ export default {
       unreadCount: 0,
       notifDropdownOpen: false,
       hasNew: false,
-      visibleCount: 5,
+      visibleCount: 5
     };
   },
 
   computed: {
     visibleNotifications() {
       return this.notifications.slice(0, this.visibleCount);
+    },
+    locale: {
+      get() {
+        return (this.$i18n && this.$i18n.locale) ? this.$i18n.locale : 'vi';
+      },
+      set(v) {
+        this.$setLocale(v);
+      }
     },
     initials() {
       return this.user && this.user.username ? this.user.username.charAt(0).toUpperCase() : "U";
@@ -197,7 +205,12 @@ export default {
     },
 
     formatDate(date) {
-      return new Date(date).toLocaleString("vi-VN");
+      const localeCode = (this.$i18n && this.$i18n.locale === 'en') ? 'en-US' : 'vi-VN';
+      return new Date(date).toLocaleString(localeCode);
+    },
+    changeLocale() {
+      // setter handled by computed proxy; keep for compatibility
+      this.$setLocale(this.locale);
     },
 
     async markAsRead(item) {
