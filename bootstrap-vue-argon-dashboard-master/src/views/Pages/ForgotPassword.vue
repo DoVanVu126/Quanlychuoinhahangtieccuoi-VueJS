@@ -85,34 +85,70 @@ export default {
             this.isLoading = true;
 
             try {
+                console.log('🔍 Gửi OTP đến:', this.email); // Debug
+                
                 const response = await api.post('/password-reset/send-otp', {
                     email: this.email
                 });
 
-                this.isLoading = false;
-                this.successMessage = response.data.message;
+                console.log('✅ Response:', response); // Debug
+                console.log('✅ Response data:', response.data); // Debug
 
-                // Chuyển sang trang verify OTP sau 2 giây
-                setTimeout(() => {
-                    this.$router.push({
-                        name: 'VerifyOtp',
-                        query: { email: this.email }
-                    });
-                }, 2000);
+                this.isLoading = false;
+
+                // Kiểm tra response success
+                if (response.data && response.data.success) {
+                    this.successMessage = response.data.message || 'Mã OTP đã được gửi thành công';
+
+                    // Lưu email vào localStorage để dùng ở trang VerifyOtp
+                    localStorage.setItem('reset_email', this.email);
+
+                    // Chuyển sang trang verify OTP sau 2 giây
+                    setTimeout(() => {
+                        this.$router.push({
+                            path: '/verify-otp',
+                            query: { email: this.email }
+                        });
+                    }, 2000);
+                } else {
+                    // Trường hợp response không có success: true
+                    this.apiError = response.data.message || 'Đã có lỗi xảy ra';
+                }
 
             } catch (error) {
+                console.error('❌ Error:', error); // Debug
+                console.error('❌ Error response:', error.response); // Debug
+                
                 this.isLoading = false;
+                
                 if (error.response) {
-                    if (error.response.status === 422) {
-                        const errors = error.response.data.errors;
-                        this.apiError = errors.email ? errors.email[0] : 'Email không hợp lệ';
-                    } else if (error.response.status === 500) {
-                        this.apiError = 'Không thể gửi email. Vui lòng kiểm tra cấu hình email server.';
+                    const status = error.response.status;
+                    const data = error.response.data;
+                    
+                    console.log('❌ Status:', status); // Debug
+                    console.log('❌ Data:', data); // Debug
+                    
+                    if (status === 422) {
+                        // Validation error
+                        const errors = data.errors;
+                        if (errors && errors.email) {
+                            this.apiError = errors.email[0];
+                        } else {
+                            this.apiError = 'Email không hợp lệ';
+                        }
+                    } else if (status === 500) {
+                        this.apiError = data.message || 'Không thể gửi email. Vui lòng kiểm tra cấu hình email server.';
                     } else {
-                        this.apiError = error.response.data.message || 'Đã có lỗi xảy ra';
+                        this.apiError = data.message || 'Đã có lỗi xảy ra';
                     }
+                } else if (error.request) {
+                    // Request được gửi nhưng không nhận được response
+                    console.error('❌ No response received:', error.request);
+                    this.apiError = 'Không nhận được phản hồi từ server. Vui lòng kiểm tra kết nối.';
                 } else {
-                    this.apiError = 'Không thể kết nối đến server. Vui lòng thử lại sau.';
+                    // Lỗi khác
+                    console.error('❌ Error message:', error.message);
+                    this.apiError = 'Đã có lỗi xảy ra: ' + error.message;
                 }
             }
         }
