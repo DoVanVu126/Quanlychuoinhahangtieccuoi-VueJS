@@ -34,8 +34,14 @@
               <template #cell(status)="row">{{ row.item.status || '-' }}</template>
               <template #cell(created_at)="row">{{ formatDate(row.item.created_at) }}</template>
               <template #cell(actions)="row">
-                <b-button size="sm" variant="warning" @click="openEditModal(row.item)"><i class="fas fa-edit"></i></b-button>
-                <b-button size="sm" variant="danger" @click="deleteBooking(row.item.booking_id || row.item.id)"><i class="fas fa-trash"></i></b-button>
+                <b-button size="sm" variant="warning" @click="openEditModal(row.item)" :disabled="isLoadingEdit === (row.item.booking_id || row.item.id)">
+                  <i v-if="isLoadingEdit === (row.item.booking_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                  <i v-else class="fas fa-edit"></i>
+                </b-button>
+                <b-button size="sm" variant="danger" @click="deleteBooking(row.item.booking_id || row.item.id)" :disabled="isDeletingId === (row.item.booking_id || row.item.id)">
+                  <i v-if="isDeletingId === (row.item.booking_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                  <i v-else class="fas fa-trash"></i>
+                </b-button>
               </template>
             </b-table>
             <div class="d-flex justify-content-center mt-3">
@@ -45,7 +51,12 @@
 
           <!-- Edit Booking Modal -->
           <b-modal v-model="showModal" title="Chỉnh sửa đặt tiệc" hide-footer size="lg">
-            <b-form @submit.stop.prevent="saveBooking">
+            <!-- Loading overlay while form loads -->
+            <div v-if="isEditing && isLoadingEdit" class="booking-loading-overlay">
+              <div class="booking-spinner"></div>
+              <p>Đang tải dữ liệu...</p>
+            </div>
+            <b-form v-if="!isEditing || !isLoadingEdit" @submit.stop.prevent="saveBooking">
               <!-- Display only: Customer, Created By, Restaurant -->
               <b-row>
                 <b-col md="4">
@@ -119,7 +130,7 @@
               </b-form-group>
 
               <div class="text-right">
-                <b-button variant="secondary" @click="showModal = false">Hủy</b-button>
+                <b-button variant="secondary" @click="showModal = false" :disabled="saving">Hủy</b-button>
                 <b-button type="submit" variant="primary" class="ml-2" :disabled="saving">
                   <span v-if="saving"><i class="fas fa-spinner fa-spin"></i> Đang lưu...</span>
                   <span v-else>Lưu</span>
@@ -128,6 +139,13 @@
             </b-form>
           </b-modal>
         </div>
+      </div>
+    </div>
+    
+    <!-- Success Toast Notification (Outside containers) -->
+    <div v-if="showSuccessMsg" class="booking-toast-wrapper">
+      <div class="booking-toast-content">
+        <i class="fas fa-check-circle"></i> {{ successMsg }}
       </div>
     </div>
   </div>
@@ -151,7 +169,11 @@ export default {
       form: {},
       showModal: false,
       isEditing: false,
+      isLoadingEdit: null,
+      isDeletingId: null,
       saving: false,
+      showSuccessMsg: false,
+      successMsg: '',
       fields: [
         { key: 'booking_id', label: 'ID', sortable: true },
         { key: 'customer_id', label: 'Customer' },
@@ -308,6 +330,8 @@ export default {
     },
     async openEditModal(b) {
       const id = b.booking_id != null ? b.booking_id : b.id;
+      if (this.isLoadingEdit) return;
+      this.isLoadingEdit = id;
       this.isEditing = true;
       try {
         const res = await api.get(`/bookings/${id}`);
@@ -365,6 +389,7 @@ export default {
 
         // compute price after loading booking details
         this.$nextTick(() => this.computePrice());
+        this.isLoadingEdit = null;
         this.showModal = true;
       } catch (err) {
         // fallback to using provided row data
@@ -378,7 +403,10 @@ export default {
         this.form.booking_services = this.form.booking_services || this.form.bookingServices || [];
         // compute price from fallback data
         this.$nextTick(() => this.computePrice());
+        this.isLoadingEdit = null;
         this.showModal = true;
+      } finally {
+        if (this.isLoadingEdit === id) this.isLoadingEdit = null;
       }
     },
     async saveBooking() {
@@ -408,9 +436,10 @@ export default {
 
         console.log('Save response:', res && res.data ? res.data : res);
         this.showModal = false;
-        // refresh list
         await this.getBookings();
-        window.alert('Lưu đặt tiệc thành công');
+        this.successMsg = '✅ Lưu đặt tiệc thành công';
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 3000);
       } catch (err) {
         console.error('Lỗi lưu đặt tiệc:', err);
         const msg = (err && err.response && err.response.data && (err.response.data.message || JSON.stringify(err.response.data))) || err.message || String(err);
@@ -421,13 +450,23 @@ export default {
     },
     async deleteBooking(id) {
       if (!confirm('Bạn có chắc chắn muốn xóa ?')) return;
+      if (this.isDeletingId) return;
+      this.isDeletingId = id;
       try {
         await api.delete(`/bookings/${id}`);
-        // remove locally so UI updates immediately
         const keyFn = b => (b.booking_id != null ? b.booking_id : b.id);
         this.bookings = this.bookings.filter(b => keyFn(b) !== id);
+        this.successMsg = '✅ Xóa đặt tiệc thành công';
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 3000);
       } catch (err) {
         console.error('Lỗi xóa đặt tiệc:', err.response || err.message);
+        const errMsg = (err.response && err.response.data && err.response.data.message) || err.message;
+        this.successMsg = '❌ Xóa thất bại: ' + errMsg;
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 4000);
+      } finally {
+        this.isDeletingId = null;
       }
     },
     
@@ -501,6 +540,80 @@ export default {
 /* Make header bottom border a bit stronger for separation */
 :deep(.table.table-bordered thead th) {
   border-bottom: 2px solid #dee2e6 !important;
+}
+
+.booking-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  z-index: 10;
+}
+
+.booking-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(112, 102, 255, 0.2);
+  border-top-color: rgba(112, 102, 255, 0.9);
+  border-radius: 50%;
+  animation: booking-spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes booking-spin {
+  to { transform: rotate(360deg); }
+}
+
+.booking-loading-overlay p {
+  color: #374151;
+  font-weight: 600;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Success toast notification - truly fixed */
+.booking-toast-wrapper {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  animation: slideInRight 0.3s ease;
+}
+
+.booking-toast-content {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 14px 18px;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 300px;
+}
+
+.booking-toast-content i {
+  font-size: 18px;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 </style>
  
