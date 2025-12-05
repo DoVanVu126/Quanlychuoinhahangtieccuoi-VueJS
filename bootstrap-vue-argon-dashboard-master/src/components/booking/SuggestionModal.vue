@@ -26,7 +26,7 @@
                 <span class="big-question">?</span>
               </template>
               <template v-else>
-                <img :src="getImageUrl(randomPackage.image_url)" alt="package" />
+                <span class="big-question">?</span>
               </template>
             </div>
           </div>
