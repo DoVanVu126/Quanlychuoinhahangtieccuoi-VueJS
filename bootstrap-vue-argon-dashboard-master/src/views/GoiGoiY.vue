@@ -3,8 +3,8 @@
     <base-header class="pb-6 pb-8 pt-5 pt-md-8 bg-gradient-success">
       <div class="container-fluid">
         <div class="header-body text-white">
-          <h2 class="text-white font-weight-bold">QUẢN LÝ ĐẶT TIỆC</h2>
-          <p class="text-light">Danh sách và quản lý các đơn đặt tiệc</p>
+          <h2 class="text-white font-weight-bold">QUẢN LÝ GÓI GỢI Ý</h2>
+          <p class="text-light">Danh sách và quản lý các gói gợi ý</p>
         </div>
       </div>
     </base-header>
@@ -14,8 +14,8 @@
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-              <h4 class="mb-0">Danh sách đặt tiệc</h4>
-              <small class="text-muted">Quản lý trạng thái, chỉnh sửa và xóa đơn</small>
+              <h4 class="mb-0">Danh sách gói gợi ý</h4>
+              <small class="text-muted">Quản lý trạng thái, chỉnh sửa và xóa gói</small>
             </div>
             <div>
               <b-button size="sm" variant="primary" @click="openCreateModal"><i class="fas fa-plus"></i> Thêm gói</b-button>
@@ -33,8 +33,14 @@
               <template #cell(description)="row">{{ row.item.description || '-' }}</template>
               <template #cell(created_at)="row">{{ formatDate(row.item.created_at) }}</template>
               <template #cell(actions)="row">
-                <b-button size="sm" variant="warning" @click="openEditModal(row.item)"><i class="fas fa-edit"></i></b-button>
-                <b-button size="sm" variant="danger" @click="deletePackage(row.item.package_id || row.item.id)"><i class="fas fa-trash"></i></b-button>
+                <b-button size="sm" variant="warning" @click="openEditModal(row.item)" :disabled="isLoadingEdit === (row.item.package_id || row.item.id)">
+                  <i v-if="isLoadingEdit === (row.item.package_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                  <i v-else class="fas fa-edit"></i>
+                </b-button>
+                <b-button size="sm" variant="danger" @click="deletePackage(row.item.package_id || row.item.id)" :disabled="isDeletingId === (row.item.package_id || row.item.id)">
+                  <i v-if="isDeletingId === (row.item.package_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                  <i v-else class="fas fa-trash"></i>
+                </b-button>
               </template>
             </b-table>
             <div class="d-flex justify-content-center mt-3">
@@ -177,6 +183,13 @@
         </div>
       </div>
     </div>
+
+    <!-- Success Toast Notification -->
+    <div v-if="showSuccessMsg" class="booking-toast-wrapper">
+      <div class="booking-toast-content">
+        <i class="fas fa-check-circle"></i> {{ successMsg }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -204,6 +217,12 @@ export default {
       showModal: false,
       isEditing: false,
       saving: false,
+      // loading states for UI actions
+      isLoadingEdit: null,
+      isDeletingId: null,
+      // toast notification
+      showSuccessMsg: false,
+      successMsg: '',
       modalHallsList: null,
       modalFoodsList: null,
       modalServicesList: null,
@@ -380,6 +399,8 @@ export default {
     },
     async openEditModal(p) {
       const id = p.package_id != null ? p.package_id : p.id;
+      if (this.isLoadingEdit) return;
+      this.isLoadingEdit = id;
       this.isEditing = true;
       try {
         const res = await api.get(`/suggestion-packages/${id}`);
@@ -454,6 +475,8 @@ export default {
         this.form.suggestion_foods = this.form.suggestion_foods || [];
         this.form.suggestion_services = this.form.suggestion_services || [];
         this.showModal = true;
+      } finally {
+        if (this.isLoadingEdit === id) this.isLoadingEdit = null;
       }
     },
     openCreateModal() {
@@ -588,11 +611,15 @@ export default {
         this.showModal = false;
         // refresh list
         await this.getSuggestionPackages();
-        window.alert('Lưu gói gợi ý thành công');
+        this.successMsg = '✅ Lưu gói gợi ý thành công';
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 3000);
       } catch (err) {
         console.error('Lỗi lưu gói gợi ý:', err);
         const msg = (err && err.response && err.response.data && (err.response.data.message || JSON.stringify(err.response.data))) || err.message || String(err);
-        window.alert('Lỗi khi lưu: ' + msg);
+        this.successMsg = '❌ Lưu thất bại: ' + msg;
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 4000);
       } finally {
         this.saving = false;
       }
@@ -603,13 +630,24 @@ export default {
     },
     async deleteBooking(id) {
       if (!confirm('Bạn có chắc chắn muốn xóa ?')) return;
+      if (this.isDeletingId) return;
+      this.isDeletingId = id;
       try {
         await api.delete(`/suggestion-packages/${id}`);
         // remove locally so UI updates immediately
         const keyFn = p => (p.package_id != null ? p.package_id : p.id);
         this.suggestionPackages = this.suggestionPackages.filter(p => keyFn(p) !== id);
+        this.successMsg = '✅ Xóa gói gợi ý thành công';
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 3000);
       } catch (err) {
         console.error('Lỗi xóa gói gợi ý:', err.response || err.message);
+        const errMsg = (err.response && err.response.data && err.response.data.message) || err.message || String(err);
+        this.successMsg = '❌ Xóa thất bại: ' + errMsg;
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 4000);
+      } finally {
+        this.isDeletingId = null;
       }
     },
     // Compatibility wrapper: table/actions expect `deletePackage`
@@ -761,6 +799,33 @@ export default {
   .gg-grid { grid-template-columns: 1fr; }
   .gg-tabs-header { flex-wrap:wrap; }
   .gg-food-type-tabs { flex-wrap:wrap; }
+}
+
+/* Toast notification styles (same as Bookings.vue) */
+.booking-toast-wrapper {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  animation: slideInRight 0.35s ease;
+}
+.booking-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.12);
+  font-weight: 600;
+}
+.booking-toast-content i { font-size: 18px; }
+
+@keyframes slideInRight {
+  from { transform: translateX(200px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 </style>
  
