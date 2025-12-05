@@ -12,7 +12,14 @@
 
     <div class="container-fluid mt--7">
       <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden">
-        <div class="card-body">
+        <div class="card-body position-relative">
+
+          <!-- Loading overlay -->
+          <div v-if="loading" class="loading-overlay">
+            <div class="spinner"></div>
+            <p class="loading-text">Đang tải dữ liệu...</p>
+          </div>
+
           <!-- Thanh công cụ -->
           <div class="d-flex justify-content-between align-items-center mb-3">
             <input
@@ -46,47 +53,46 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="promo in filteredPromotions" :key="promo.promotion_id">
-                  <td>{{ promo.promotion_id }}</td>
-                  <td>{{ promo.promotion_code }}</td>
-                  <td>{{ promo.title }}</td>
-                  <td>{{ promo.description || 'Không có' }}</td>
-                  <td>{{ promo.restaurant && promo.restaurant.name ? promo.restaurant.name : 'Không xác định' }}</td>
-
-                  <td>{{ promo.discount_type }}</td>
-                  <td>{{ promo.discount_value }}</td>
-                  <td>
-                    <img
-                      v-if="promo.fixed_image_url"
-                      :src="promo.fixed_image_url"
-                      alt="ảnh khuyến mãi"
-                      class="promo-img fade-in"
-                      @error="handleImageError($event)"
-                    />
-                    <span v-else class="text-muted">Không có</span>
-                  </td>
-                  <td>{{ formatDate(promo.start_date) }}</td>
-                  <td>{{ formatDate(promo.end_date) }}</td>
-                  <td>
-                    <span
-                      class="badge"
-                      :class="{
-                        'bg-success': promo.status === 'active',
-                        'bg-secondary': promo.status !== 'active'
-                      }"
-                    >
-                      {{ promo.status }}
-                    </span>
-                  </td>
-                  <td>
-                    <b-button size="sm" variant="outline-primary" @click="editPromotion(promo)">Sửa</b-button>
-                    <b-button size="sm" variant="outline-danger" @click="deletePromotion(promo.promotion_id)">Xóa</b-button>
-                  </td>
-                </tr>
-                <tr v-if="filteredPromotions.length === 0">
-                  <td colspan="12" class="text-center text-muted">Không có khuyến mãi nào phù hợp</td>
-                </tr>
-              </tbody>
+  <tr v-for="promo in filteredPromotions" :key="promo.promotion_id">
+    <td>{{ promo.promotion_id }}</td>
+    <td>{{ promo.promotion_code }}</td>
+    <td>{{ promo.title }}</td>
+    <td>{{ promo.description || 'Không có' }}</td>
+    <td>{{ promo.restaurant && promo.restaurant.name ? promo.restaurant.name : 'Không xác định' }}</td>
+    <td>{{ promo.discount_type }}</td>
+    <td>{{ promo.discount_value }}</td>
+    <td>
+      <img
+        v-if="promo.fixed_image_url"
+        :src="promo.fixed_image_url"
+        alt="ảnh khuyến mãi"
+        class="promo-img fade-in"
+        @error="handleImageError($event)"
+      />
+      <span v-else class="text-muted">Không có</span>
+    </td>
+    <td>{{ formatDate(promo.start_date) }}</td>
+    <td>{{ formatDate(promo.end_date) }}</td>
+    <td>
+      <span
+        class="badge"
+        :class="{
+          'bg-success': promo.status === 'active',
+          'bg-secondary': promo.status !== 'active'
+        }"
+      >
+        {{ promo.status }}
+      </span>
+    </td>
+    <td>
+      <b-button size="sm" variant="outline-primary" @click="editPromotion(promo)">Sửa</b-button>
+      <b-button size="sm" variant="outline-danger" @click="deletePromotion(promo.promotion_id)">Xóa</b-button>
+    </td>
+  </tr>
+  <tr v-if="filteredPromotions.length === 0">
+    <td colspan="12" class="text-center text-muted">Không có khuyến mãi nào phù hợp</td>
+  </tr>
+</tbody>
             </table>
           </div>
 
@@ -117,6 +123,7 @@
 
 <script>
 import api from "@/api";
+import _ from "lodash";
 
 export default {
   data() {
@@ -124,8 +131,18 @@ export default {
       promotions: [],
       currentPage: 1,
       lastPage: 1,
-      searchQuery: ""
+      searchQuery: "",
+      loading: false,
+      baseURL: "http://127.0.0.1:8088"
     };
+  },
+
+  watch: {
+    searchQuery: {
+      handler: _.debounce(function () {
+        this.getPromotions(1);
+      }, 500)
+    }
   },
 
   computed: {
@@ -133,7 +150,7 @@ export default {
       const query = this.searchQuery.trim().toLowerCase();
       if (!query) return this.promotions;
       return this.promotions.filter(
-        (p) =>
+        p =>
           (p.title && p.title.toLowerCase().includes(query)) ||
           (p.promotion_code && p.promotion_code.toLowerCase().includes(query))
       );
@@ -142,27 +159,29 @@ export default {
 
   methods: {
     async getPromotions(page = 1) {
-  try {
-    const res = await api.get(`/promotions?page=${page}`);
-
-    this.promotions = res.data.data.map((p) => ({
-      ...p,
-      fixed_image_url: this.fixImageUrl(
-        p.image_url || p.image || p.image_path || p.img
-      )
-    }));
-
-    this.currentPage = res.data.current_page;
-    this.lastPage = res.data.last_page;
-  } catch (err) {
-    console.error("Lỗi tải khuyến mãi:", err);
-  }
-},
+      this.loading = true;
+      try {
+        const res = await api.get(`/promotions?page=${page}`);
+        this.promotions = res.data.data.map(p => ({
+          ...p,
+          fixed_image_url: this.fixImageUrl(p.image_url || p.image || p.image_path || p.img)
+        }));
+        this.currentPage = res.data.current_page;
+        this.lastPage = res.data.last_page;
+      } catch (err) {
+        console.error("Lỗi tải khuyến mãi:", err);
+        this.promotions = [];
+        this.currentPage = 1;
+        this.lastPage = 1;
+      } finally {
+        this.loading = false;
+      }
+    },
 
     fixImageUrl(url) {
       if (!url) return null;
       if (url.startsWith("http")) return url;
-      return `http://127.0.0.1:8088/${url.replace(/^\/+/, "")}`;
+      return `${this.baseURL}/${url.replace(/^\/+/, "")}`;
     },
 
     handleImageError(e) {
@@ -181,11 +200,14 @@ export default {
 
     async deletePromotion(id) {
       if (!confirm("Bạn có chắc muốn xóa khuyến mãi này không?")) return;
+      this.loading = true;
       try {
         await api.delete(`/promotions/${id}`);
-        this.getPromotions(this.currentPage);
+        await this.getPromotions(this.currentPage);
       } catch (err) {
         console.error("Lỗi xóa khuyến mãi:", err);
+      } finally {
+        this.loading = false;
       }
     },
 
@@ -234,4 +256,42 @@ export default {
   vertical-align: middle;
   font-size: 0.8rem;
 }
+
+/* ----- LOADING OVERLAY ----- */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 6px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: #333;
+  margin-top: 15px;
+  font-size: 16px;
+}
 </style>
+
+
+
