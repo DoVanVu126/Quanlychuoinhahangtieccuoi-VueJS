@@ -6,12 +6,7 @@
         <img src="/img/logo.png" alt="Wedding" />
       </router-link>
       <div class="search-bar">
-        <input
-          type="text"
-          placeholder="Tìm nhà hàng, địa điểm..."
-          v-model="keyword"
-          @keyup.enter="goToSearch"
-        />
+        <input type="text" placeholder="Tìm nhà hàng, địa điểm..." v-model="keyword" @keyup.enter="goToSearch" />
       </div>
     </div>
 
@@ -47,12 +42,8 @@
           <div v-if="notifications.length === 0" class="empty">Không có thông báo</div>
 
           <div class="notif-scroll">
-            <div
-              v-for="item in visibleNotifications"
-              :key="item.id"
-              class="notification-item"
-              :class="{ unread: !item.is_read }"
-            >
+            <div v-for="item in visibleNotifications" :key="item.id" class="notification-item"
+              :class="{ unread: !item.is_read }">
               <div class="notif-content" @click="markAsRead(item)">
                 <strong>{{ item.title }}</strong>
                 <p>{{ item.message }}</p>
@@ -81,13 +72,8 @@
       </div>
 
       <div v-else class="homeheader-user-dropdown" ref="userDropdownWrapper" @click.stop="toggleDropdown">
-        <img
-          v-if="user.image_url"
-          :src="avatarUrl(user.image_url)"
-          alt="avatar"
-          class="user-avatar"
-          @error="handleAvatarError"
-        />
+        <img v-if="user.image_url" :src="avatarUrl(user.image_url)" alt="avatar" class="user-avatar"
+          @error="handleAvatarError" />
         <span>{{ user.username }}</span>
         <span class="user-level">{{ levelName }}</span>
         <i class="fas fa-caret-down"></i>
@@ -155,8 +141,23 @@ export default {
     goToSignup() { this.$router.push("/register"); },
     toggleDropdown() { this.dropdownOpen = !this.dropdownOpen; },
     logout() {
-      localStorage.clear();
+      // 1. Xóa Token & User info (Để đăng xuất)
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("cart"); // Xóa giỏ hàng nếu cần
+
+      // Xóa cả bên Session cho chắc
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+
+      // 2. Hủy Realtime 
+      if (window.Echo && this.user) {
+        window.Echo.leave('notifications.' + this.user.user_id);
+      }
+
+      // 3. Reset State & Chuyển trang
       this.user = null;
+      this.dropdownOpen = false;
       this.$router.push("/login");
     },
 
