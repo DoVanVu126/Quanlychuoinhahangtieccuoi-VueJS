@@ -2,109 +2,69 @@
     <div class="profile-page-container">
         <b-container class="py-5">
             <b-row>
-
-                <!-- Sidebar -->
                 <b-col lg="3" md="4" class="mb-4">
                     <div class="sidebar-card">
                         <div class="text-center mb-4">
 
-                            <!-- Avatar -->
                             <div class="avatar-wrapper position-relative d-inline-block">
                                 <div v-if="selectedImage" class="avatar-preview">
                                     <img :src="selectedImage" alt="Xem trước" class="avatar-image">
                                 </div>
 
                                 <div v-else-if="user && user.image_url" class="avatar-preview">
-                                    <img :src="backendUrl + '/' + user.image_url" alt="Avatar" class="avatar-image">
+                                    <img :src="`${backendUrl}/storage/${user.image_url}`" alt="Avatar"
+                                        class="avatar-image">
                                 </div>
 
                                 <div v-else class="avatar-placeholder">
                                     {{ getUserInitial() }}
                                 </div>
 
-                                <button 
-                                    @click="triggerFileInput"
-                                    class="avatar-overlay">
+                                <button @click="triggerFileInput" class="avatar-overlay">
                                     <i class="fas fa-camera me-2"></i>
                                     Thay đổi
                                 </button>
-                                
-                                <input 
-                                    ref="fileInput" 
-                                    type="file" 
-                                    accept="image/*" 
-                                    class="d-none"
-                                    @change="handleFileChange" 
-                                />
+
+                                <input ref="fileInput" type="file" accept="image/*" class="d-none"
+                                    @change="handleFileChange" />
                             </div>
 
-                            <!-- Username -->
                             <h4 class="mt-3 mb-0 font-weight-bold">
-                                Xin chào {{ user ? (user.full_name || user.username) : '' }}
+                                Xin chào {{ user ? user.username : '' }}
                             </h4>
                         </div>
 
-                        <!-- Navigation -->
                         <b-nav vertical class="sidebar-nav">
-                            <b-nav-item 
-                                to="/profileUser/info"
-                                exact
-                                class="sidebar-nav-item">
-                                <i class="fas fa-user me-2"></i>
-                                Thông tin cá nhân
+                            <b-nav-item to="/profileUser/info" exact class="sidebar-nav-item">
+                                <i class="fas fa-user me-2"></i> Thông tin cá nhân
                             </b-nav-item>
-
-                            <b-nav-item 
-                                to="/profileUser/change-password"
-                                class="sidebar-nav-item">
-                                <i class="fas fa-lock me-2"></i>
-                                Đổi mật khẩu
+                            <b-nav-item to="/profileUser/change-password" class="sidebar-nav-item">
+                                <i class="fas fa-lock me-2"></i> Đổi mật khẩu
                             </b-nav-item>
-
-                            <b-nav-item 
-                                to="/profileUser/payment-history"
-                                class="sidebar-nav-item">
-                                <i class="fas fa-credit-card me-2"></i>
-                                Lịch sử thanh toán
+                            <b-nav-item to="/profileUser/payment-history" class="sidebar-nav-item">
+                                <i class="fas fa-credit-card me-2"></i> Lịch sử thanh toán
                             </b-nav-item>
-
-                            <b-nav-item 
-                                to="/profileUser/booking-history"
-                                class="sidebar-nav-item">
-                                <i class="fas fa-list me-2"></i>
-                                Lịch sử đặt tiệc
+                            <b-nav-item to="/profileUser/booking-history" class="sidebar-nav-item">
+                                <i class="fas fa-list me-2"></i> Lịch sử đặt tiệc
                             </b-nav-item>
-
-                            <b-nav-item 
-                                @click="showLogoutModal"
-                                class="sidebar-nav-item sidebar-nav-logout">
-                                <i class="fas fa-sign-out-alt me-2"></i>
-                                Đăng xuất
+                            <b-nav-item @click="showHomeModal" class="sidebar-nav-item text-primary">
+                                <i class="fas fa-home me-2"></i> Về trang chủ
                             </b-nav-item>
                         </b-nav>
                     </div>
                 </b-col>
 
-                <!-- Main Content -->
                 <b-col lg="9" md="8">
                     <div class="content-card">
                         <router-view @user-updated="loadUserInfo" />
                     </div>
                 </b-col>
-
             </b-row>
         </b-container>
 
-        <!-- Logout Confirmation Modal -->
-        <b-modal
-            v-model="showLogoutConfirm"
-            title="Xác nhận Đăng xuất"
-            centered
-            @ok="handleConfirmLogout"
-            ok-title="Đăng xuất"
-            ok-variant="danger"
-            cancel-title="Hủy">
-            <p class="mb-0">Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?</p>
+        <b-modal v-model="showHomeConfirm" title="Xác nhận điều hướng" centered @ok="handleGoHome"
+            ok-title="Về trang chủ" ok-variant="primary" cancel-title="Hủy">
+            <p class="mb-0">Bạn có muốn quay về trang chủ không?</p>
         </b-modal>
     </div>
 </template>
@@ -119,7 +79,7 @@ export default {
             user: null,
             backendUrl: process.env.VUE_APP_API_URL || 'http://localhost:8088',
             selectedImage: null,
-            showLogoutConfirm: false,
+            showHomeConfirm: false,
         };
     },
     mounted() {
@@ -130,25 +90,8 @@ export default {
         checkAuth() {
             const token = localStorage.getItem('token');
             const user = localStorage.getItem('user');
-            
-            // 🔍 DEBUG
-            console.log('=== ProfileLayout checkAuth ===');
-            console.log('Token:', token);
-            console.log('User (raw):', user);
-            
-            try {
-                const userObj = JSON.parse(user);
-                console.log('User (parsed):', userObj);
-                console.log('Has user_id:', !!(userObj && userObj.user_id));
-            } catch (e) {
-                console.error('❌ Parse user error:', e);
-            }
-            
             if (!token || !user) {
-                console.log('❌ No token or user, redirect to login');
                 this.$router.push('/login');
-            } else {
-                console.log('✅ Auth check passed');
             }
         },
 
@@ -160,8 +103,7 @@ export default {
         },
 
         loadUserInfo() {
-            // ✅ THAY ĐỔI: Dùng 'user' thay vì 'user_info'
-            const userInfo = localStorage.getItem('user'); 
+            const userInfo = localStorage.getItem('user');
             if (userInfo) {
                 this.user = JSON.parse(userInfo);
             }
@@ -171,6 +113,7 @@ export default {
             this.$refs.fileInput.click();
         },
 
+        // --- HÀM UPLOAD AVATAR ĐÃ SỬA ---
         async handleFileChange(event) {
             const file = event.target.files[0];
             if (!file) {
@@ -178,28 +121,30 @@ export default {
                 return;
             }
 
-            // Validate file
+            // Validate loại file
             if (!file.type.startsWith('image/')) {
                 this.showErrorToast('Vui lòng chọn file ảnh');
                 return;
             }
 
-            if (file.size > 5 * 1024 * 1024) { // 5MB
+            // Validate dung lượng (5MB)
+            if (file.size > 5 * 1024 * 1024) {
                 this.showErrorToast('Ảnh không được vượt quá 5MB');
                 return;
             }
 
-            // Preview
+            // Hiển thị preview ngay lập tức
             this.selectedImage = URL.createObjectURL(file);
 
-            // Upload
+            // Chuẩn bị FormData
             const formData = new FormData();
-            formData.append('image', file);
+            // QUAN TRỌNG: Key phải là 'avatar' khớp với Backend Validator
+            formData.append('avatar', file);
 
             try {
-                // ✅ THAY ĐỔI: Dùng api instance (tự động gửi token)
+                // Gọi API: POST /users/{id}/avatar
                 const response = await api.post(
-                    `/users/${this.user.user_id}`, 
+                    `/api/users/${this.user.user_id}/avatar`,
                     formData,
                     {
                         headers: {
@@ -208,49 +153,40 @@ export default {
                     }
                 );
 
-                // Update user info
-                this.user = response.data;
-                // ✅ THAY ĐỔI: Lưu vào 'user' thay vì 'user_info'
-                localStorage.setItem('user', JSON.stringify(response.data));
+                // Cập nhật lại user info từ response
+                const oldUser = JSON.parse(localStorage.getItem('user')) || {};
+                // Backend trả về: { success: true, user: {...} }
+                // Merge dữ liệu cũ với dữ liệu mới (chứa image_url mới)
+                const updatedUser = { ...oldUser, ...response.data.user };
 
-                this.showSuccessToast('Cập nhật avatar thành công!');
-                this.selectedImage = null;
+                this.user = updatedUser;
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+
+                this.showSuccessToast('Cập nhật ảnh đại diện thành công!');
+                this.selectedImage = null; // Reset preview để dùng ảnh thật từ server lần sau
 
             } catch (error) {
                 console.error('Lỗi upload avatar:', error);
+
                 let message = 'Upload thất bại. Vui lòng thử lại.';
-                if (error.response && error.response.data && error.response.data.message) {
+                if (error.response && error.response.data && error.response.data.errors) {
+                    // Lấy lỗi đầu tiên từ mảng errors của Laravel
+                    message = Object.values(error.response.data.errors)[0][0];
+                } else if (error.response && error.response.data && error.response.data.message) {
                     message = error.response.data.message;
                 }
+
                 this.showErrorToast(message);
-                this.selectedImage = null;
+                this.selectedImage = null; // Xóa preview nếu lỗi
             }
         },
 
-        showLogoutModal() {
-            this.showLogoutConfirm = true;
+        showHomeModal() {
+            this.showHomeConfirm = true;
         },
 
-        async handleConfirmLogout() {
-            try {
-                // ✅ THAY ĐỔI: Dùng api instance (tự động gửi token)
-                await api.post('/logout');
-            } catch (e) {
-                console.warn("Lỗi khi gọi API logout, vẫn tiếp tục logout ở client");
-            }
-
-            // ✅ THAY ĐỔI: Xóa 'token' và 'user', không phải 'user_token' và 'user_info'
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('cart');
-            localStorage.removeItem('remembered_login');
-            localStorage.removeItem('remember_me');
-
-            this.showSuccessToast('Đã đăng xuất thành công');
-
-            setTimeout(() => {
-                this.$router.push('/login');
-            }, 1000);
+        handleGoHome() {
+            this.$router.push('/home');
         },
 
         showSuccessToast(message) {
@@ -277,12 +213,12 @@ export default {
 </script>
 
 <style scoped>
+/* (Giữ nguyên phần Style như cũ) */
 .profile-page-container {
     min-height: 100vh;
     background-color: #f8f9fa;
 }
 
-/* Sidebar Card */
 .sidebar-card {
     background: white;
     border: 1px solid #e0e0e0;
@@ -291,7 +227,6 @@ export default {
     padding: 1.5rem;
 }
 
-/* Avatar */
 .avatar-wrapper {
     width: 128px;
     height: 128px;
@@ -350,7 +285,6 @@ export default {
     opacity: 1;
 }
 
-/* Navigation */
 .sidebar-nav {
     margin-top: 2rem;
 }
@@ -368,6 +302,7 @@ export default {
     background-color: #dcfce7;
     transform: translateX(3px);
     text-decoration: none;
+    cursor: pointer;
 }
 
 .sidebar-nav-item.active {
@@ -377,16 +312,6 @@ export default {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.sidebar-nav-logout {
-    color: #dc2626;
-    cursor: pointer;
-}
-
-.sidebar-nav-logout:hover {
-    background-color: #fee2e2;
-}
-
-/* Content Card */
 .content-card {
     background: white;
     border: 1px solid #e0e0e0;
@@ -396,7 +321,6 @@ export default {
     min-height: 500px;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .sidebar-card {
         margin-bottom: 1.5rem;
@@ -417,23 +341,7 @@ export default {
 </style>
 
 <style>
-/* Toast styles - Global */
 .b-toaster-top-center {
     top: 20px !important;
-}
-
-.toast {
-    border-radius: 0.5rem !important;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-}
-
-.toast-header {
-    border-radius: 0.5rem 0.5rem 0 0 !important;
-    font-weight: 600 !important;
-}
-
-.toast-body {
-    font-size: 0.95rem !important;
-    padding: 1rem !important;
 }
 </style>

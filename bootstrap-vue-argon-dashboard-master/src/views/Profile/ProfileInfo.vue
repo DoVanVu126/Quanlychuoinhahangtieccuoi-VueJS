@@ -1,6 +1,5 @@
 <template>
   <div class="profile-info-container">
-    <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-4">
       <h2 class="profile-title mb-0">Thông tin tài khoản</h2>
       <div class="title-decoration"></div>
@@ -8,17 +7,14 @@
 
     <hr class="mb-4" />
 
-    <!-- Loading -->
     <div v-if="isLoading" class="text-center text-muted py-5">
       <b-spinner variant="primary"></b-spinner>
       <p class="mt-2">Đang tải dữ liệu...</p>
     </div>
 
-    <!-- Form -->
     <b-form v-else @submit.prevent="updateProfile" class="profile-form">
       
       <b-row>
-        <!-- Họ và tên -->
         <b-col md="6" class="mb-4">
           <b-form-group label="Họ và tên" label-class="profile-label">
             <b-form-input
@@ -34,7 +30,6 @@
           </b-form-group>
         </b-col>
 
-        <!-- Email (Read-only) -->
         <b-col md="6" class="mb-4">
           <b-form-group label="Email" label-class="profile-label-readonly">
             <div class="profile-readonly">
@@ -43,7 +38,6 @@
           </b-form-group>
         </b-col>
 
-        <!-- Địa chỉ -->
         <b-col md="6" class="mb-4">
           <b-form-group label="Địa chỉ" label-class="profile-label">
             <b-form-input
@@ -59,7 +53,6 @@
           </b-form-group>
         </b-col>
 
-        <!-- Ngày tạo (Read-only) -->
         <b-col md="6" class="mb-4">
           <b-form-group label="Ngày tạo tài khoản" label-class="profile-label-readonly">
             <div class="profile-readonly">
@@ -68,7 +61,6 @@
           </b-form-group>
         </b-col>
 
-        <!-- Số điện thoại -->
         <b-col md="6" class="mb-4">
           <b-form-group label="Số điện thoại" label-class="profile-label">
             <b-form-input
@@ -85,7 +77,6 @@
         </b-col>
       </b-row>
 
-      <!-- Actions -->
       <hr class="my-4" />
       
       <div class="d-flex flex-column flex-sm-row gap-3">
@@ -115,7 +106,6 @@
       </div>
     </b-form>
 
-    <!-- Delete Confirmation Modal -->
     <b-modal
       v-model="showDeleteConfirm"
       title="Xác nhận Xóa tài khoản"
@@ -172,7 +162,6 @@ export default {
       this.isLoading = true;
       
       try {
-        // ✅ THAY ĐỔI: Lấy user từ localStorage thay vì gọi API
         const userStr = localStorage.getItem('user');
         
         if (!userStr) {
@@ -192,15 +181,17 @@ export default {
         
         if (user.created_at) {
           const date = new Date(user.created_at);
+          // Format ngày tháng năm kiểu Việt Nam
           this.readOnlyInfo.created_at = date.toLocaleDateString('vi-VN');
         } else {
-          this.readOnlyInfo.created_at = 'Không rõ';
+          this.readOnlyInfo.created_at = 'Chưa cập nhật';
         }
 
       } catch (error) {
-        console.error('Không thể lấy thông tin profile:', error);
+        console.error('Lỗi tải profile:', error);
         this.showErrorToast('Không thể tải thông tin. Vui lòng đăng nhập lại');
         
+        // Nếu không có user trong storage thì đẩy về login
         setTimeout(() => {
           this.$router.push('/login');
         }, 2000);
@@ -229,11 +220,11 @@ export default {
         isValid = false;
       }
 
-      // Validate phone
+      // Validate phone (9-11 số)
       if (this.profileForm.phone) {
         const phoneClean = this.profileForm.phone.replace(/[^0-9]/g, '');
         if (phoneClean.length < 9 || phoneClean.length > 11) {
-          this.errors.phone = 'Số điện thoại phải có 9-11 chữ số';
+          this.errors.phone = 'Số điện thoại phải có từ 9-11 chữ số';
           isValid = false;
         }
       }
@@ -250,27 +241,29 @@ export default {
       this.isUpdating = true;
 
       try {
-        // ✅ THAY ĐỔI: Dùng api instance và endpoint /users/{id}
         const dataToUpdate = {
           full_name: this.profileForm.full_name.trim(),
           address: this.profileForm.address.trim(),
           phone: this.profileForm.phone.trim()
         };
         
-        const response = await api.put(`/users/${this.userId}`, dataToUpdate);
+        // Gọi API PUT /users/{id}
+        const response = await api.put(`/api/users/${this.userId}`, dataToUpdate);
 
-        // ✅ THAY ĐỔI: Update localStorage với key 'user'
-        const updatedUser = response.data;
+        // --- QUAN TRỌNG: CẬP NHẬT LOCALSTORAGE AN TOÀN ---
+        // Lấy dữ liệu cũ
+        const oldUserData = JSON.parse(localStorage.getItem('user')) || {};
+        // Gộp dữ liệu mới trả về từ API vào dữ liệu cũ
+        // Điều này giúp giữ lại các trường mà API update có thể không trả về (như image_url, token, role...)
+        const updatedUser = { ...oldUserData, ...response.data };
+        
         localStorage.setItem('user', JSON.stringify(updatedUser));
 
         this.showSuccessToast('Cập nhật thông tin thành công!');
         
-        // Emit event để ProfileLayout reload user info
+        // Emit event để ProfileLayout (Sidebar) cập nhật tên ngay lập tức
         this.$emit('user-updated', updatedUser);
         
-        // Reload to get fresh data
-        this.loadProfile();
-
       } catch (error) {
         console.error('Update profile error:', error);
         
@@ -291,12 +284,11 @@ export default {
 
     async handleDeleteAccount() {
       try {
-        // ✅ THAY ĐỔI: Dùng api instance và endpoint /users/{id}
-        await api.delete(`/users/${this.userId}`);
+        await api.delete(`/api/users/${this.userId}`);
 
         this.showSuccessToast('Tài khoản đã được xóa');
         
-        // ✅ THAY ĐỔI: Clear localStorage (token và user)
+        // Xóa sạch storage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('cart');
@@ -348,14 +340,8 @@ export default {
 }
 
 @keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Header */
@@ -446,7 +432,6 @@ export default {
   transform: translateY(-1px);
 }
 
-/* Gap utility */
 .gap-3 {
   gap: 1rem;
 }
@@ -456,27 +441,5 @@ export default {
   .profile-title {
     font-size: 1.5rem;
   }
-}
-</style>
-
-<style>
-/* Toast styles - Global */
-.b-toaster-top-center {
-    top: 20px !important;
-}
-
-.toast {
-    border-radius: 0.5rem !important;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-}
-
-.toast-header {
-    border-radius: 0.5rem 0.5rem 0 0 !important;
-    font-weight: 600 !important;
-}
-
-.toast-body {
-    font-size: 0.95rem !important;
-    padding: 1rem !important;
 }
 </style>
