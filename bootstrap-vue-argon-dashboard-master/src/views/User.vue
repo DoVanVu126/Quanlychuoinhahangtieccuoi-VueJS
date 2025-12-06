@@ -182,17 +182,23 @@ export default {
     },
 
     async deleteUser(id) {
-      if (!confirm("Bạn có chắc muốn xóa user này không?")) return;
-      this.loading = true;
-      try {
-        await api.delete(`/users/${id}`);
-        this.getUsers(this.currentPage);
-      } catch (err) {
-        console.error("❌ Lỗi xóa user:", err);
-      } finally {
-        this.loading = false;
-      }
-    },
+  if (!confirm("Bạn có chắc muốn xóa user này không?")) return;
+  this.loading = true;
+  try {
+    await api.delete(`/users/${id}`);
+    alert("✅ Xóa thành công");
+    this.getUsers(this.currentPage);
+  } catch (err) {
+    if (err.response) {
+      const msg = err.response.data.message || "Xóa không hợp lệ";
+      alert("❌ " + msg);
+    } else {
+      alert("❌ Lỗi kết nối server");
+    }
+  } finally {
+    this.loading = false;
+  }
+},
 
     refreshList() {
       this.searchQuery = "";

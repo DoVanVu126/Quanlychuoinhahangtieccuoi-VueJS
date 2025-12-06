@@ -69,24 +69,37 @@
         <div class="invalid-feedback" v-if="errors.role">{{ errors.role }}</div>
       </b-form-group>
 
-      <!-- Ảnh đại diện hiện tại -->
-      <b-form-group label="Ảnh đại diện hiện tại">
-        <div v-if="form.image_url">
+      <!-- Ảnh đại diện -->
+      <b-form-group label="Ảnh đại diện">
+        <!-- Preview ảnh mới nếu có -->
+        <div v-if="previewImage" class="mb-2 text-center">
+          <p>Ảnh mới:</p>
           <img
-            :src="getImageUrl(form.image_url)"
-            alt="Ảnh đại diện"
-            class="rounded-circle shadow-sm border mb-2"
+            :src="previewImage"
+            alt="Preview"
+            class="rounded-circle shadow-sm border"
             style="width: 120px; height: 120px; object-fit: cover"
           />
         </div>
-        <p v-else class="text-muted">Không có ảnh</p>
+
+        <!-- Ảnh hiện tại nếu chưa chọn ảnh mới -->
+        <div v-else-if="form.image_url" class="mb-2 text-center">
+          <p>Ảnh hiện tại:</p>
+          <img
+            :src="getImageUrl(form.image_url)"
+            alt="Ảnh đại diện"
+            class="rounded-circle shadow-sm border"
+            style="width: 120px; height: 120px; object-fit: cover"
+          />
+        </div>
+        <p v-else class="text-muted text-center">Không có ảnh</p>
 
         <!-- Chọn ảnh mới -->
         <b-form-file
-          v-model="form.newImage"
           accept="image/*"
           placeholder="Chọn ảnh mới nếu muốn thay"
           :class="{'is-invalid': errors.image}"
+          @change="handleImageUpload"
         ></b-form-file>
         <div class="invalid-feedback" v-if="errors.image">{{ errors.image }}</div>
       </b-form-group>
@@ -103,8 +116,13 @@
 
       <!-- Nút thao tác -->
       <div class="d-flex gap-2 mt-3">
-        <b-button type="submit" variant="primary">💾 Cập nhật</b-button>
-        <b-button variant="secondary" @click="$router.push('/users')">Hủy</b-button>
+        <b-button type="submit" variant="primary" :disabled="loading">
+          <span v-if="loading">💾 Đang xử lý...</span>
+          <span v-else>💾 Cập nhật</span>
+        </b-button>
+        <b-button variant="secondary" @click="$router.push('/users')" :disabled="loading">
+          Hủy
+        </b-button>
       </div>
     </b-form>
   </div>
@@ -128,6 +146,8 @@ export default {
       },
       errors: {},
       formError: "",
+      previewImage: null,
+      loading: false,
     };
   },
   mounted() {
@@ -148,9 +168,12 @@ export default {
           password: "",
         };
       } catch (err) {
-        console.error("❌ Không tải được người dùng:", err);
-        alert("Không tải được thông tin người dùng!");
-        this.$router.push("/users");
+        if (err.response && err.response.status === 404) {
+          alert("❌ Không tìm thấy user này");
+          this.$router.push("/users");
+        } else {
+          alert("❌ Lỗi khi tải dữ liệu");
+        }
       }
     },
 
@@ -158,6 +181,22 @@ export default {
       if (!url) return null;
       if (url.startsWith("http")) return url;
       return `http://127.0.0.1:8088/${url.replace(/^\/+/, "")}`;
+    },
+
+    handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        if (!file.type.startsWith("image/")) {
+          this.errors.image = "Chỉ được chọn file ảnh";
+          return;
+        }
+        this.errors.image = "";
+        this.form.newImage = file;
+        this.previewImage = URL.createObjectURL(file);
+      } else {
+        this.form.newImage = null;
+        this.previewImage = null;
+      }
     },
 
     validateForm() {
@@ -221,6 +260,7 @@ export default {
       if (!this.validateForm()) return;
 
       this.formError = "";
+      this.loading = true;
 
       try {
         const formData = new FormData();
@@ -245,6 +285,8 @@ export default {
           err.response && err.response.data ? err.response.data : err
         );
         this.formError = "Cập nhật thất bại!";
+      } finally {
+        this.loading = false;
       }
     },
   },

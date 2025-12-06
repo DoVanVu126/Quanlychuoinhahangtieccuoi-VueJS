@@ -2,6 +2,18 @@
   <div class="container mt-5">
     <h2 class="mb-4 text-warning">✏️ Sửa Khuyến Mãi</h2>
 
+    <!-- Loading -->
+    <div v-if="loading" class="form-loading">
+      <b-spinner
+        style="width: 2.5rem; height: 2.5rem;"
+        variant="warning"
+      ></b-spinner>
+      <span class="ml-2 loading-text">Đang xử lý...</span>
+    </div>
+
+    <!-- Error -->
+    <div v-if="formError" class="alert alert-danger">{{ formError }}</div>
+
     <b-form @submit.prevent="updatePromotion" enctype="multipart/form-data">
       <!-- Chọn Nhà hàng -->
       <b-form-group label="Nhà hàng" label-for="restaurant_id">
@@ -12,7 +24,9 @@
           required
         >
           <template #first>
-            <b-form-select-option :value="''" disabled>-- Chọn nhà hàng --</b-form-select-option>
+            <b-form-select-option :value="''" disabled
+              >-- Chọn nhà hàng --</b-form-select-option
+            >
           </template>
         </b-form-select>
       </b-form-group>
@@ -28,11 +42,7 @@
 
       <!-- Tiêu đề -->
       <b-form-group label="Tiêu đề" label-for="title">
-        <b-form-input
-          id="title"
-          v-model="form.title"
-          required
-        ></b-form-input>
+        <b-form-input id="title" v-model="form.title" required></b-form-input>
       </b-form-group>
 
       <!-- Mô tả -->
@@ -99,7 +109,7 @@
             :src="fixImageUrl(form.currentImage)"
             alt="Ảnh khuyến mãi"
             class="img-thumbnail"
-            style="max-width: 200px;"
+            style="max-width: 200px"
           />
         </div>
 
@@ -109,7 +119,7 @@
             :src="previewImage"
             alt="Preview"
             class="img-thumbnail"
-            style="max-width: 200px;"
+            style="max-width: 200px"
           />
         </div>
 
@@ -124,7 +134,9 @@
       <!-- Nút thao tác -->
       <div class="d-flex gap-2 mt-3">
         <b-button type="submit" variant="warning">💾 Cập nhật</b-button>
-        <b-button variant="secondary" @click="$router.push('/promotions')">Hủy</b-button>
+        <b-button variant="secondary" @click="$router.push('/promotions')"
+          >Hủy</b-button
+        >
       </div>
     </b-form>
   </div>
@@ -136,6 +148,7 @@ import api from "@/api";
 export default {
   data() {
     return {
+      loading: false, // ✅ thêm loading
       form: {
         promotion_code: "",
         title: "",
@@ -147,15 +160,20 @@ export default {
         end_date: "",
         status: "active",
         currentImage: null, // Ảnh cũ
-        newImage: null,     // Ảnh mới
+        newImage: null, // Ảnh mới
       },
       previewImage: null,
       restaurants: [],
+      errors: {},
+      formError: "",
     };
   },
   computed: {
     restaurantOptions() {
-      return this.restaurants.map(r => ({ value: r.restaurant_id, text: r.name }));
+      return this.restaurants.map((r) => ({
+        value: r.restaurant_id,
+        text: r.name,
+      }));
     },
   },
   mounted() {
@@ -217,29 +235,85 @@ export default {
     },
 
     async updatePromotion() {
-      if (!this.form.restaurant_id || !this.form.promotion_code || !this.form.title || !this.form.discount_value || !this.form.start_date || !this.form.end_date) {
-        return alert("Vui lòng điền đầy đủ các trường bắt buộc!");
+      this.errors = {};
+      this.formError = "";
+      this.loading = true;
+
+      if (
+        !this.form.restaurant_id ||
+        !this.form.promotion_code ||
+        !this.form.title
+      ) {
+        this.formError = "Vui lòng điền đầy đủ các trường bắt buộc!";
+        this.loading = false;
+        return;
       }
 
       try {
         const id = this.$route.params.id;
         const formData = new FormData();
 
-        ["promotion_code","title","description","restaurant_id","discount_type","discount_value","start_date","end_date","status"].forEach(key => {
+        [
+          "promotion_code",
+          "title",
+          "description",
+          "restaurant_id",
+          "discount_type",
+          "discount_value",
+          "start_date",
+          "end_date",
+          "status",
+        ].forEach((key) => {
           formData.append(key, this.form[key]);
         });
 
-        if (this.form.newImage) formData.append("image", this.form.newImage);
+        if (this.form.newImage) {
+          formData.append("image", this.form.newImage);
+        }
 
-        await api.post(`/promotions/${id}`, formData, {
+        const res = await api.post(`/promotions/${id}`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 
-        alert("✅ Cập nhật khuyến mãi thành công!");
-        this.$router.push("/promotions");
+        // ✅ Toast thành công
+        this.$bvToast.toast(res.data.message || "Cập nhật thành công!", {
+          title: "✅ Thành công",
+          variant: "success",
+          solid: true,
+          autoHideDelay: 3000,
+        });
+
+        setTimeout(() => {
+          this.$router.push("/promotions");
+        }, 1000);
       } catch (err) {
-        console.error("Lỗi cập nhật:", err);
-        alert("Cập nhật thất bại!");
+        let msg = "Lỗi hệ thống";
+
+        if (err.response && err.response.data) {
+          if (err.response.status === 422) {
+            const backendErrors = err.response.data.errors || {};
+            for (let key in backendErrors) {
+              this.errors[key] = backendErrors[key][0];
+            }
+            msg = "Dữ liệu không hợp lệ, vui lòng kiểm tra lại!";
+          } else if (err.response.status === 409 && err.response.data.message) {
+            msg = err.response.data.message;
+          } else if (err.response.data.message) {
+            msg = err.response.data.message;
+          }
+        }
+
+        this.formError = "❌ " + msg;
+
+        // ✅ Toast lỗi
+        this.$bvToast.toast(this.formError, {
+          title: "❌ Thất bại",
+          variant: "danger",
+          solid: true,
+          autoHideDelay: 4000,
+        });
+      } finally {
+        this.loading = false;
       }
     },
   },
@@ -247,8 +321,32 @@ export default {
 </script>
 
 <style scoped>
-.container { max-width: 700px; }
-h2 { font-weight: 600; }
-.b-form-group { margin-bottom: 1.2rem; }
-.img-thumbnail { border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.container {
+  max-width: 700px;
+}
+h2 {
+  font-weight: 600;
+}
+.b-form-group {
+  margin-bottom: 1.2rem;
+}
+.img-thumbnail {
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Loading spinner */
+.form-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fff3cd;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
+.loading-text {
+  font-size: 15px;
+  font-weight: 600;
+}
 </style>

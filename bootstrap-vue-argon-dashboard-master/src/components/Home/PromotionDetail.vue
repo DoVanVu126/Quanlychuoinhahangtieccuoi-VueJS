@@ -45,8 +45,17 @@
       </div>
     </div>
 
-    <!-- Tooltip -->
-    <div v-if="showTooltipFlag" class="tooltip-msg">{{ tooltipMsg }}</div>
+    <!-- Toast Manager -->
+    <b-toast
+      v-model="toast.show"
+      :title="toast.title"
+      :variant="toast.variant"
+      solid
+      auto-hide-delay="3000"
+      class="position-fixed top-0 end-0 m-3"
+    >
+      {{ toast.message }}
+    </b-toast>
   </section>
 </template>
 
@@ -73,9 +82,13 @@ export default {
         restaurant_id: null,
         restaurant_name: "Không rõ"
       },
-      tooltipMsg: "",
-      showTooltipFlag: false,
-      loading: true // ⭐ loading khi chờ dữ liệu
+      loading: true, // loading khi chờ dữ liệu
+      toast: {
+        show: false,
+        title: "",
+        message: "",
+        variant: "success"
+      }
     };
   },
   computed: {
@@ -89,7 +102,7 @@ export default {
   methods: {
     async loadDetail() {
       const id = this.$route.params.id;
-      this.loading = true; // bắt đầu loading
+      this.loading = true;
       try {
         const res = await api.get(`/promotions/${id}`);
         const data = res.data;
@@ -113,28 +126,39 @@ export default {
         };
       } catch (err) {
         console.error("Lỗi tải chi tiết:", err);
-        this.showTooltip("Không tải được chi tiết khuyến mãi!");
+        this.showToast("Lỗi", "Không tải được chi tiết khuyến mãi!", "danger");
       } finally {
-        this.loading = false; // kết thúc loading
+        this.loading = false;
       }
     },
-    handleImageError(e) { e.target.src = "/img/default.jpg"; },
-    formatDate(date) { return date ? new Date(date).toLocaleDateString("vi-VN") : ""; },
-    formatMoney(num) { return new Intl.NumberFormat("vi-VN").format(num); },
+
+    handleImageError(e) {
+      e.target.src = "/img/default.jpg";
+    },
+
+    formatDate(date) {
+      return date ? new Date(date).toLocaleDateString("vi-VN") : "";
+    },
+
+    formatMoney(num) {
+      return new Intl.NumberFormat("vi-VN").format(num);
+    },
+
     copyCode() {
       if (this.promotion.promotion_code) {
         navigator.clipboard.writeText(this.promotion.promotion_code);
-        this.showTooltip("Đã copy mã: " + this.promotion.promotion_code);
+        this.showToast("Thành công", "Đã copy mã: " + this.promotion.promotion_code, "success");
       }
     },
+
     async saveCode() {
-      if (!this.user) return alert("Bạn cần đăng nhập để lưu mã!");
+      if (!this.user) return this.showToast("Thất bại", "Bạn cần đăng nhập để lưu mã!", "danger");
       if (!this.promotion.promotion_code) return;
 
       const today = new Date();
       const endDate = new Date(this.promotion.end_date);
       if (endDate < today) {
-        this.showTooltip("⚠ Mã khuyến mãi đã hết hạn!");
+        this.showToast("Thất bại", "⚠ Mã khuyến mãi đã hết hạn!", "warning");
         return;
       }
 
@@ -144,7 +168,7 @@ export default {
         const exists = savedPromos.some(p => p.promotion_id === this.promotion.promotion_id);
 
         if (exists) {
-          this.showTooltip("⚠ Bạn đã lưu mã này trước đó!");
+          this.showToast("Thất bại", "⚠ Bạn đã lưu mã này trước đó!", "warning");
           return;
         }
 
@@ -155,16 +179,21 @@ export default {
         };
 
         const res = await api.post("/user-promotions", payload);
-        this.showTooltip(res.data.message || "Đã lưu mã khuyến mãi!");
+        this.showToast("Thành công", res.data.message || "Đã lưu mã khuyến mãi!", "success");
       } catch (err) {
         console.error(err);
-        this.showTooltip("Lưu mã thất bại!");
+        this.showToast("Thất bại", "Lưu mã thất bại!", "danger");
       }
     },
-    showTooltip(msg) {
-      this.tooltipMsg = msg;
-      this.showTooltipFlag = true;
-      setTimeout(() => (this.showTooltipFlag = false), 1500);
+
+    showToast(title, message, variant = "success") {
+      this.toast.title = title;
+      this.toast.message = message;
+      this.toast.variant = variant;
+      this.toast.show = false;
+      this.$nextTick(() => {
+        this.toast.show = true;
+      });
     }
   }
 };
@@ -241,28 +270,6 @@ export default {
 
 .status-active { color: #10b981; font-weight: 700; }
 .status-inactive { color: #6b7280; font-weight: 700; }
-
-.tooltip-msg {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #111827;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 12px;
-  font-weight: 600;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  z-index: 9999;
-  opacity: 0.95;
-  animation: fadeInOut 1.5s forwards;
-}
-
-@keyframes fadeInOut {
-  0% { opacity: 0; transform: translateY(-10px); }
-  10% { opacity: 0.95; transform: translateY(0); }
-  90% { opacity: 0.95; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-10px); }
-}
 
 /* Loading spinner */
 .loading-box {

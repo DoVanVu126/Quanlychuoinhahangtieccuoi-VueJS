@@ -287,15 +287,26 @@ export default {
       this.reviewForm = { star_rating: 0, comment: "" };
     },
 
-    async deleteReview(id) {
-      if (!confirm("Xóa đánh giá này?")) return;
-      try {
-        await axios.delete(`http://localhost:8088/api/reviews/${id}`);
-        this.fetchReviews();
-      } catch (err) {
-        console.error("Lỗi xóa đánh giá:", err);
-      }
-    },
+   async deleteReview(id) {
+  if (!confirm("Xóa đánh giá này?")) return;
+
+  try {
+    const res = await axios.delete(`http://localhost:8088/api/reviews/${id}`);
+    alert("✅ " + (res.data.message || "Xóa thành công"));
+
+    // Xóa review khỏi mảng cục bộ
+    this.reviews = this.reviews.filter(r => r.review_id !== id);
+
+  } catch (err) {
+    if (err.response && err.response.status === 404) {
+      alert("❌ Xóa không hợp lệ! Đánh giá đã bị xóa trước đó.");
+      this.fetchReviews(); // fallback nếu bị lỗi
+    } else {
+      alert("❌ Có lỗi xảy ra khi xóa.");
+      console.error("Lỗi xóa đánh giá:", err);
+    }
+  }
+},
 
     toggleMenu(id) {
       this.openMenuId = this.openMenuId === id ? null : id;

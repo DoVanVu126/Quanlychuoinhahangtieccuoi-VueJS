@@ -199,17 +199,23 @@ export default {
     },
 
     async deletePromotion(id) {
-      if (!confirm("Bạn có chắc muốn xóa khuyến mãi này không?")) return;
-      this.loading = true;
-      try {
-        await api.delete(`/promotions/${id}`);
-        await this.getPromotions(this.currentPage);
-      } catch (err) {
-        console.error("Lỗi xóa khuyến mãi:", err);
-      } finally {
-        this.loading = false;
-      }
-    },
+  if (!confirm("Bạn có chắc muốn xóa khuyến mãi này không?")) return;
+
+  this.loading = true;
+  try {
+    const res = await api.delete(`/promotions/${id}`);
+    alert("✅ " + res.data.message);
+    await this.getPromotions(this.currentPage);
+  } catch (err) {
+    let msg = "Xóa thất bại!";
+    if (err.response && err.response.data && err.response.data.message) {
+      msg = err.response.data.message;
+    }
+    alert("❌ " + msg);
+  } finally {
+    this.loading = false;
+  }
+},
 
     refreshList() {
       this.searchQuery = "";
