@@ -76,6 +76,14 @@
 
         <sidebar-item
           :link="{
+            name: 'Quản lý đánh giá',
+            path: '/reviews',
+            icon: 'ni ni-chat-round text-purple',
+          }"
+        ></sidebar-item>
+
+        <sidebar-item
+          :link="{
             name: 'Gói gợi ý',
             path: '/goi-goi-y',
             icon: 'ni ni-collection text-blue',
