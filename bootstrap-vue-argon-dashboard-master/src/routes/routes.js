@@ -174,9 +174,15 @@ const routes = [
 
       // 👉 HỒ SƠ
       {
-        path: "/profile",
-        name: "profile",
-        component: () => import("../views/Pages/UserProfile.vue"),
+        path: "/customer",
+        name: "customer",
+        component: () => import("../views/Customer.vue"),
+      },
+
+      {
+        path: '/customers-chitiet/:id', // :id là tham số động
+        name: 'customers-detail',
+        component: () => import("../views/CustomerDetail.vue"),
       },
 
       // 👉 CÀI ĐẶT
