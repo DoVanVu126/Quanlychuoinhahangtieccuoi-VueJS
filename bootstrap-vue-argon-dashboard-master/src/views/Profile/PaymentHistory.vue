@@ -14,192 +14,208 @@
 
     <b-card-body>
       <b-table
+        id="payment-table"
         :items="payments"
         :fields="tableFields"
-        :current-page="currentPage"
-        :per-page="perPage"
-        responsive
+        :busy="isBusy"
+        responsive="sm"
         hover
         show-empty
-        empty-text="Bạn chưa có lịch sử thanh toán nào."
-        class="payment-table"
+        empty-text="Bạn chưa có giao dịch nào."
+        class="payment-table custom-table-layout"
       >
+        <template #table-busy>
+          <div class="text-center text-primary my-2">
+            <b-spinner class="align-middle"></b-spinner>
+            <strong class="ms-2">Đang tải dữ liệu...</strong>
+          </div>
+        </template>
+
+        <template #cell(created_at)="data">
+           <div class="text-nowrap">{{ formatDate(data.value) }}</div>
+           <small class="text-muted">{{ formatTime(data.value) }}</small>
+        </template>
+
         <template #cell(amount)="data">
-          <span class="text-dark font-weight-bold">{{ data.value }}</span>
+          <span class="text-dark font-weight-bold text-success">
+            {{ formatCurrency(data.value) }}
+          </span>
+        </template>
+
+        <template #cell(status)="data">
+          <span>{{ mapStatusText(data.value) }}</span>
         </template>
         
         <template #cell(actions)="data">
           <b-button
-            variant="primary"
+            variant="outline-primary"
             size="sm"
-            class="action-button"
+            class="action-button text-nowrap"
             :to="`/profileUser/payment-history/${data.item.id}`" 
             >
-            Chi tiết
+            <i class="fas fa-file-invoice me-1"></i> Hóa đơn
           </b-button>
         </template>
 
       </b-table>
       
-      <b-pagination
-        v-if="totalRows > perPage"
-        v-model="currentPage"
-        :total-rows="totalRows"
-        :per-page="perPage"
-        align="center"
-        class="mt-4"
-      ></b-pagination>
+      <div class="d-flex justify-content-center mt-4" v-if="totalRows > perPage">
+        <b-pagination
+            v-model="currentPage"
+            :total-rows="totalRows"
+            :per-page="perPage"
+            aria-controls="payment-table"
+            first-number
+            last-number
+            pills
+        ></b-pagination>
+      </div>
 
     </b-card-body>
   </div>
 </template>
 
 <script>
-// Dịch từ <script setup> (Vue 3) sang Options API (Vue 2)
 import axios from 'axios';
-
-// Dữ liệu mẫu (từ code của bạn)
-const samplePayments = [
-  { id: 1, time: '10:07 4/10/2025', amount: '750,000 VND', service: 'Thực đơn cho trẻ em' },
-  { id: 2, time: '09:15 3/10/2025', amount: '8,500,000 VND', service: 'Đặt tiệc cưới Sảnh A' },
-  { id: 3, time: '14:30 1/10/2025', amount: '1,200,000 VND', service: 'Dịch vụ trang trí' },
-  { id: 4, time: '18:00 28/09/2025', amount: '450,000 VND', service: 'Phụ thu âm thanh' },
-  { id: 5, time: '11:20 25/09/2025', amount: '12,000,000 VND', service: 'Đặt tiệc hội nghị' },
-  { id: 6, time: '11:20 24/09/2025', amount: '5,000,000 VND', service: 'Đặt cọc Sảnh B' },
-];
 
 export default {
   name: 'PaymentHistory',
   data() {
     return {
-      // Dữ liệu cho <b-table>
-      payments: [], // Sẽ được tải từ API
+      isBusy: false,
+      payments: [],
       
-      // Cấu hình cột cho <b-table>
+      // Mapping cột (Lấy dữ liệu từ Booking nhưng hiển thị tên cột kiểu Thanh toán)
       tableFields: [
-        { key: 'id', label: 'STT', sortable: true, class: 'text-dark font-weight-bold' },
-        { key: 'time', label: 'Thời gian', sortable: true },
-        { key: 'amount', label: 'Giá', sortable: true },
-        { key: 'service', label: 'Dịch vụ', sortable: true },
-        { key: 'actions', label: 'Thao tác', class: 'text-center' }
+        { key: 'id', label: 'Mã GD', sortable: true, class: 'text-center font-weight-bold align-middle', thStyle: { width: '80px' } },
+        { key: 'created_at', label: 'Thời gian tạo', sortable: true, class: 'align-middle' },
+        { key: 'service', label: 'Nội dung thanh toán', class: 'align-middle text-wrap-col' },
+        { key: 'amount', label: 'Số tiền', sortable: true, class: 'text-end align-middle', thClass: 'text-end' },
+        { key: 'status', label: 'Trạng thái', class: 'text-center align-middle' },
+        { key: 'actions', label: 'Chi tiết', class: 'text-center align-middle', thStyle: { width: '100px' } }
       ],
 
-      // Dữ liệu cho <b-pagination>
       currentPage: 1,
-      perPage: 5, // Hiển thị 5 mục mỗi trang
+      perPage: 10,
       totalRows: 0,
       
-      backendUrl: process.env.VUE_APP_API_URL || 'http://localhost:8088'
+      backendUrl: 'http://localhost:8088'
     };
   },
   methods: {
-    // Hàm để tải dữ liệu (thay vì dùng dữ liệu mẫu)
+    formatCurrency(value) {
+        if (!value) return '0 đ';
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+    },
+    formatDate(dateString) {
+        if (!dateString) return '';
+        return new Date(dateString).toLocaleDateString('vi-VN');
+    },
+    formatTime(dateString) {
+        if (!dateString) return '';
+        return new Date(dateString).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+    },
+    mapStatusText(status) {
+        const map = {
+            'pending': 'Chờ thanh toán', // Map lại text cho phù hợp ngữ cảnh thanh toán
+            'confirmed': 'Đã cọc',
+            'completed': 'Đã thanh toán',
+            'cancelled': 'Đã hủy',
+            'deposit_paid': 'Đã cọc'
+        };
+        return map[status] || status;
+    },
+    getStatusVariant(status) {
+        const s = status ? status.toLowerCase() : '';
+        if (s === 'completed') return 'success'; // Hoàn thành = Xanh (Đã trả tiền)
+        if (s === 'confirmed' || s === 'deposit_paid') return 'info';
+        if (s === 'cancelled') return 'danger';
+        return 'warning'; // Pending = Vàng (Chưa trả)
+    },
+
     async fetchPaymentHistory() {
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+
+      if (!user || !user.user_id) {
+         this.$bvToast.toast('Vui lòng đăng nhập lại.', { title: 'Lỗi', variant: 'danger' });
+         return;
+      }
+
+      this.isBusy = true;
       try {
-        // TODO: Thay thế bằng API thật của bạn
-        // const response = await axios.get(`${this.backendUrl}/api/payment-history?page=${this.currentPage}`);
-        // this.payments = response.data.data;
-        // this.totalRows = response.data.total;
-        // this.perPage = response.data.per_page;
-        
-        // ---- DÙNG DỮ LIỆU MẪU ĐỂ TEST ----
-        this.payments = samplePayments;
-        this.totalRows = samplePayments.length;
-        // --------------------------------
-        
-      } catch (error) {
-        console.error("Lỗi khi tải lịch sử thanh toán:", error);
-        this.$bvToast.toast('Không thể tải lịch sử thanh toán.', {
-          title: 'Lỗi', variant: 'danger', solid: true
+        // Gọi API Booking History (Tái sử dụng)
+        const response = await axios.get(`${this.backendUrl}/api/booking-history`, {
+             params: { user_id: user.user_id }
         });
+
+        let rawData = [];
+        if (Array.isArray(response.data)) {
+            rawData = response.data;
+        } else if (response.data.data) {
+            rawData = response.data.data;
+        }
+
+        // MAP DỮ LIỆU BOOKING -> PAYMENT
+        this.payments = rawData.map(item => ({
+            id: item.booking_id,
+            created_at: item.created_at || item.event_date, // Ưu tiên ngày tạo đơn
+            service: `Thanh toán tiệc ${item.event_type} (${item.hall_name || 'Sảnh ?'})`,
+            amount: item.price,
+            status: item.status
+        }));
+        
+        this.totalRows = this.payments.length;
+
+      } catch (error) {
+        console.error("Lỗi tải lịch sử thanh toán:", error);
+      } finally {
+        this.isBusy = false;
       }
     }
   },
   created() {
-    // Gọi hàm này khi component được tải
     this.fetchPaymentHistory();
-  },
-  watch: {
-    // Tự động tải lại trang khi người dùng nhấn chuyển trang
-    currentPage() {
-      this.fetchPaymentHistory();
-    }
   }
 };
 </script>
 
 <style scoped>
-/* * KHỐI CSS TÙY CHỈNH
- * (Copy-paste toàn bộ từ file ChangePassword.vue để đồng bộ)
- */
-
-/* Header */
 .profile-title {
   font-family: 'Lora', serif;
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #111827;
 }
-
 .title-decoration {
   height: 4px;
-  width: 64px;
-  background: linear-gradient(to right, #86efac, #60a5fa);
-  border-radius: 9999px;
+  width: 60px;
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  border-radius: 4px;
 }
-
-/* Style cho nút "Chi tiết" */
-.action-button {
+.status-badge {
+  font-size: 0.7rem;
   font-weight: 600;
-  font-size: 0.75rem;
-  padding: 0.4rem 0.8rem;
-  border-radius: 0.5rem;
-  background-color: #60a5fa; /* Bắt chước bg-blue-500 */
-  border-color: #60a5fa;
+  padding: 0.4em 0.8em;
+  border-radius: 20px;
 }
-.action-button:hover {
-  background-color: #3b82f6; /* Bắt chước hover:bg-blue-600 */
-  border-color: #3b82f6;
+.action-button {
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 </style>
 
 <style>
-/* GHI ĐÈ STYLE CỦA B-TABLE ĐỂ HỢP VỚI GIAO DIỆN "MINIMALIST"
-  (Đây là CSS toàn cục, không "scoped")
-*/
-.payment-table thead th {
-  background-color: #f9fafb !important; /* bg-gray-50 */
-  border-bottom: 2px solid #e5e7eb !important; /* border-b-2 */
-  color: #4b5563 !important; /* text-gray-600 */
-  font-size: 0.8rem !important;
+/* Style chung cho bảng (giống BookingHistory để đồng bộ) */
+.custom-table-layout thead th {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 0.75rem !important;
+  border-bottom: 2px solid #e5e7eb !important;
 }
-.payment-table td {
-  border-bottom: 1px solid #f3f4f6 !important; /* border-gray-100 */
-  padding-top: 1rem !important;
-  padding-bottom: 1rem !important;
-  vertical-align: middle;
-}
-.payment-table tr:hover td {
-  background-color: #f9fafb !important; /* hover:bg-gray-50 */
-}
-
-/* GHI ĐÈ STYLE CỦA B-PAGINATION ĐỂ HỢP VỚI GIAO DIỆN
-*/
-.pagination .page-item .page-link {
-  border-radius: 0.375rem !important;
-  margin: 0 0.2rem;
-  border: none !important;
-  color: #4b5563; /* text-gray-600 */
-  font-weight: 600;
-}
-.pagination .page-item:hover .page-link {
-  background-color: #f3f4f6; /* bg-gray-100 */
-}
-.pagination .page-item.active .page-link {
-  background-color: #60a5fa !important; /* bg-blue-500 */
-  color: white;
-  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.3);
+.text-wrap-col {
+    white-space: normal !important;
+    max-width: 250px;
 }
 </style>
