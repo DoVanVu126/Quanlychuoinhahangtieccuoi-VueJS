@@ -68,9 +68,9 @@
           </b-form-group>
         </b-col>
 
-      <!-- Số điện thoại -->
+        <!-- Số điện thoại -->
         <b-col md="6" class="mb-4">
-          <b-form-group label="Số điện thoại" label-class="profile-label-readonly">
+          <b-form-group label="Số điện thoại" label-class="profile-label">
             <b-form-input
               v-model="profileForm.phone"
               type="text"
@@ -83,7 +83,7 @@
             </small>
           </b-form-group>
         </b-col>
-    </b-row>
+      </b-row>
 
       <!-- Actions -->
       <hr class="my-4" />
@@ -138,7 +138,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '@/api';
 
 export default {
   name: 'ProfileInfo',
@@ -161,7 +161,7 @@ export default {
       isLoading: true,
       isUpdating: false,
       showDeleteConfirm: false,
-      backendUrl: process.env.VUE_APP_API_URL || 'http://localhost:8088'
+      userId: null
     };
   },
   mounted() {
@@ -172,22 +172,23 @@ export default {
       this.isLoading = true;
       
       try {
-        const token = localStorage.getItem('user_token');
-        const response = await axios.get(this.backendUrl + '/api/profile', {
-          headers: {
-            'Authorization': 'Bearer ' + token
-          }
-        });
+        // ✅ THAY ĐỔI: Lấy user từ localStorage thay vì gọi API
+        const userStr = localStorage.getItem('user');
+        
+        if (!userStr) {
+          throw new Error('Không tìm thấy thông tin user');
+        }
 
-        const user = response.data;
+        const user = JSON.parse(userStr);
+        this.userId = user.user_id;
         
         // Populate form
         this.profileForm.full_name = user.full_name || '';
         this.profileForm.address = user.address || '';
+        this.profileForm.phone = user.phone || '';
         
         // Read-only info
         this.readOnlyInfo.email = user.email || '';
-        this.readOnlyInfo.phone = user.phone || 'Chưa cập nhật';
         
         if (user.created_at) {
           const date = new Date(user.created_at);
@@ -198,15 +199,11 @@ export default {
 
       } catch (error) {
         console.error('Không thể lấy thông tin profile:', error);
+        this.showErrorToast('Không thể tải thông tin. Vui lòng đăng nhập lại');
         
-        if (error.response && error.response.status === 401) {
-          this.showErrorToast('Phiên đăng nhập đã hết hạn');
-          localStorage.removeItem('user_token');
-          localStorage.removeItem('user_info');
+        setTimeout(() => {
           this.$router.push('/login');
-        } else {
-          this.showErrorToast('Không thể tải thông tin. Vui lòng thử lại');
-        }
+        }, 2000);
       } finally {
         this.isLoading = false;
       }
@@ -216,7 +213,8 @@ export default {
       let isValid = true;
       this.errors = {
         full_name: '',
-        address: ''
+        address: '',
+        phone: ''
       };
 
       // Validate full_name
@@ -231,6 +229,15 @@ export default {
         isValid = false;
       }
 
+      // Validate phone
+      if (this.profileForm.phone) {
+        const phoneClean = this.profileForm.phone.replace(/[^0-9]/g, '');
+        if (phoneClean.length < 9 || phoneClean.length > 11) {
+          this.errors.phone = 'Số điện thoại phải có 9-11 chữ số';
+          isValid = false;
+        }
+      }
+
       return isValid;
     },
 
@@ -243,27 +250,23 @@ export default {
       this.isUpdating = true;
 
       try {
-        const token = localStorage.getItem('user_token');
+        // ✅ THAY ĐỔI: Dùng api instance và endpoint /users/{id}
         const dataToUpdate = {
           full_name: this.profileForm.full_name.trim(),
-          address: this.profileForm.address.trim()
+          address: this.profileForm.address.trim(),
+          phone: this.profileForm.phone.trim()
         };
         
-        const response = await axios.put(
-          this.backendUrl + '/api/profile', 
-          dataToUpdate,
-          {
-            headers: {
-              'Authorization': 'Bearer ' + token
-            }
-          }
-        );
+        const response = await api.put(`/users/${this.userId}`, dataToUpdate);
 
-        // Update localStorage
-        const updatedUser = response.data.user;
-        localStorage.setItem('user_info', JSON.stringify(updatedUser));
+        // ✅ THAY ĐỔI: Update localStorage với key 'user'
+        const updatedUser = response.data;
+        localStorage.setItem('user', JSON.stringify(updatedUser));
 
         this.showSuccessToast('Cập nhật thông tin thành công!');
+        
+        // Emit event để ProfileLayout reload user info
+        this.$emit('user-updated', updatedUser);
         
         // Reload to get fresh data
         this.loadProfile();
@@ -288,19 +291,17 @@ export default {
 
     async handleDeleteAccount() {
       try {
-        const token = localStorage.getItem('user_token');
-        
-        await axios.delete(this.backendUrl + '/api/profile', {
-          headers: {
-            'Authorization': 'Bearer ' + token
-          }
-        });
+        // ✅ THAY ĐỔI: Dùng api instance và endpoint /users/{id}
+        await api.delete(`/users/${this.userId}`);
 
         this.showSuccessToast('Tài khoản đã được xóa');
         
-        // Logout and redirect
-        localStorage.removeItem('user_token');
-        localStorage.removeItem('user_info');
+        // ✅ THAY ĐỔI: Clear localStorage (token và user)
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('cart');
+        localStorage.removeItem('remembered_login');
+        localStorage.removeItem('remember_me');
         
         setTimeout(() => {
           this.$router.push('/login');

@@ -15,7 +15,7 @@
                                 </div>
 
                                 <div v-else-if="user && user.image_url" class="avatar-preview">
-                                    <img :src="backendUrl + user.image_url" alt="Avatar" class="avatar-image">
+                                    <img :src="backendUrl + '/' + user.image_url" alt="Avatar" class="avatar-image">
                                 </div>
 
                                 <div v-else class="avatar-placeholder">
@@ -39,13 +39,15 @@
                             </div>
 
                             <!-- Username -->
-                            <h4 class="mt-3 mb-0 font-weight-bold">Xin chào {{ user ? user.username : '' }}</h4>
+                            <h4 class="mt-3 mb-0 font-weight-bold">
+                                Xin chào {{ user ? (user.full_name || user.username) : '' }}
+                            </h4>
                         </div>
 
                         <!-- Navigation -->
                         <b-nav vertical class="sidebar-nav">
                             <b-nav-item 
-                                :to="{ name: 'Profile' }"
+                                to="/profileUser/info"
                                 exact
                                 class="sidebar-nav-item">
                                 <i class="fas fa-user me-2"></i>
@@ -53,21 +55,21 @@
                             </b-nav-item>
 
                             <b-nav-item 
-                                :to="{ name: 'ChangePassword' }"
+                                to="/profileUser/change-password"
                                 class="sidebar-nav-item">
                                 <i class="fas fa-lock me-2"></i>
                                 Đổi mật khẩu
                             </b-nav-item>
 
                             <b-nav-item 
-                                :to="{ name: 'PaymentHistory' }"
+                                to="/profileUser/payment-history"
                                 class="sidebar-nav-item">
                                 <i class="fas fa-credit-card me-2"></i>
                                 Lịch sử thanh toán
                             </b-nav-item>
 
                             <b-nav-item 
-                                :to="{ name: 'BookingHistory' }"
+                                to="/profileUser/booking-history"
                                 class="sidebar-nav-item">
                                 <i class="fas fa-list me-2"></i>
                                 Lịch sử đặt tiệc
@@ -86,7 +88,7 @@
                 <!-- Main Content -->
                 <b-col lg="9" md="8">
                     <div class="content-card">
-                        <router-view />
+                        <router-view @user-updated="loadUserInfo" />
                     </div>
                 </b-col>
 
@@ -108,7 +110,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '@/api';
 
 export default {
     name: 'ProfileLayout',
@@ -121,9 +123,35 @@ export default {
         };
     },
     mounted() {
+        this.checkAuth();
         this.loadUserInfo();
     },
     methods: {
+        checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            // 🔍 DEBUG
+            console.log('=== ProfileLayout checkAuth ===');
+            console.log('Token:', token);
+            console.log('User (raw):', user);
+            
+            try {
+                const userObj = JSON.parse(user);
+                console.log('User (parsed):', userObj);
+                console.log('Has user_id:', !!(userObj && userObj.user_id));
+            } catch (e) {
+                console.error('❌ Parse user error:', e);
+            }
+            
+            if (!token || !user) {
+                console.log('❌ No token or user, redirect to login');
+                this.$router.push('/login');
+            } else {
+                console.log('✅ Auth check passed');
+            }
+        },
+
         getUserInitial() {
             if (this.user && this.user.username) {
                 return this.user.username.charAt(0).toUpperCase();
@@ -132,7 +160,8 @@ export default {
         },
 
         loadUserInfo() {
-            const userInfo = localStorage.getItem('user_info');
+            // ✅ THAY ĐỔI: Dùng 'user' thay vì 'user_info'
+            const userInfo = localStorage.getItem('user'); 
             if (userInfo) {
                 this.user = JSON.parse(userInfo);
             }
@@ -165,24 +194,24 @@ export default {
 
             // Upload
             const formData = new FormData();
-            formData.append('avatar', file);
+            formData.append('image', file);
 
             try {
-                const token = localStorage.getItem('user_token');
-                const response = await axios.post(
-                    this.backendUrl + '/api/profile/avatar', 
+                // ✅ THAY ĐỔI: Dùng api instance (tự động gửi token)
+                const response = await api.post(
+                    `/users/${this.user.user_id}`, 
                     formData,
                     {
                         headers: {
-                            'Content-Type': 'multipart/form-data',
-                            'Authorization': 'Bearer ' + token
+                            'Content-Type': 'multipart/form-data'
                         }
                     }
                 );
 
                 // Update user info
-                this.user = response.data.user;
-                localStorage.setItem('user_info', JSON.stringify(response.data.user));
+                this.user = response.data;
+                // ✅ THAY ĐỔI: Lưu vào 'user' thay vì 'user_info'
+                localStorage.setItem('user', JSON.stringify(response.data));
 
                 this.showSuccessToast('Cập nhật avatar thành công!');
                 this.selectedImage = null;
@@ -204,23 +233,18 @@ export default {
 
         async handleConfirmLogout() {
             try {
-                const token = localStorage.getItem('user_token');
-                await axios.post(
-                    this.backendUrl + '/api/logout',
-                    {},
-                    {
-                        headers: {
-                            'Authorization': 'Bearer ' + token
-                        }
-                    }
-                );
+                // ✅ THAY ĐỔI: Dùng api instance (tự động gửi token)
+                await api.post('/logout');
             } catch (e) {
                 console.warn("Lỗi khi gọi API logout, vẫn tiếp tục logout ở client");
             }
 
-            // Clear localStorage
-            localStorage.removeItem('user_token');
-            localStorage.removeItem('user_info');
+            // ✅ THAY ĐỔI: Xóa 'token' và 'user', không phải 'user_token' và 'user_info'
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('cart');
+            localStorage.removeItem('remembered_login');
+            localStorage.removeItem('remember_me');
 
             this.showSuccessToast('Đã đăng xuất thành công');
 
@@ -355,6 +379,7 @@ export default {
 
 .sidebar-nav-logout {
     color: #dc2626;
+    cursor: pointer;
 }
 
 .sidebar-nav-logout:hover {
