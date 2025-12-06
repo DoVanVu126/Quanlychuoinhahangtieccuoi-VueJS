@@ -91,7 +91,6 @@ export default {
         startDate: this.startDate || "",
         endDate: this.endDate || "",
       },
-      selectedHall: null, // sảnh được chọn
       formError: "",
       successMessage: "",
     };
