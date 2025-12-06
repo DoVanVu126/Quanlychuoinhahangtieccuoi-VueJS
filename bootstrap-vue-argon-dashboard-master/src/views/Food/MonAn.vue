@@ -10,16 +10,17 @@
       </div>
     </base-header>
 
-    <!-- LOADING OVERLAY -->
-    <div v-if="loading" class="loading-overlay">
-      <div class="spinner"></div>
-      <p class="loading-text">Đang tải dữ liệu...</p>
-    </div>
-
     <!-- Nội dung chính -->
-    <div class="container-fluid mt--7" :class="{ 'blur-content': loading }">
-      <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
-        <div class="card-body">
+    <div class="container-fluid mt--7">
+      <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden; position: relative;">
+
+        <!-- LOADING TRONG FORM -->
+        <div v-if="loading" class="loading-overlay-form">
+          <div class="spinner"></div>
+          <p class="loading-text">Đang tải dữ liệu...</p>
+        </div>
+
+        <div class="card-body" :class="{ 'blur-content-form': loading }">
           <!-- Thanh công cụ -->
           <div class="d-flex justify-content-between align-items-center mb-3">
             <input
@@ -33,7 +34,7 @@
                 + Thêm Món ăn
               </router-link>
               <b-button variant="success" @click="refreshList">↻ Làm mới</b-button>
-              <b-button variant="danger" @click="exportPDF">⬇ Xuất PDF</b-button> <!-- nút PDF -->
+              <b-button variant="danger" @click="exportPDF">⬇ Xuất PDF</b-button>
             </div>
           </div>
 
@@ -57,8 +58,8 @@
                 <tr v-for="food in foods.data" :key="food.food_id">
                   <td>{{ food.food_id }}</td>
                   <td>{{ food.name }}</td>
-                  <td>{{ food.food_type && food.food_type.name ? food.food_type.name : "Không có" }}</td>
-                  <td>{{ food.restaurant && food.restaurant.name ? food.restaurant.name : "Không có" }}</td>
+                  <td>{{ (food.food_type && food.food_type.name) || "Không có" }}</td>
+<td>{{ (food.restaurant && food.restaurant.name) || "Không có" }}</td>
                   <td>{{ formatPrice(food.price) }}</td>
                   <td>{{ food.unit || "Chưa có" }}</td>
                   <td>{{ food.description || "" }}</td>
@@ -187,7 +188,6 @@ export default {
       window.open(`${this.baseURL}/api/foods/export-pdf`, "_blank");
     },
   },
- 
   mounted() {
     this.getFoods();
   },
@@ -221,25 +221,32 @@ export default {
   opacity: 1;
 }
 
-/* ----- LOADING OVERLAY ----- */
-.loading-overlay {
-  position: fixed;
+/* LOADING TRONG FORM */
+.loading-overlay-form {
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 9999;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 10;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  border-radius: 20px;
 }
 
+.blur-content-form {
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+/* Spinner */
 .spinner {
-  width: 60px;
-  height: 60px;
-  border: 6px solid #fff;
+  width: 50px;
+  height: 50px;
+  border: 5px solid #28a745;
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -251,14 +258,8 @@ export default {
 }
 
 .loading-text {
-  color: white;
-  margin-top: 15px;
-  font-size: 18px;
-}
-
-/* Mờ nội dung khi loading */
-.blur-content {
-  filter: blur(2px);
-  pointer-events: none;
+  color: #28a745;
+  margin-top: 10px;
+  font-weight: 600;
 }
 </style>
