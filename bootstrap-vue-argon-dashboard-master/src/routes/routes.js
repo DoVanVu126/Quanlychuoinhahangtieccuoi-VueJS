@@ -165,6 +165,12 @@ const routes = [
         name: "LichSuKho",
         component: () => import("../views/kho-hang/LichSuKho.vue"),
       },
+      // đánh giá
+       {
+      path: "/reviews",
+      name: "AdminReviews",
+      component: () => import("@/views/Admin/AdminReviewManagement.vue")
+    },
 
       // 👉 HỒ SƠ
       {
