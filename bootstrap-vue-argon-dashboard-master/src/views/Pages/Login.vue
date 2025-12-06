@@ -1,376 +1,180 @@
 <template>
-    <div class="login-page-container">
-        <header class="border-bottom py-4">
-            <b-container>
-                <div class="font-cursive h1 text-dark mb-0">Wedding</div>
-            </b-container>
-        </header>
+  <div class="loginpage-container">
+    <div class="loginpage-box">
+      <h2 class="loginpage-title">Đăng nhập</h2>
 
-        <main class="py-5">
-            <b-container>
-                <b-row class="justify-content-center">
-                    <b-col md="6" lg="5">
+      <!-- Thông báo lỗi -->
+      <p v-if="errorMessage" class="loginpage-error">{{ errorMessage }}</p>
 
-                        <h1 class="font-serif text-center display-4 mb-5">
-                            Đăng nhập
-                        </h1>
+      <input
+        v-model="email"
+        type="text"
+        class="loginpage-input"
+        placeholder="Email"
+      />
 
-                        <b-form @submit.prevent="handleLogin">
+      <!-- Nhóm mật khẩu + icon show/hide -->
+      <div class="loginpage-password-group">
+        <input
+          v-model="password"
+          :type="showPassword ? 'text' : 'password'"
+          class="loginpage-input"
+          placeholder="Mật khẩu"
+        />
+        <span class="loginpage-eye" @click="showPassword = !showPassword">
+          {{ showPassword ? "👁️" : "👁️‍🗨️" }}
+        </span>
+      </div>
 
-                            <!-- Login Field -->
-                            <b-form-group label="Tên tài khoản hoặc Email" label-class="form-label">
-                                <b-form-input 
-                                    v-model="form.login" 
-                                    type="text" 
-                                    class="minimal-input"
-                                    :class="{ 'is-invalid-custom': errors.login }"
-                                    :state="errors.login ? false : null"
-                                    placeholder="Nhập tài khoản hoặc email"
-                                    @input="validateLogin"
-                                    @blur="validateLogin">
-                                </b-form-input>
-                                <small v-if="errors.login" class="text-danger d-block mt-1">
-                                    {{ errors.login }}
-                                </small>
-                            </b-form-group>
-
-                            <!-- Password Field -->
-                            <b-form-group label="Mật khẩu" label-class="form-label" class="mt-4">
-                                <div class="position-relative">
-                                    <b-form-input 
-                                        v-model="form.password" 
-                                        :type="showPassword ? 'text' : 'password'"
-                                        class="minimal-input pe-5"
-                                        :class="{ 'is-invalid-custom': errors.password }"
-                                        placeholder="Nhập mật khẩu"
-                                        @input="validatePassword"
-                                        @blur="validatePassword">
-                                    </b-form-input>
-
-                                    <i class="fas" 
-                                        :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"
-                                        @click="togglePassword"
-                                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;">
-                                    </i>
-                                </div>
-                                <small v-if="errors.password" class="text-danger d-block mt-1">
-                                    {{ errors.password }}
-                                </small>
-                            </b-form-group>
-
-                            <div class="d-flex justify-content-between align-items-center mt-3">
-                                <b-form-checkbox v-model="form.remember">
-                                    <span class="text-muted">Nhớ tài khoản</span>
-                                </b-form-checkbox>
-
-                                <router-link to="/forgot-password" class="text-primary font-weight-bold small">
-                                    Quên mật khẩu?
-                                </router-link>
-                            </div>
-
-                            <b-button 
-                                type="submit" 
-                                class="minimal-button w-100 mt-4" 
-                                :disabled="isLoading || !isFormValid">
-                                <span v-if="isLoading">
-                                    <b-spinner small class="me-2"></b-spinner>
-                                    Đang xử lý...
-                                </span>
-                                <span v-else>ĐĂNG NHẬP</span>
-                            </b-button>
-                        </b-form>
-
-                        <div class="mt-4 text-center">
-                            <p class="text-muted">
-                                Chưa có tài khoản?
-                                <router-link to="/register" class="text-primary font-weight-bold">
-                                    Đăng ký ngay
-                                </router-link>
-                            </p>
-                        </div>
-
-                    </b-col>
-                </b-row>
-            </b-container>
-        </main>
+      <button @click="login" class="loginpage-btn" :disabled="loading">
+        {{ loading ? "Đang xử lý..." : "Đăng nhập" }}
+      </button>
     </div>
+  </div>
 </template>
 
 <script>
-import axios from 'axios';
+import axios from "@/axios"; // nếu bạn đã cấu hình axios baseURL
 
 export default {
-    name: 'Login',
-    data() {
-        return {
-            form: {
-                login: '',
-                password: '',
-                remember: false
-            },
-            errors: {
-                login: '',
-                password: ''
-            },
-            showPassword: false,
-            isLoading: false
-        };
+  data() {
+    return {
+      email: "",
+      password: "",
+      showPassword: false, // 👁️ Thêm biến show mật khẩu
+      errorMessage: "",
+      loading: false,
+    };
+  },
+
+  methods: {
+    async login() {
+      this.errorMessage = "";
+      this.loading = true;
+
+      try {
+        const res = await axios.post("/login", {
+          email: this.email,
+          password: this.password,
+        });
+
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        localStorage.setItem("token", res.data.token);
+
+        this.$router.push("/home");
+      } catch (error) {
+        this.errorMessage =
+          (error.response &&
+            error.response.data &&
+            error.response.data.message) ||
+          "Đăng nhập thất bại!";
+      } finally {
+        this.loading = false;
+      }
     },
-    computed: {
-        isFormValid() {
-            return (
-                this.form.login &&
-                this.form.password &&
-                !this.errors.login &&
-                !this.errors.password
-            );
-        }
-    },
-    mounted() {
-        this.loadRememberedAccount();
-    },
-    methods: {
-        togglePassword() {
-            this.showPassword = !this.showPassword;
-        },
-
-        validateLogin() {
-            const login = this.form.login;
-            
-            if (!login) {
-                this.errors.login = 'Tên tài khoản hoặc email là bắt buộc';
-            } else if (login.length > 255) {
-                this.errors.login = 'Tên đăng nhập quá dài';
-            } else if (/<|>/.test(login)) {
-                this.errors.login = 'Không được chứa ký tự đặc biệt';
-            } else {
-                this.errors.login = '';
-            }
-        },
-
-        validatePassword() {
-            const password = this.form.password;
-            
-            if (!password) {
-                this.errors.password = 'Mật khẩu là bắt buộc';
-            } else if (password.length > 255) {
-                this.errors.password = 'Mật khẩu quá dài';
-            } else {
-                this.errors.password = '';
-            }
-        },
-
-        loadRememberedAccount() {
-            const rememberedLogin = localStorage.getItem('remembered_login');
-            const rememberMe = localStorage.getItem('remember_me');
-
-            if (rememberedLogin && rememberMe === 'true') {
-                this.form.login = rememberedLogin;
-                this.form.remember = true;
-            }
-        },
-
-        handleRememberAccount() {
-            if (this.form.remember) {
-                // ✅ Lưu username để tự điền lần sau
-                localStorage.setItem('remembered_login', this.form.login);
-                localStorage.setItem('remember_me', 'true');
-            } else {
-                // ✅ CHỈ XÓA remembered_login, KHÔNG XÓA token và user
-                localStorage.removeItem('remembered_login');
-                localStorage.removeItem('remember_me');
-                // ⚠️ KHÔNG xóa 'token' và 'user' ở đây!
-            }
-        },
-
-        showSuccessToast(message) {
-            this.$bvToast.toast(message, {
-                title: 'Thành công',
-                variant: 'success',
-                solid: true,
-                autoHideDelay: 2000,
-                toaster: 'b-toaster-top-center',
-            });
-        },
-
-        showErrorToast(message) {
-            this.$bvToast.toast(message, {
-                title: 'Lỗi đăng nhập',
-                variant: 'danger',
-                solid: true,
-                autoHideDelay: 4000,
-                toaster: 'b-toaster-top-center',
-            });
-        },
-
-        handleLogin() {
-            // Validate trước khi gọi API
-            this.validateLogin();
-            this.validatePassword();
-
-            if (!this.isFormValid) {
-                this.showErrorToast('Vui lòng kiểm tra lại thông tin đăng nhập');
-                return;
-            }
-
-            this.isLoading = true;
-            const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8088';
-
-            axios.post(`${apiUrl}/api/login`, {
-                login: this.form.login,
-                password: this.form.password
-            })
-            .then(response => {
-                this.isLoading = false;
-
-                // ✅ FIX: LUÔN lưu vào localStorage (không dùng sessionStorage nữa)
-                if (response.data.user && response.data.token) {
-                    const user = response.data.user;
-                    const token = response.data.token;
-
-                    // 🔥 THAY ĐỔI: Luôn lưu vào localStorage để Cart/Booking hoạt động
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('user', JSON.stringify(user));
-
-                    // Lưu thông tin "Nhớ tài khoản" nếu được chọn
-                    this.handleRememberAccount();
-
-                    // Hiển thị thông báo
-                    this.showSuccessToast(`Chào mừng ${user.full_name || user.username} quay trở lại!`);
-
-                    // Điều hướng dựa theo role
-                    setTimeout(() => {
-                        if (user.role === 'admin' || user.role === 'staff') {
-                            this.$router.push('/dashboard');
-                        } else {
-                            this.$router.push('/home'); 
-                        }
-                    }, 1000);
-                }
-            })
-            .catch(error => {
-                this.isLoading = false;
-                
-                if (error.response) {
-                    const status = error.response.status;
-                    const errorData = error.response.data;
-
-                    if (status === 422 || status === 401) {
-                        if (errorData.errors && errorData.errors.login) {
-                             this.showErrorToast(errorData.errors.login[0]);
-                        } else {
-                             const message = errorData.message || 'Tài khoản hoặc mật khẩu không chính xác';
-                             this.showErrorToast(message);
-                        }
-                    } else if (status === 500) {
-                        this.showErrorToast('Lỗi máy chủ. Vui lòng thử lại sau.');
-                    } else {
-                        this.showErrorToast('Đã có lỗi xảy ra. Vui lòng thử lại.');
-                    }
-                } else {
-                    this.showErrorToast('Không thể kết nối đến máy chủ.');
-                }
-            });
-        }
-    }
+  },
 };
 </script>
 
 <style scoped>
-/* Font chữ */
-.font-cursive {
-    font-family: 'Dancing Script', cursive;
-    font-weight: 700;
+/* ================================
+   LOGIN PAGE CSS (ĐẶT TÊN RIÊNG)
+   ================================ */
+.loginpage-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f3f4f6;
 }
 
-.font-serif {
-    font-family: 'Lora', serif;
-    font-weight: 600;
+.loginpage-box {
+  width: 350px;
+  padding: 30px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  animation: loginpageFadeIn 0.4s ease;
 }
 
-/* Nền trang */
-.login-page-container {
-    min-height: 100vh;
-    background-color: #ffffff;
+@keyframes loginpageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Label */
-.form-label {
-    color: #4a5568;
-    font-size: 0.875rem;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
+.loginpage-title {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
-/* Input */
-.minimal-input {
-    background-color: #f3f4f6 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-    box-shadow: none !important;
-    transition: all 0.2s ease;
+.loginpage-input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: 0.25s;
 }
 
-.minimal-input:focus {
-    background-color: #f3f4f6 !important;
-    border: 0 !important;
-    box-shadow: 0 0 0 2px #60a5fa !important;
+.loginpage-input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  outline: none;
 }
 
-/* Input invalid */
-.minimal-input.is-invalid-custom {
-    box-shadow: 0 0 0 3px #ef4444 !important;
-    background-color: #fef2f2 !important;
+/* Nhóm chứa input + icon */
+.loginpage-password-group {
+  position: relative;
+  width: 100%;
 }
 
-.minimal-input.is-invalid-custom:focus {
-    box-shadow: 0 0 0 3px #dc2626 !important;
-    background-color: #fef2f2 !important;
+/* Icon con mắt */
+.loginpage-eye {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 18px;
+  opacity: 0.6;
+  transition: 0.25s;
 }
 
-/* Nút bấm */
-.minimal-button {
-    background-color: #60a5fa !important;
-    border-color: #60a5fa !important;
-    border-radius: 0 !important;
-    text-transform: uppercase !important;
-    font-weight: 600 !important;
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-    transition: all 0.2s ease-in-out;
+.loginpage-eye:hover {
+  opacity: 1;
 }
 
-.minimal-button:hover:not(:disabled) {
-    background-color: #3b82f6 !important;
-    border-color: #3b82f6 !important;
+.loginpage-btn {
+  width: 100%;
+  padding: 12px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.25s;
 }
 
-.minimal-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-</style>
-
-<style>
-/* Toast styles - Global */
-.b-toaster-top-center {
-    top: 20px !important;
+.loginpage-btn:hover {
+  background: #4338ca;
 }
 
-.toast {
-    border-radius: 0.5rem !important;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+.loginpage-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
-.toast-header {
-    border-radius: 0.5rem 0.5rem 0 0 !important;
-    font-weight: 600 !important;
-}
-
-.toast-body {
-    font-size: 0.95rem !important;
-    padding: 1rem !important;
+.loginpage-error {
+  color: #dc2626;
+  margin-bottom: 10px;
+  text-align: center;
 }
 </style>

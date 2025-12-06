@@ -8,7 +8,7 @@ import Register from "@/views/Pages/Register.vue";
 import Profile from "@/views/Pages/Profile.vue";
 import Search from "@/views/Pages/Search.vue";
 import UserLayout from "@/views/KM/UserLayout.vue";
-import ProfileLayout from '@/views/Profile/ProfileLayout.vue';
+
 const routes = [
   {
     path: "/",
@@ -165,12 +165,6 @@ const routes = [
         name: "LichSuKho",
         component: () => import("../views/kho-hang/LichSuKho.vue"),
       },
-      // đánh giá
-       {
-      path: "/reviews",
-      name: "AdminReviews",
-      component: () => import("@/views/Admin/AdminReviewManagement.vue")
-    },
 
       // 👉 HỒ SƠ
       {
@@ -200,51 +194,19 @@ const routes = [
         component: () => import("../views/Bookings.vue"),
       },
 
+      // 👉 TRẠNG THÁI THANH TOÁN (Admin view to inspect payment result)
+      {
+        path: "/admin/payment-status",
+        name: "AdminPayment",
+        component: () => import("@/views/Pages/AdminPayment.vue"),
+        props: true,
+      },
+
       // 👉 GÓI GỢI Ý (Suggestion packages)
       {
         path: "/goi-goi-y",
         name: "GoiGoiY",
         component: () => import("../views/GoiGoiY.vue"),
-      },
-    ],
-  },
-
-   //Hồ sơ người dùng
-  {
-    path: '/profileUser',
-    component: ProfileLayout,
-    children: [
-      {
-        path: '', // Thông tin cá nhân
-        name: 'Profile',
-        component: () => import('@/views/Profile/ProfileInfo.vue'),
-      },
-      {
-        path: 'change-password', //Đổi mật khẩu
-        name: 'ChangePassword',
-        component: () => import('@/views/Profile/ChangePassword.vue'),
-      },
-      {
-        path: 'payment-history', //Lịch sử thanh toán
-        name: 'PaymentHistory',
-        component: () => import('@/views/Profile/PaymentHistory.vue'),
-      },
-      {
-        path: 'payment-history/:id', // Chi tiết thanh toán
-        name: 'PaymentDetail',
-        component: () => import('@/views/Profile/PaymentDetail.vue'), // Bạn sẽ cần tạo file này
-        props: true
-      },
-      {
-        path: 'booking-history', //Lịch sử đặt tiệc
-        name: 'BookingHistory',
-        component: () => import('@/views/Profile/BookingHistory.vue'),
-      },
-      {
-        path: 'booking-history/:id', //Chi tiết đặt tiệc
-        name: 'BookingDetail',
-        component: () => import('@/views/Profile/BookingDetail.vue'),
-        props: true
       },
     ],
   },
@@ -280,20 +242,21 @@ const routes = [
       }
     ]
   },
-
+ 
+  
 
   {
-    path: "/saved-promotions",
-    component: () => import("@/views/KM/UserHeaderLayout.vue"), // layout chỉ có header
-    children: [
-      {
-        path: "",
-        name: "SavedPromotions",
-        component: () => import("@/views/SavedPromotions.vue"),
-        meta: { requiresAuth: true }
-      }
-    ]
-  },
+  path: "/saved-promotions",
+  component: () => import("@/views/KM/UserHeaderLayout.vue"), // layout chỉ có header
+  children: [
+    {
+      path: "",
+      name: "SavedPromotions",
+      component: () => import("@/views/SavedPromotions.vue"),
+      meta: { requiresAuth: true }
+    }
+  ]
+},
 
   {
     path: "/promotion/:id",
@@ -309,6 +272,18 @@ const routes = [
 
   // Public restaurant detail (user-facing)
   {
+    path: '/thanh-toan',
+    name: 'Payment',
+    component: () => import('@/views/Pages/Payment.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/thanh-toan-thanh-cong',
+    name: 'PaymentSuccess',
+    component: () => import('@/views/Pages/PaymentSuccess.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: "/restaurant/:id",
     component: UserLayout,
     children: [
@@ -321,18 +296,18 @@ const routes = [
     ]
   },
   {
-    path: '/membership',
-    name: 'Membership',
-    component: () => import('@/views/Membership.vue'),
-    meta: { requiresAuth: true }
-  },
+  path: '/membership',
+  name: 'Membership',
+  component: () => import('@/views/Membership.vue'),
+  meta: { requiresAuth: true }
+},
 
-  {
-    path: '/membership/detail',
-    name: 'MembershipDetail',
-    component: () => import('@/views/MembershipDetail.vue'),
-    meta: { requiresAuth: true }
-  },
+{
+  path: '/membership/detail',
+  name: 'MembershipDetail',
+  component: () => import('@/views/MembershipDetail.vue'),
+  meta: { requiresAuth: true }
+},
 
 
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
@@ -350,22 +325,6 @@ const routes = [
         path: "/register",
         name: "register",
         component: () => import("../views/Pages/Register.vue"),
-      },
-      {
-        path: "/forgot-password",
-        name: "ForgotPassword",
-        component: () => import("../views/Pages/ForgotPassword.vue"),
-      },
-      {
-        path: "/verify-otp",
-        name: "VerifyOtp",
-        component: () => import("../views/Pages/VerifyOtp.vue"),
-      },
-
-      {
-        path: "/reset-password",
-        name: "ResetPassword",
-        component: () => import("../views/Pages/ResetPassword.vue"),
       },
       { path: "*", component: NotFound },
     ],
