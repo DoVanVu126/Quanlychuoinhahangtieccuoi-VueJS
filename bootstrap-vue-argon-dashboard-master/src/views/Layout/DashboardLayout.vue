@@ -92,8 +92,8 @@
 
         <sidebar-item
           :link="{
-            name: 'Hồ sơ',
-            path: '/profile',
+            name: 'Khách hàng',
+            path: '/customer',
             icon: 'ni ni-single-02 text-dark',
           }"
         ></sidebar-item>
