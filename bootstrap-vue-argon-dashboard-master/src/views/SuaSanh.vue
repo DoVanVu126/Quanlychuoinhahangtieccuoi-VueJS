@@ -25,12 +25,16 @@
 
       <!-- Nhà hàng (combobox) -->
       <b-form-group label="Nhà hàng">
-        <b-form-select v-model="form.restaurant_id" :options="restaurantOptions" required>
-          <template #first>
-            <b-form-select-option :value="null" disabled>-- Chọn nhà hàng --</b-form-select-option>
-          </template>
-        </b-form-select>
-      </b-form-group>
+  <b-form-select
+    v-model="form.restaurant_id"
+    :options="restaurantOptions"
+    disabled
+  >
+    <template #first>
+      <b-form-select-option :value="null" disabled>-- Chọn nhà hàng --</b-form-select-option>
+    </template>
+  </b-form-select>
+</b-form-group>
 
       <!-- Trạng thái -->
       <b-form-group label="Trạng thái">
