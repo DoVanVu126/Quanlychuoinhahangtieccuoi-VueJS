@@ -23,6 +23,14 @@ import router from './routes/router';
 // plugin setup
 Vue.use(DashboardPlugin);
 
+// ✅ THÊM BOOTSTRAPVUE + TOAST
+import BootstrapVue from "bootstrap-vue";
+import { ToastPlugin } from "bootstrap-vue";
+
+// ✅ CSS bắt buộc
+import 'bootstrap/dist/css/bootstrap.css';
+import 'bootstrap-vue/dist/bootstrap-vue.css';
+
 /* eslint-disable no-new */
 new Vue({
   el: '#app',

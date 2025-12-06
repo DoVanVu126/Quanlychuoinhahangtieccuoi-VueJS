@@ -1,6 +1,13 @@
 <template>
   <div class="container mt-5">
-    <h2>Thêm Món Ăn</h2>
+    <h2 class="text-primary mb-4">🍽 Thêm Món Ăn</h2>
+
+    <!-- Spinner trong form -->
+    <div v-if="loading" class="form-loading">
+      <div class="custom-spinner"></div>
+      <span class="loading-text">Đang xử lý...</span>
+    </div>
+
     <b-form @submit.prevent="addFood">
 
       <!-- Tên món ăn -->
@@ -29,7 +36,7 @@
           id="unit"
           v-model="form.unit"
           required
-          placeholder="Nhập đơn vị món ăn (ví dụ: phần, suất)"
+          placeholder="Nhập đơn vị (VD: phần, suất)"
         ></b-form-input>
       </b-form-group>
 
@@ -45,7 +52,7 @@
         ></b-form-input>
       </b-form-group>
 
-      <!-- Loại món ăn -->
+      <!-- Loại món -->
       <b-form-group label="Loại món ăn" label-for="food_type_id">
         <b-form-select
           id="food_type_id"
@@ -54,7 +61,9 @@
           required
         >
           <template #first>
-            <b-form-select-option :value="null" disabled>-- Chọn loại --</b-form-select-option>
+            <b-form-select-option disabled :value="null">
+              -- Chọn loại --
+            </b-form-select-option>
           </template>
         </b-form-select>
       </b-form-group>
@@ -68,25 +77,45 @@
           required
         >
           <template #first>
-            <b-form-select-option :value="null" disabled>-- Chọn nhà hàng --</b-form-select-option>
+            <b-form-select-option disabled :value="null">
+              -- Chọn nhà hàng --
+            </b-form-select-option>
           </template>
         </b-form-select>
       </b-form-group>
 
-      <!-- Upload ảnh -->
+      <!-- Ảnh -->
       <b-form-group label="Ảnh món ăn" label-for="image">
         <b-form-file
           id="image"
-          v-model="form.image"
+          @change="handleImageUpload"
           accept="image/*"
           placeholder="Chọn file ảnh..."
         ></b-form-file>
       </b-form-group>
 
-      <!-- Nút lưu -->
-      <b-button type="submit" variant="success">Lưu</b-button>
-      <b-button variant="secondary" @click="$router.push('/mon-an')">Quay lại</b-button>
+      <!-- Nút -->
+      <div class="d-flex gap-2 mt-3">
+        <b-button type="submit" variant="success" :disabled="loading">
+          {{ loading ? "Đang lưu..." : "Lưu" }}
+        </b-button>
+        <b-button variant="secondary" @click="$router.push('/mon-an')">
+          Quay lại
+        </b-button>
+      </div>
+
     </b-form>
+
+    <!-- Toast thành công -->
+    <b-toast
+      id="toast-success"
+      title="✅ Thành công"
+      variant="success"
+      solid
+      auto-hide-delay="3000"
+    >
+      Thêm món ăn thành công!
+    </b-toast>
   </div>
 </template>
 
@@ -94,8 +123,9 @@
 import api from "@/api";
 
 export default {
-  data() {
+  data: function() {
     return {
+      loading: false,
       form: {
         name: "",
         description: "",
@@ -103,68 +133,125 @@ export default {
         price: 0,
         food_type_id: null,
         restaurant_id: null,
-        image: null, // file upload
+        image: null
       },
-      foodTypes: [],      // Loại món ăn
-      restaurants: [],    // Nhà hàng
+      foodTypes: [],
+      restaurants: []
     };
   },
-  methods: {
-    async fetchFoodTypes() {
-      try {
-        const res = await api.get("/food-types");
-        this.foodTypes = res.data.map(ft => ({
-          value: ft.food_type_id,
-          text: ft.name,
-        }));
-      } catch (err) {
-        console.error("Lỗi tải loại món ăn:", err);
-      }
-    },
-   async fetchRestaurants() {
-  try {
-    const res = await api.get("/restaurants");
 
-    // lấy mảng thực sự từ API
-    const restaurantsArray = Array.isArray(res.data) ? res.data : res.data.data || [];
-
-    this.restaurants = restaurantsArray.map(r => ({
-      value: r.restaurant_id,
-      text: r.name,
-    }));
-  } catch (err) {
-    console.error("Lỗi tải nhà hàng:", err);
-  }
-},
-    async addFood() {
-  try {
-    const formData = new FormData();
-    formData.append("name", this.form.name);
-    formData.append("description", this.form.description);
-    formData.append("unit", this.form.unit);
-    formData.append("price", this.form.price);
-    formData.append("food_type_id", this.form.food_type_id);
-    formData.append("restaurant_id", this.form.restaurant_id);
-    if (this.form.image) {
-      formData.append("image", this.form.image);
-    }
-
-    await api.post("/foods", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    alert("✅ Đã thêm món ăn: " + this.form.name);
-    this.$router.push("/mon-an");
-  } catch (err) {
-    console.error("Lỗi thêm món ăn:", err.response && err.response.data ? err.response.data : err);
-    alert("❌ Thêm món ăn thất bại! Kiểm tra console để biết chi tiết.");
-  }
-},
-  },
-  mounted() {
+  mounted: function() {
     this.fetchFoodTypes();
     this.fetchRestaurants();
   },
+
+  methods: {
+    // Upload ảnh
+    handleImageUpload: function(e) {
+      var file = null;
+      if (e && e.target && e.target.files && e.target.files[0]) {
+        file = e.target.files[0];
+      }
+      this.form.image = file;
+    },
+
+    // Lấy loại món
+    fetchFoodTypes: async function() {
+      try {
+        var res = await api.get("/food-types");
+        var list = [];
+
+        if (Array.isArray(res.data)) {
+          list = res.data;
+        } else if (res.data && res.data.data) {
+          list = res.data.data;
+        }
+
+        this.foodTypes = list.map(function(ft) {
+          return {
+            value: ft.food_type_id,
+            text: ft.name
+          };
+        });
+      } catch (err) {
+        console.error("Lỗi tải loại món:", err);
+      }
+    },
+
+    // Lấy nhà hàng
+    fetchRestaurants: async function() {
+      try {
+        var res = await api.get("/restaurants");
+        var list = [];
+
+        if (Array.isArray(res.data)) {
+          list = res.data;
+        } else if (res.data && res.data.data) {
+          list = res.data.data;
+        }
+
+        this.restaurants = list.map(function(r) {
+          return {
+            value: r.restaurant_id,
+            text: r.name
+          };
+        });
+      } catch (err) {
+        console.error("Lỗi tải nhà hàng:", err);
+      }
+    },
+
+    // Thêm món ăn
+    addFood: async function() {
+      this.loading = true;
+
+      try {
+        var formData = new FormData();
+        formData.append("name", this.form.name);
+        formData.append("description", this.form.description);
+        formData.append("unit", this.form.unit);
+        formData.append("price", this.form.price);
+        formData.append("food_type_id", this.form.food_type_id);
+        formData.append("restaurant_id", this.form.restaurant_id);
+
+        if (this.form.image) {
+          formData.append("image", this.form.image);
+        }
+
+        await api.post("/foods", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+
+        // show toast
+        if (this.$bvToast && this.$bvToast.show) {
+          this.$bvToast.show("toast-success");
+        }
+
+        // delay rồi chuyển trang
+        setTimeout(
+          function() {
+            this.$router.push("/mon-an");
+          }.bind(this),
+          800
+        );
+      } catch (err) {
+        console.error("Lỗi thêm món ăn:", err);
+
+        if (this.$bvToast && this.$bvToast.toast) {
+          this.$bvToast.toast("Thêm món ăn thất bại!", {
+            title: "❌ Lỗi",
+            variant: "danger",
+            solid: true,
+            autoHideDelay: 3000
+          });
+        } else {
+          alert("❌ Thêm món ăn thất bại!");
+        }
+      } finally {
+        this.loading = false;
+      }
+    }
+  }
 };
 </script>
 
@@ -172,10 +259,44 @@ export default {
 .container {
   max-width: 700px;
 }
+
+/* Spinner trong form */
+.form-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.custom-spinner {
+  width: 32px;
+  height: 32px;
+  border: 4px solid #ddd;
+  border-top: 4px solid #28a745;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.loading-text {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* animation xoay */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 h2 {
   font-weight: 600;
   margin-bottom: 20px;
 }
+
 .b-form-group {
   margin-bottom: 1.2rem;
 }

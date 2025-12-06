@@ -2,6 +2,12 @@
   <div class="container mt-5">
     <h2>Thêm User</h2>
 
+    <!-- Loading -->
+    <div v-if="loading" class="form-loading">
+      <b-spinner style="width: 2.5rem; height: 2.5rem;" variant="success"></b-spinner>
+      <span class="ml-2 loading-text">Đang xử lý...</span>
+    </div>
+
     <!-- Thông báo lỗi tổng -->
     <div v-if="formError" class="alert alert-danger">
       {{ formError }}
@@ -111,6 +117,7 @@ import api from "@/api";
 export default {
   data() {
     return {
+      loading: false, // ✅ thêm loading
       form: {
         username: "",
         email: "",
@@ -196,12 +203,6 @@ export default {
         isValid = false;
       }
 
-      // Image (nếu muốn bắt buộc)
-      // if (!this.imageFile) {
-      //   this.errors.image = "Ảnh đại diện bắt buộc";
-      //   isValid = false;
-      // }
-
       return isValid;
     },
 
@@ -211,6 +212,7 @@ export default {
         return;
       }
       this.formError = "";
+      this.loading = true; // ✅ bật loading
 
       try {
         const formData = new FormData();
@@ -226,21 +228,43 @@ export default {
           headers: { "Content-Type": "multipart/form-data" },
         });
 
-        alert("✅ Thêm user thành công: " + this.form.username);
-        this.$router.push("/users");
-      } catch (err) {
-        console.error("❌ Lỗi thêm user:", err.response ? err.response.data : err);
+        // ✅ toast thành công
+        this.$bvToast.toast(`Thêm user thành công: ${this.form.username}`, {
+          title: "✅ Thành công",
+          variant: "success",
+          solid: true,
+          autoHideDelay: 3000,
+        });
 
-        if (err.response && err.response.data && err.response.data.errors) {
-          const errors = err.response.data.errors;
-          this.formError = Object.keys(errors)
-            .map((key) => `${key}: ${errors[key].join(", ")}`)
-            .join("\n");
-        } else if (err.response && err.response.data && err.response.data.message) {
-          this.formError = err.response.data.message;
+        setTimeout(() => {
+          this.$router.push("/users");
+        }, 1000);
+      } catch (err) {
+        let msg = "Thêm user thất bại";
+
+        if (err.response) {
+          if (err.response.status === 422 && err.response.data.errors) {
+            msg = Object.values(err.response.data.errors).flat().join("\n");
+          } else if (err.response.data.message) {
+            msg = err.response.data.message;
+          } else {
+            msg = "Lỗi hệ thống";
+          }
         } else {
-          this.formError = "Thêm user thất bại!";
+          msg = "Không kết nối được server";
         }
+
+        this.formError = msg;
+
+        // ✅ toast lỗi
+        this.$bvToast.toast(this.formError, {
+          title: "❌ Thất bại",
+          variant: "danger",
+          solid: true,
+          autoHideDelay: 4000,
+        });
+      } finally {
+        this.loading = false; // ✅ tắt loading
       }
     },
   },
@@ -267,5 +291,20 @@ h2 {
 }
 .is-invalid {
   border-color: #dc3545;
+}
+
+/* Loading spinner */
+.form-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #d4edda;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
+.loading-text {
+  font-size: 15px;
+  font-weight: 600;
 }
 </style>

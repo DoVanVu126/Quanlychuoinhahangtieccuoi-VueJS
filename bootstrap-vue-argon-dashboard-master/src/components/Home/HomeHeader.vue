@@ -150,7 +150,7 @@ export default {
       sessionStorage.removeItem("token");
       sessionStorage.removeItem("user");
 
-      // 2. Hủy Realtime 
+      // 2. Hủy Realtime
       if (window.Echo && this.user) {
         window.Echo.leave('notifications.' + this.user.user_id);
       }
@@ -218,14 +218,39 @@ export default {
       } catch (err) { console.error(err); }
     },
 
-    async deleteAll() {
-      if (!this.user) return;
-      try {
-        await api.delete(`/notifications/delete-all/${this.user.user_id}`);
-        this.notifications = [];
-        this.unreadCount = 0;
-      } catch (err) { console.error(err); }
-    },
+ async deleteAll() {
+  if (!this.user) return;
+
+  try {
+    const res = await api.delete(`/notifications/user/${this.user.user_id}`);
+
+    // Sửa ở đây: dùng success thay vì status
+    if (res.data.success) {
+      this.notifications = [];
+      this.unreadCount = 0;
+
+      this.$refs.toast.addToast({
+        title: "Thành công",
+        message: "Đã xóa tất cả thông báo!",
+        type: "success"
+      });
+    } else {
+      this.$refs.toast.addToast({
+        title: "Thất bại",
+        message: res.data.message || "Xóa tất cả thất bại!",
+        type: "danger"
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    this.$refs.toast.addToast({
+      title: "Thất bại",
+      message: "Lỗi server khi xóa thông báo",
+      type: "danger"
+    });
+  }
+}
+,
 
     async markAllRead() {
       if (!this.user) return;

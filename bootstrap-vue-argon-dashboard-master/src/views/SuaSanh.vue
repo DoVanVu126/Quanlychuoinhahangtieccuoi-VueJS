@@ -6,6 +6,7 @@
       <!-- Tên sảnh -->
       <b-form-group label="Tên sảnh">
         <b-form-input v-model="form.name" required></b-form-input>
+        <small v-if="errors.name" class="text-danger">{{ errors.name[0] }}</small>
       </b-form-group>
 
       <!-- Mô tả -->
@@ -16,60 +17,64 @@
       <!-- Sức chứa -->
       <b-form-group label="Sức chứa">
         <b-form-input type="number" v-model.number="form.capacity"></b-form-input>
+        <small v-if="errors.capacity" class="text-danger">{{ errors.capacity[0] }}</small>
       </b-form-group>
 
       <!-- Giá -->
       <b-form-group label="Giá (VNĐ)">
-        <b-form-input type="number" step="0.01" v-model.number="form.price"></b-form-input>
+        <b-form-input type="number" v-model.number="form.price"></b-form-input>
+        <small v-if="errors.price" class="text-danger">{{ errors.price[0] }}</small>
       </b-form-group>
 
-      <!-- Nhà hàng (combobox) -->
+      <!-- Nhà hàng -->
       <b-form-group label="Nhà hàng">
-  <b-form-select
-    v-model="form.restaurant_id"
-    :options="restaurantOptions"
-    disabled
-  >
-    <template #first>
-      <b-form-select-option :value="null" disabled>-- Chọn nhà hàng --</b-form-select-option>
-    </template>
-  </b-form-select>
-</b-form-group>
+        <b-form-select
+          v-model="form.restaurant_id"
+          :options="restaurantOptions"
+          disabled>
+        </b-form-select>
+      </b-form-group>
 
       <!-- Trạng thái -->
       <b-form-group label="Trạng thái">
-        <b-form-select v-model="form.status" required>
+        <b-form-select v-model="form.status">
           <b-form-select-option value="available">Có sẵn</b-form-select-option>
           <b-form-select-option value="unavailable">Đã đặt</b-form-select-option>
           <b-form-select-option value="maintenance">Bảo trì</b-form-select-option>
         </b-form-select>
       </b-form-group>
 
-      <!-- Ảnh hiện tại & ảnh mới -->
+      <!-- Ảnh -->
       <b-form-group label="Ảnh sảnh">
         <div v-if="previewImage">
-          <p>Ảnh mới:</p>
-          <img :src="previewImage" alt="Ảnh mới" class="rounded shadow-sm border mb-2"
-            style="width: 150px; height: 150px; object-fit: cover" />
+          <img :src="previewImage" class="img-thumbnail mb-2" style="width:150px;height:150px;object-fit:cover" />
         </div>
+
         <div v-else-if="form.image_url">
-          <p>Ảnh hiện tại:</p>
-          <img :src="getImageUrl(form.image_url)" alt="Ảnh hiện tại" class="rounded shadow-sm border mb-2"
-            style="width: 150px; height: 150px; object-fit: cover" />
+          <img :src="getImageUrl(form.image_url)" class="img-thumbnail mb-2" style="width:150px;height:150px;object-fit:cover" />
         </div>
-        <p v-else class="text-muted">Không có ảnh</p>
 
         <b-form-file
           @change="handleImageUpload"
           accept="image/*"
-          placeholder="Chọn ảnh mới nếu muốn thay"
-        ></b-form-file>
+          placeholder="Chọn ảnh mới nếu muốn thay">
+        </b-form-file>
       </b-form-group>
 
-      <!-- Nút thao tác -->
-      <div class="d-flex gap-2 mt-3">
-        <b-button type="submit" variant="primary">💾 Cập nhật</b-button>
-        <b-button variant="secondary" @click="$router.push('/sanh')">Hủy</b-button>
+      <!-- Nút -->
+      <div class="d-flex align-items-center gap-2 mt-3">
+        <b-button type="submit" variant="primary" :disabled="loading">
+          <span v-if="!loading">💾 Cập nhật</span>
+
+          <span v-if="loading" class="d-flex align-items-center">
+            <span class="spinner-border spinner-border-sm mr-2"></span>
+            Đang lưu...
+          </span>
+        </b-button>
+
+        <b-button variant="secondary" @click="$router.push('/sanh')">
+          Hủy
+        </b-button>
       </div>
     </b-form>
   </div>
@@ -89,17 +94,22 @@ export default {
         price: null,
         restaurant_id: null,
         status: "available",
-        image_url: null, // ảnh cũ
-        newImage: null, // ảnh mới
+        image_url: null,
+        newImage: null,
       },
       previewImage: null,
       restaurants: [],
+      errors: {},
+      loading: false
     };
   },
 
   computed: {
     restaurantOptions() {
-      return this.restaurants.map(r => ({ value: r.restaurant_id, text: r.name }));
+      return this.restaurants.map(r => ({
+        value: r.restaurant_id,
+        text: r.name
+      }));
     }
   },
 
@@ -114,7 +124,7 @@ export default {
         const res = await api.get("/restaurants");
         this.restaurants = Array.isArray(res.data) ? res.data : res.data.data || [];
       } catch (err) {
-        console.error("❌ Lỗi tải danh sách nhà hàng:", err);
+        console.error("Lỗi tải nhà hàng", err);
       }
     },
 
@@ -123,9 +133,8 @@ export default {
         const res = await api.get(`/halls/${this.$route.params.id}`);
         this.form = { ...res.data, newImage: null };
         this.previewImage = null;
-      } catch (err) {
-        console.error("❌ Không tải được sảnh:", err);
-        alert("Không tải được sảnh!");
+      } catch {
+        alert("Không tải được sảnh");
         this.$router.push("/sanh");
       }
     },
@@ -144,29 +153,74 @@ export default {
       }
     },
 
+    validateForm() {
+      this.errors = {};
+
+      if (!this.form.name || this.form.name.trim() === "") {
+        this.errors.name = ["Tên sảnh không được để trống"];
+      }
+
+      if (!this.form.capacity || this.form.capacity <= 0) {
+        this.errors.capacity = ["Sức chứa phải lớn hơn 0"];
+      }
+
+      if (!this.form.price || this.form.price <= 0) {
+        this.errors.price = ["Giá phải lớn hơn 0"];
+      }
+
+      return Object.keys(this.errors).length === 0;
+    },
+
     async updateHall() {
+      if (!this.validateForm()) return;
+
+      this.loading = true;
+
       try {
         const formData = new FormData();
-        if (this.form.name) formData.append("name", this.form.name);
-        if (this.form.description) formData.append("description", this.form.description);
-        if (this.form.capacity != null) formData.append("capacity", this.form.capacity);
-        if (this.form.price != null) formData.append("price", this.form.price);
-        if (this.form.restaurant_id) formData.append("restaurant_id", this.form.restaurant_id);
-        if (this.form.status) formData.append("status", this.form.status);
-        if (this.form.newImage) formData.append("image", this.form.newImage);
+        formData.append("name", this.form.name);
+        formData.append("description", this.form.description || "");
+        formData.append("capacity", this.form.capacity);
+        formData.append("price", this.form.price);
+        formData.append("restaurant_id", this.form.restaurant_id);
+        formData.append("status", this.form.status);
+
+        if (this.form.newImage) {
+          formData.append("image", this.form.newImage);
+        }
 
         await api.post(`/halls/${this.form.hall_id}?_method=PUT`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: { "Content-Type": "multipart/form-data" }
         });
 
-        alert("✅ Cập nhật sảnh thành công!");
-        this.$router.push("/sanh");
+        // ✅ Toast thành công
+        this.$bvToast.toast("Cập nhật sảnh thành công ✅", {
+          title: "Thành công",
+          variant: "success",
+          solid: true,
+          autoHideDelay: 3000
+        });
+
+        // ✅ Quay lại sau 1s
+        setTimeout(() => {
+          this.$router.push("/sanh");
+        }, 1000);
+
       } catch (err) {
-        console.error("❌ Lỗi cập nhật:", err.response ? err.response.data : err);
-        alert("Cập nhật thất bại! Kiểm tra console để biết chi tiết.");
+        if (err.response && err.response.status === 422) {
+          this.errors = err.response.data.errors || {};
+        } else {
+          this.$bvToast.toast("Lỗi hệ thống ❌", {
+            title: "Lỗi",
+            variant: "danger",
+            solid: true
+          });
+        }
+      } finally {
+        this.loading = false;
       }
-    },
-  },
+    }
+  }
 };
 </script>
 
@@ -175,19 +229,8 @@ export default {
   max-width: 700px;
 }
 
-h2 {
-  font-weight: 600;
-  color: #0069d9;
-}
-
-.b-form-group {
-  margin-bottom: 1.2rem;
-}
-
-img {
-  transition: 0.3s;
-}
-img:hover {
-  transform: scale(1.05);
+.img-thumbnail {
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 </style>

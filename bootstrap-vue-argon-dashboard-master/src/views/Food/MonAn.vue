@@ -5,15 +5,19 @@
       <div class="container-fluid">
         <div class="header-body text-white">
           <h2 class="text-white font-weight-bold">QUẢN LÝ MÓN ĂN</h2>
-          <p class="text-light">Theo dõi, chỉnh sửa và quản lý danh sách món ăn nhà hàng</p>
+          <p class="text-light">
+            Theo dõi, chỉnh sửa và quản lý danh sách món ăn nhà hàng
+          </p>
         </div>
       </div>
     </base-header>
 
     <!-- Nội dung chính -->
     <div class="container-fluid mt--7">
-      <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden; position: relative;">
-
+      <div
+        class="card shadow-lg border-0"
+        style="border-radius: 20px; overflow: hidden; position: relative"
+      >
         <!-- LOADING TRONG FORM -->
         <div v-if="loading" class="loading-overlay-form">
           <div class="spinner"></div>
@@ -33,8 +37,12 @@
               <router-link to="/mon-an/them" class="btn btn-primary">
                 + Thêm Món ăn
               </router-link>
-              <b-button variant="success" @click="refreshList">↻ Làm mới</b-button>
-              <b-button variant="danger" @click="exportPDF">⬇ Xuất PDF</b-button>
+              <b-button variant="success" @click="refreshList"
+                >↻ Làm mới</b-button
+              >
+              <b-button variant="danger" @click="exportPDF"
+                >⬇ Xuất PDF</b-button
+              >
             </div>
           </div>
 
@@ -58,8 +66,14 @@
                 <tr v-for="food in foods.data" :key="food.food_id">
                   <td>{{ food.food_id }}</td>
                   <td>{{ food.name }}</td>
-                  <td>{{ (food.food_type && food.food_type.name) || "Không có" }}</td>
-<td>{{ (food.restaurant && food.restaurant.name) || "Không có" }}</td>
+                  <td>
+                    {{ (food.food_type && food.food_type.name) || "Không có" }}
+                  </td>
+                  <td>
+                    {{
+                      (food.restaurant && food.restaurant.name) || "Không có"
+                    }}
+                  </td>
                   <td>{{ formatPrice(food.price) }}</td>
                   <td>{{ food.unit || "Chưa có" }}</td>
                   <td>{{ food.description || "" }}</td>
@@ -72,13 +86,25 @@
                     />
                   </td>
                   <td>
-                    <b-button size="sm" variant="outline-primary" @click="editFood(food)">Sửa</b-button>
-                    <b-button size="sm" variant="outline-danger" @click="deleteFood(food.food_id)">Xóa</b-button>
+                    <b-button
+                      size="sm"
+                      variant="outline-primary"
+                      @click="editFood(food)"
+                      >Sửa</b-button
+                    >
+                    <b-button
+                      size="sm"
+                      variant="outline-danger"
+                      @click="deleteFood(food.food_id)"
+                      >Xóa</b-button
+                    >
                   </td>
                 </tr>
 
                 <tr v-if="foods.data.length === 0">
-                  <td colspan="9" class="text-center text-muted">Không có món ăn nào phù hợp</td>
+                  <td colspan="9" class="text-center text-muted">
+                    Không có món ăn nào phù hợp
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -88,7 +114,9 @@
           <nav v-if="lastPage > 1" class="d-flex justify-content-center mt-3">
             <ul class="pagination">
               <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                <button class="page-link" @click="getFoods(currentPage - 1)">Trước</button>
+                <button class="page-link" @click="getFoods(currentPage - 1)">
+                  Trước
+                </button>
               </li>
 
               <li
@@ -97,11 +125,18 @@
                 class="page-item"
                 :class="{ active: page === currentPage }"
               >
-                <button class="page-link" @click="getFoods(page)">{{ page }}</button>
+                <button class="page-link" @click="getFoods(page)">
+                  {{ page }}
+                </button>
               </li>
 
-              <li class="page-item" :class="{ disabled: currentPage === lastPage }">
-                <button class="page-link" @click="getFoods(currentPage + 1)">Sau</button>
+              <li
+                class="page-item"
+                :class="{ disabled: currentPage === lastPage }"
+              >
+                <button class="page-link" @click="getFoods(currentPage + 1)">
+                  Sau
+                </button>
               </li>
             </ul>
           </nav>
@@ -133,9 +168,11 @@ export default {
         const res = await api.get(`/foods?page=${page}`);
         this.foods = {
           ...res.data,
-          data: res.data.data.map(f => ({
+          data: res.data.data.map((f) => ({
             ...f,
-            fixed_image_url: f.image_url ? this.fixFoodImageUrl(f.image_url) : defaultImage,
+            fixed_image_url: f.image_url
+              ? this.fixFoodImageUrl(f.image_url)
+              : defaultImage,
           })),
         };
         this.currentPage = res.data.current_page;
@@ -156,18 +193,25 @@ export default {
     },
 
     async deleteFood(id) {
-      if (!confirm("Bạn có chắc muốn xóa món ăn này không?")) return;
+      if (!confirm("Bạn có chắc muốn xóa không?")) return;
+
       this.loading = true;
+
       try {
-        await api.delete(`/foods/${id}`);
+        const res = await api.delete(`/foods/${id}`);
+        alert("✅ " + res.data.message);
         this.getFoods(this.currentPage);
       } catch (err) {
-        console.error("Lỗi xóa món ăn:", err);
+        alert(
+          "❌ " +
+            (err.response && err.response.data && err.response.data.message
+              ? err.response.data.message
+              : "Xóa thất bại!")
+        );
       } finally {
         this.loading = false;
       }
     },
-
     refreshList() {
       this.searchQuery = "";
       this.getFoods();
