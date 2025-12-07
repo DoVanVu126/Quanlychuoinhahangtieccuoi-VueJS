@@ -4,7 +4,6 @@
     <HeroSection />
     <SearchBox />
     <RestaurantList />
-    <WeddingList />
     <PromotionList />
     <HomeFooter />
   </div>
