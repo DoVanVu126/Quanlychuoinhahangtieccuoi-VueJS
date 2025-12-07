@@ -197,7 +197,7 @@ export default {
         const res = await api.get(`/bookings/user?user_id=${this.user.user_id}`);
         this.bookings = Array.isArray(res.data)
   ? res.data
-      .filter(b => b.status === 'pending') // chỉ lấy booking pending
+      .filter(b => b.status === 'pending') // chỉ lấy booking pendingg
       .map(b => ({ ...b, hall_name: b.hall_name || "Sảnh #" + b.hall_id, price: Number(b.price || 0) }))
   : [];
       } catch (err) { console.error(err); }
