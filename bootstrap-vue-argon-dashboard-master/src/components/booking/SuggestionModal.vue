@@ -26,7 +26,7 @@
                 <span class="big-question">?</span>
               </template>
               <template v-else>
-                <img :src="getImageUrl(randomPackage.image_url)" alt="package" />
+                <span class="big-question">?</span>
               </template>
             </div>
           </div>
@@ -68,9 +68,6 @@
 
       <div class="suggestion-list">
         <div v-for="pkg in packages" :key="pkg.package_id" class="suggestion-card">
-          <div class="suggestion-card-left">
-            <img :src="getImageUrl(pkg.image_url)" alt="package" />
-          </div>
           <div class="suggestion-card-body">
             <h4>{{ pkg.name }}</h4>
             <div class="meta">

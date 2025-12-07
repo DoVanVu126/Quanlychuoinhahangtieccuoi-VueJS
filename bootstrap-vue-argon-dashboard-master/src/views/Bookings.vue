@@ -29,13 +29,20 @@
               <template #cell(event_type)="row">{{ row.item.event_type || '-' }}</template>
               <template #cell(event_date)="row">{{ formatDate(row.item.event_date) }}</template>
               <template #cell(event_time)="row">{{ row.item.event_time || '-' }}</template>
+              <template #cell(return_date)="row">{{ formatDate(row.item.return_date) }}</template>
               <template #cell(number_of_tables)="row">{{ row.item.number_of_tables || 0 }}</template>
               <template #cell(price)="row">{{ formatPrice(row.item.price) }} VNĐ</template>
               <template #cell(status)="row">{{ row.item.status || '-' }}</template>
               <template #cell(created_at)="row">{{ formatDate(row.item.created_at) }}</template>
               <template #cell(actions)="row">
-                <b-button size="sm" variant="warning" @click="openEditModal(row.item)"><i class="fas fa-edit"></i></b-button>
-                <b-button size="sm" variant="danger" @click="deleteBooking(row.item.booking_id || row.item.id)"><i class="fas fa-trash"></i></b-button>
+                <b-button size="sm" variant="warning" @click="openEditModal(row.item)" :disabled="isLoadingEdit === (row.item.booking_id || row.item.id)">
+                  <i v-if="isLoadingEdit === (row.item.booking_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                  <i v-else class="fas fa-edit"></i>
+                </b-button>
+                <b-button size="sm" variant="danger" @click="deleteBooking(row.item.booking_id || row.item.id)" :disabled="isDeletingId === (row.item.booking_id || row.item.id)">
+                  <i v-if="isDeletingId === (row.item.booking_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                  <i v-else class="fas fa-trash"></i>
+                </b-button>
               </template>
             </b-table>
             <div class="d-flex justify-content-center mt-3">
@@ -47,87 +54,101 @@
           <b-modal v-model="showModal" title="Chỉnh sửa đặt tiệc" hide-footer size="lg">
             <b-form @submit.stop.prevent="saveBooking">
               <!-- Display only: Customer, Created By, Restaurant -->
-              <b-row>
+              <b-row class="mb-3">
                 <b-col md="4">
-                  <b-form-group label="Khách hàng">
-                    <div class="form-control-plaintext">{{ userName(form.customer_id) }}</div>
+                  <b-form-group label="Khách hàng" label-class="font-weight-600">
+                    <div class="form-control-plaintext text-primary">{{ userName(form.customer_id) }}</div>
                   </b-form-group>
                 </b-col>
                 <b-col md="4">
-                  <b-form-group label="Người tạo">
-                    <div class="form-control-plaintext">{{ userName(form.created_by_user_id) }}</div>
+                  <b-form-group label="Người tạo" label-class="font-weight-600">
+                    <div class="form-control-plaintext text-primary">{{ userName(form.created_by_user_id) }}</div>
                   </b-form-group>
                 </b-col>
                 <b-col md="4">
-                  <b-form-group label="Nhà hàng">
-                    <div class="form-control-plaintext">{{ restaurantName(form.restaurant_id) }}</div>
+                  <b-form-group label="Nhà hàng" label-class="font-weight-600">
+                    <div class="form-control-plaintext text-primary">{{ restaurantName(form.restaurant_id) }}</div>
                   </b-form-group>
                 </b-col>
               </b-row>
 
-              <b-row>
+              <b-row class="mb-3">
                 <b-col md="6">
-                  <b-form-group label="Sảnh" label-for="hall_id">
+                  <b-form-group label="Sảnh" label-for="hall_id" label-class="font-weight-600">
                     <b-form-select id="hall_id" v-model="form.hall_id" :options="hallOptionsForForm" :placeholder="'- Chọn sảnh -'"/>
+                    <p v-if="formErrors.hall_id" class="form-error-msg">{{ formErrors.hall_id }}</p>
                   </b-form-group>
                 </b-col>
                 <b-col md="6">
-                  <b-form-group label="Loại tiệc" label-for="event_type">
+                  <b-form-group label="Loại tiệc" label-for="event_type" label-class="font-weight-600">
                     <b-form-select id="event_type" v-model="form.event_type" :options="[{value: 'Đám cưới', text: 'Đám cưới'},{value:'Hội nghị',text:'Hội nghị'},{value:'Tiệc sinh nhật',text:'Tiệc sinh nhật'},{value:'Khác',text:'Khác'}]" :placeholder="'- Chọn loại -'"/>
                   </b-form-group>
                 </b-col>
               </b-row>
 
-              <b-row>
+              <b-row class="mb-3">
                 <b-col md="4">
-                  <b-form-group label="Ngày tổ chức" label-for="event_date">
-                    <b-form-input id="event_date" type="date" v-model="form.event_date" />
+                  <b-form-group label="Ngày tổ chức" label-for="event_date" label-class="font-weight-600">
+                    <b-form-input id="event_date" type="date" v-model="form.event_date" @change="validateDates" />
                   </b-form-group>
                 </b-col>
                 <b-col md="4">
-                  <b-form-group label="Ngày trả" label-for="return_date">
-                    <b-form-input id="return_date" type="date" v-model="form.return_date" />
+                  <b-form-group label="Ngày trả" label-for="return_date" label-class="font-weight-600">
+                    <b-form-input id="return_date" type="date" v-model="form.return_date" @change="validateDates" />
                   </b-form-group>
                 </b-col>
                 <b-col md="4">
-                  <b-form-group label="Giờ" label-for="event_time">
+                  <b-form-group label="Giờ" label-for="event_time" label-class="font-weight-600">
                     <b-form-select id="event_time" v-model="form.event_time" :options="[{value:'09:00:00',text:'09:00'},{value:'16:00:00',text:'16:00'}]" :placeholder="'- Chọn giờ -'"/>
                   </b-form-group>
                 </b-col>
               </b-row>
+              <p v-if="dateErrors" class="form-error-msg mb-3">{{ dateErrors }}</p>
 
-              <b-row>
+              <b-row class="mb-3">
                 <b-col md="4">
-                  <b-form-group label="Số bàn" label-for="number_of_tables">
+                  <b-form-group label="Số bàn" label-for="number_of_tables" label-class="font-weight-600">
                     <b-form-input id="number_of_tables" type="number" v-model.number="form.number_of_tables" min="0" />
                   </b-form-group>
                 </b-col>
                 <b-col md="4">
-                  <b-form-group label="Giá" label-for="price">
-                    <div class="form-control-plaintext">{{ formatPrice(form.price) }} VNĐ</div>
+                  <b-form-group label="Giá" label-for="price" label-class="font-weight-600">
+                    <div class="form-control-plaintext text-success">{{ formatPrice(form.price) }} VNĐ</div>
                   </b-form-group>
                 </b-col>
                 <b-col md="4">
-                    <b-form-group label="Trạng thái" label-for="status">
-                      <b-form-select id="status" v-model="form.status" :options="[{value:'pending', text:'pending'},{value:'completed', text:'completed'}]" :placeholder="'- Chọn trạng thái -'" />
+                    <b-form-group label="Trạng thái" label-for="status" label-class="font-weight-600">
+                      <b-form-select id="status" v-model="form.status" :options="[{value:'pending', text:'Chưa xử lý'},{value:'completed', text:'Hoàn thành'}]" :placeholder="'- Chọn trạng thái -'" />
                     </b-form-group>
                 </b-col>
               </b-row>
 
-              <b-form-group label="Ghi chú" label-for="notes">
-                <b-form-textarea id="notes" v-model="form.notes" rows="3" />
+              <b-form-group label="Ghi chú" label-for="notes" label-class="font-weight-600" class="mb-3">
+                <b-form-textarea id="notes" v-model="form.notes" @input="onNotesInput" rows="3" placeholder="Nhập ghi chú thêm..." />
+                <small v-if="form.notes" class="text-muted d-block mt-1">{{ form.notes.length }}/255 ký tự</small>
+                <p v-if="formErrors.notes" class="form-error-msg">{{ formErrors.notes }}</p>
               </b-form-group>
 
-              <div class="text-right">
-                <b-button variant="secondary" @click="showModal = false">Hủy</b-button>
-                <b-button type="submit" variant="primary" class="ml-2" :disabled="saving">
-                  <span v-if="saving"><i class="fas fa-spinner fa-spin"></i> Đang lưu...</span>
-                  <span v-else>Lưu</span>
+              <div class="text-right mt-4">
+                <b-button variant="secondary" @click="showModal = false" :disabled="saving" class="btn-booking-cancel">
+                  <i class="fas fa-times mr-2"></i>Hủy
+                </b-button>
+                <b-button type="submit" variant="primary" class="ml-3 btn-booking-save" :disabled="saving">
+                  <i v-if="saving" class="fas fa-spinner fa-spin mr-2"></i>
+                  <i v-else class="fas fa-save mr-2"></i>
+                  {{ saving ? 'Đang lưu...' : 'Lưu' }}
                 </b-button>
               </div>
             </b-form>
           </b-modal>
         </div>
+      </div>
+    </div>
+    
+    <!-- Success Toast Notification -->
+    <div v-if="showSuccessMsg" class="booking-toast-wrapper">
+      <div class="booking-toast-content">
+        <i class="fas fa-check-circle"></i> {{ successMsg }}
       </div>
     </div>
   </div>
@@ -152,16 +173,22 @@ export default {
       showModal: false,
       isEditing: false,
       saving: false,
+      formErrors: {},
+      dateErrors: '',
+      isLoadingEdit: null,
+      isDeletingId: null,
+      showSuccessMsg: false,
+      successMsg: '',
       fields: [
         { key: 'booking_id', label: 'ID', sortable: true },
-        { key: 'customer_id', label: 'Customer' },
-        { key: 'created_by_user_id', label: 'Created By' },
-        { key: 'restaurant_id', label: 'Restaurant' },
-        { key: 'hall_id', label: 'Hall' },
+        { key: 'customer_id', label: 'Khách hàng' },
+        { key: 'created_by_user_id', label: 'Người dùng' },
+        { key: 'restaurant_id', label: 'Nhà hàng' },
+        { key: 'hall_id', label: 'Sảnh' },
         { key: 'event_type', label: 'Loại tiệc' },
-        { key: 'event_date', label: 'Ngày' },
+        { key: 'event_date', label: 'Ngày đặt' },
         { key: 'event_time', label: 'Giờ' },
-        { key: 'return_date', label: 'Return' },
+        { key: 'return_date', label: 'Ngày trả' },
         { key: 'number_of_tables', label: 'Số bàn' },
         { key: 'price', label: 'Giá' },
         { key: 'status', label: 'Trạng thái' },
@@ -308,7 +335,11 @@ export default {
     },
     async openEditModal(b) {
       const id = b.booking_id != null ? b.booking_id : b.id;
+      if (this.isLoadingEdit) return;
+      this.isLoadingEdit = id;
       this.isEditing = true;
+      this.formErrors = {};
+      this.dateErrors = '';
       try {
         const res = await api.get(`/bookings/${id}`);
         // support envelope { data: {...} } or direct object
@@ -365,6 +396,7 @@ export default {
 
         // compute price after loading booking details
         this.$nextTick(() => this.computePrice());
+        this.isLoadingEdit = null;
         this.showModal = true;
       } catch (err) {
         // fallback to using provided row data
@@ -378,10 +410,43 @@ export default {
         this.form.booking_services = this.form.booking_services || this.form.bookingServices || [];
         // compute price from fallback data
         this.$nextTick(() => this.computePrice());
+        this.isLoadingEdit = null;
         this.showModal = true;
+      } finally {
+        if (this.isLoadingEdit === id) this.isLoadingEdit = null;
+      }
+    },
+    hasFormErrors() {
+      return Object.values(this.formErrors).some(v => v && v.length > 0);
+    },
+    validateDates() {
+      this.dateErrors = '';
+      
+      if (this.form.event_date && this.form.return_date) {
+        if (this.form.event_date > this.form.return_date) {
+          this.dateErrors = 'Ngày tổ chức không được sau ngày trả';
+        } else if (this.form.event_date === this.form.return_date) {
+          this.dateErrors = 'Ngày trả phải sau ngày tổ chức';
+        }
+      }
+    },
+    onNotesInput() {
+      if (this.form.notes && this.form.notes.length > 255) {
+        this.formErrors.notes = 'Nội dung ghi chú không được quá 255 ký tự';
+      } else {
+        this.formErrors.notes = '';
       }
     },
     async saveBooking() {
+      // Validate before saving
+      this.validateDates();
+      this.onNotesInput();
+      
+      // Check if there are errors
+      const hasErrors = this.hasFormErrors() || this.dateErrors;
+      if (hasErrors) {
+        return;
+      }
       this.saving = true;
       console.log('Saving booking...', this.form);
       try {
@@ -410,7 +475,9 @@ export default {
         this.showModal = false;
         // refresh list
         await this.getBookings();
-        window.alert('Lưu đặt tiệc thành công');
+        this.successMsg = '✅ Sửa đặt tiệc thành công';
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 3000);
       } catch (err) {
         console.error('Lỗi lưu đặt tiệc:', err);
         const msg = (err && err.response && err.response.data && (err.response.data.message || JSON.stringify(err.response.data))) || err.message || String(err);
@@ -421,13 +488,24 @@ export default {
     },
     async deleteBooking(id) {
       if (!confirm('Bạn có chắc chắn muốn xóa ?')) return;
+      if (this.isDeletingId) return;
+      this.isDeletingId = id;
       try {
         await api.delete(`/bookings/${id}`);
         // remove locally so UI updates immediately
         const keyFn = b => (b.booking_id != null ? b.booking_id : b.id);
         this.bookings = this.bookings.filter(b => keyFn(b) !== id);
+        this.successMsg = '✅ Xóa đặt tiệc thành công';
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 3000);
       } catch (err) {
         console.error('Lỗi xóa đặt tiệc:', err.response || err.message);
+        const errMsg = (err.response && err.response.data && err.response.data.message) || err.message;
+        this.successMsg = '❌ Xóa thất bại: ' + errMsg;
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 4000);
+      } finally {
+        this.isDeletingId = null;
       }
     },
     
@@ -501,6 +579,149 @@ export default {
 /* Make header bottom border a bit stronger for separation */
 :deep(.table.table-bordered thead th) {
   border-bottom: 2px solid #dee2e6 !important;
+}
+
+/* Form error messages styling (similar to BookingForm.vue) */
+.form-error-msg {
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 6px;
+  margin-bottom: 0;
+  display: block;
+}
+
+/* Success toast notification - truly fixed */
+.booking-toast-wrapper {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  animation: slideInRight 0.3s ease;
+}
+
+.booking-toast-content {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 14px 18px;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 300px;
+}
+
+.booking-toast-content i {
+  font-size: 18px;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Booking Form Styling */
+.booking-modal {
+  border-radius: 12px;
+}
+
+.booking-modal .modal-content {
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.booking-modal .modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px 12px 0 0;
+  border: none;
+}
+
+.booking-modal .modal-title {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.booking-modal .close {
+  color: white;
+  opacity: 0.8;
+}
+
+.booking-modal .close:hover {
+  opacity: 1;
+}
+
+.form-control-plaintext {
+  font-weight: 500;
+  color: #2c3e50;
+  padding-top: 8px;
+}
+
+.form-error-msg {
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 6px;
+  display: block;
+}
+
+.btn-booking-save {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  padding: 10px 24px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.btn-booking-save:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-booking-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-booking-cancel {
+  border-radius: 6px;
+  font-weight: 600;
+  padding: 10px 24px;
+  border: 2px solid #e5e7eb;
+  color: #6b7280;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.btn-booking-cancel:hover:not(:disabled) {
+  border-color: #6b7280;
+  background: #f9fafb;
+}
+
+.btn-booking-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-control-plaintext.text-primary {
+  color: #667eea !important;
+  font-weight: 600;
+}
+
+.form-control-plaintext.text-success {
+  color: #10b981 !important;
+  font-weight: 600;
 }
 </style>
  
