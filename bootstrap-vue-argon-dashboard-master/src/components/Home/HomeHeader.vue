@@ -1,6 +1,5 @@
 <template>
   <header class="home-header">
-    <!-- Logo + Thanh tìm kiếm -->
     <div class="logo">
       <router-link to="/home" class="logo-link">
         <img src="/img/logo.png" alt="Wedding" />
@@ -12,13 +11,12 @@
 
     <nav>
       <a href="#gioi-thieu">Giới thiệu</a>
-      <a href="#ho-tro">Hỗ trợ</a>
+      <router-link to="/support">Hỗ trợ</router-link>
 
       <router-link to="/gio-hang" class="cart-icon">
         <i class="fas fa-shopping-cart"></i>
       </router-link>
 
-      <!-- Language switch -->
       <div class="language-switch">
         <img src="/img/vn-flag.png" alt="VN" class="flag" />
         <select>
@@ -27,15 +25,12 @@
         </select>
       </div>
 
-      <!-- Notification -->
       <div class="notification-wrapper" ref="notifWrapper">
-        <!-- Bell icon -->
         <div class="bell-icon" :class="{ shake: hasNew }" @click.stop="toggleNotifDropdown">
           <i class="fas fa-bell"></i>
           <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
         </div>
 
-        <!-- Dropdown -->
         <div v-if="notifDropdownOpen" class="notification-list" @click.stop>
           <h4>Thông báo</h4>
 
@@ -44,7 +39,12 @@
           <div class="notif-scroll">
             <div v-for="item in visibleNotifications" :key="item.id" class="notification-item"
               :class="{ unread: !item.is_read }">
-              <div class="notif-content" @click="markAsRead(item)">
+              
+              <div class="notif-content" @click="handleNotifClick(item)">
+                <div class="mb-1">
+                    <span v-if="item.type === 'support_reply'" class="badge badge-info mr-1">Hỗ trợ</span>
+                    <span v-else class="badge badge-warning mr-1">Hệ thống</span>
+                </div>
                 <strong>{{ item.title }}</strong>
                 <p>{{ item.message }}</p>
                 <small>{{ formatDate(item.created_at) }}</small>
@@ -65,15 +65,13 @@
         </div>
       </div>
 
-      <!-- User login / dropdown -->
       <div v-if="!user">
         <button class="homeheader-login-btn" @click="goToLogin">Đăng nhập</button>
         <button class="homeheader-signup-btn" @click="goToSignup">Tạo tài khoản</button>
       </div>
 
       <div v-else class="homeheader-user-dropdown" ref="userDropdownWrapper" @click.stop="toggleDropdown">
-        <img v-if="user.image_url" :src="avatarUrl(user.image_url)" alt="avatar" class="user-avatar"
-          @error="handleAvatarError" />
+        <img :src="avatarUrl(user.image_url)" alt="avatar" class="user-avatar" @error="handleAvatarError" />
         <span>{{ user.username }}</span>
         <span class="user-level">{{ levelName }}</span>
         <i class="fas fa-caret-down"></i>
@@ -86,7 +84,6 @@
         </div>
       </div>
 
-      <!-- Toast -->
       <ToastMessage ref="toast" />
     </nav>
   </header>
@@ -110,15 +107,13 @@ export default {
       notifDropdownOpen: false,
       hasNew: false,
       visibleCount: 5,
+      backendUrl: 'http://localhost:8088' // Base URL backend
     };
   },
 
   computed: {
     visibleNotifications() {
       return this.notifications.slice(0, this.visibleCount);
-    },
-    initials() {
-      return this.user && this.user.username ? this.user.username.charAt(0).toUpperCase() : "U";
     },
     levelName() {
       if (!this.membership) return "Bronze";
@@ -140,31 +135,31 @@ export default {
     goToLogin() { this.$router.push("/login"); },
     goToSignup() { this.$router.push("/register"); },
     toggleDropdown() { this.dropdownOpen = !this.dropdownOpen; },
+    
     logout() {
-      // 1. Xóa Token & User info (Để đăng xuất)
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      localStorage.removeItem("cart"); // Xóa giỏ hàng nếu cần
+      localStorage.removeItem("cart");
+      sessionStorage.clear();
 
-      // Xóa cả bên Session cho chắc
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("user");
-
-      // 2. Hủy Realtime
       if (window.Echo && this.user) {
         window.Echo.leave('notifications.' + this.user.user_id);
       }
 
-      // 3. Reset State & Chuyển trang
       this.user = null;
       this.dropdownOpen = false;
       this.$router.push("/login");
     },
 
+    // Hàm xử lý ảnh avatar (Chuẩn Laravel Storage)
     avatarUrl(path) {
       if (!path) return "/img/default-avatar.png";
       if (path.startsWith("http")) return path;
-      return "http://127.0.0.1:8088/" + path.replace(/^\/+/, "");
+      // Thêm /storage/ nếu path chưa có
+      if (!path.startsWith("/storage/")) {
+          return `${this.backendUrl}/storage/${path.replace(/^\/+/, "")}`;
+      }
+      return `${this.backendUrl}${path}`;
     },
 
     handleAvatarError(e) { e.target.src = "/img/default-avatar.png"; },
@@ -172,22 +167,26 @@ export default {
     async loadMembership() {
       if (!this.user) return;
       try {
-        const res = await api.get(`/membership/${this.user.user_id}`);
+        const res = await api.get(`/api/membership/${this.user.user_id}`);
         this.membership = res.data.membership || { booking_count: 0 };
       } catch (err) {
-        console.error("Lỗi tải membership:", err);
         this.membership = { booking_count: 0 };
       }
     },
 
     toggleNotifDropdown() {
       this.notifDropdownOpen = !this.notifDropdownOpen;
+      // Nếu mở dropdown thì load lại cho chắc
+      if (this.notifDropdownOpen) this.loadNotifications();
     },
+
+    // --- CÁC HÀM API NOTIFICATION (ĐÃ SỬA URL) ---
 
     async loadNotifications() {
       if (!this.user) return;
       try {
-        const res = await api.get(`/notifications/${this.user.user_id}`);
+        // ✅ SỬA: Bỏ ID trên URL
+        const res = await api.get(`/api/notifications`);
         this.notifications = res.data || [];
         this.updateUnreadCount();
       } catch (err) { console.error(err); }
@@ -201,10 +200,27 @@ export default {
       return new Date(date).toLocaleString("vi-VN");
     },
 
+    // Xử lý khi bấm vào thông báo
+    async handleNotifClick(item) {
+        // 1. Đánh dấu đã đọc
+        await this.markAsRead(item);
+
+        // 2. Nếu là phản hồi hỗ trợ -> hiện popup nội dung
+        if (item.type === 'support_reply') {
+            this.$refs.toast.addToast({
+                title: item.title,
+                message: item.message, // Hoặc nội dung đầy đủ
+                type: 'info',
+                duration: 10000 // Hiện lâu chút để đọc
+            });
+        }
+    },
+
     async markAsRead(item) {
       if (item.is_read) return;
       try {
-        await api.put(`/notifications/read/${item.id}`);
+        // ✅ SỬA: URL chuẩn /notifications/{id}/read
+        await api.put(`/api/notifications/${item.id}/read`);
         item.is_read = true;
         this.updateUnreadCount();
       } catch (err) { console.error(err); }
@@ -212,50 +228,34 @@ export default {
 
     async deleteNotification(id) {
       try {
-        await api.delete(`/notifications/${id}`);
+        // ✅ SỬA: URL chuẩn /notifications/{id}
+        await api.delete(`/api/notifications/${id}`);
         this.notifications = this.notifications.filter(n => n.id !== id);
         this.updateUnreadCount();
       } catch (err) { console.error(err); }
     },
 
- async deleteAll() {
-  if (!this.user) return;
+    async deleteAll() {
+      if (!this.user) return;
+      try {
+        // ✅ SỬA: URL chuẩn /notifications/delete-all (không có ID)
+        const res = await api.delete(`/api/notifications/delete-all`);
 
-  try {
-    const res = await api.delete(`/notifications/user/${this.user.user_id}`);
-
-    // Sửa ở đây: dùng success thay vì status
-    if (res.data.success) {
-      this.notifications = [];
-      this.unreadCount = 0;
-
-      this.$refs.toast.addToast({
-        title: "Thành công",
-        message: "Đã xóa tất cả thông báo!",
-        type: "success"
-      });
-    } else {
-      this.$refs.toast.addToast({
-        title: "Thất bại",
-        message: res.data.message || "Xóa tất cả thất bại!",
-        type: "danger"
-      });
-    }
-  } catch (err) {
-    console.error(err);
-    this.$refs.toast.addToast({
-      title: "Thất bại",
-      message: "Lỗi server khi xóa thông báo",
-      type: "danger"
-    });
-  }
-}
-,
+        if (res.data.success) {
+          this.notifications = [];
+          this.unreadCount = 0;
+          this.$refs.toast.addToast({ title: "Thành công", message: "Đã xóa tất cả thông báo!", type: "success" });
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    },
 
     async markAllRead() {
       if (!this.user) return;
       try {
-        await api.put(`/notifications/read-all/${this.user.user_id}`);
+        // ✅ SỬA: URL chuẩn
+        await api.put(`/api/notifications/read-all`);
         this.notifications.forEach(n => n.is_read = true);
         this.unreadCount = 0;
       } catch (err) { console.error(err); }
@@ -264,10 +264,11 @@ export default {
     loadMore() { this.visibleCount += 5; },
 
     handleClickOutside(e) {
-      if (this.dropdownOpen && !this.$refs.userDropdownWrapper.contains(e.target)) {
+      // Logic đóng dropdown khi click ra ngoài
+      if (this.dropdownOpen && this.$refs.userDropdownWrapper && !this.$refs.userDropdownWrapper.contains(e.target)) {
         this.dropdownOpen = false;
       }
-      if (this.notifDropdownOpen && !this.$refs.notifWrapper.contains(e.target)) {
+      if (this.notifDropdownOpen && this.$refs.notifWrapper && !this.$refs.notifWrapper.contains(e.target)) {
         this.notifDropdownOpen = false;
       }
     },
@@ -282,7 +283,7 @@ export default {
           this.$refs.toast.addToast({
             title: data.notification.title,
             message: data.notification.message,
-            type: data.notification.type || "info",
+            type: "info",
           });
 
           this.hasNew = true;
@@ -296,6 +297,11 @@ export default {
     this.loadNotifications();
     this.listenRealtime();
     document.addEventListener("click", this.handleClickOutside);
+    
+    // Auto-refresh sau 30s để cập nhật thông báo mới (fallback nếu realtime lỗi)
+    setInterval(() => {
+        if(this.user) this.loadNotifications();
+    }, 30000);
   },
 
   beforeDestroy() {

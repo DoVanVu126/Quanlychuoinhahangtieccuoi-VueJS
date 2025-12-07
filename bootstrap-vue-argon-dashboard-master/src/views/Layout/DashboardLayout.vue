@@ -73,6 +73,14 @@
             icon: 'ni ni-bell-55 text-yellow',
           }"
         ></sidebar-item>
+        
+        <sidebar-item
+          :link="{
+            name: 'Quản lý hỗ trợ',
+            path: '/support-tickets',
+            icon: 'ni ni-headphones text-success',
+          }"
+        ></sidebar-item>
 
         <sidebar-item
           :link="{
