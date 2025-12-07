@@ -37,6 +37,15 @@
               <template #cell(price)="row">{{ formatPrice(row.item.price) }} VNĐ</template>
               <template #cell(status)="row">{{ row.item.status || '-' }}</template>
               <template #cell(created_at)="row">{{ formatDate(row.item.created_at) }}</template>
+              <template #cell(edited)="row">
+                <span v-if="isEdited(row.item)" class="badge badge-warning">
+                  Đã chỉnh sửa
+                </span>
+                <span v-else class="text-muted">
+                  Chưa chỉnh sửa
+                </span>
+              </template>
+
               <template #cell(actions)="row">
                 <!-- Nút Sửa -->
                 <b-button size="sm" variant="warning" :disabled="editingId === (row.item.booking_id || row.item.id)"
@@ -191,6 +200,7 @@ export default {
         { key: 'status', label: 'Trạng thái' },
         { key: 'notes', label: 'Ghi chú' },
         { key: 'created_at', label: 'Tạo lúc' },
+        { key: 'edited', label: 'Chỉnh sửa' },
         { key: 'actions', label: 'Hành động' },
       ],
       editingId: null,
@@ -234,6 +244,16 @@ export default {
         console.error('Lỗi tải dữ liệu tham chiếu:', err.response || err.message);
       }
     },
+    isEdited(item) {
+      if (!item.created_at || !item.updated_at) return false;
+
+      const created = new Date(item.created_at).getTime();
+      const updated = new Date(item.updated_at).getTime();
+
+      return updated - created >= 1000; // chênh ít nhất 1 giây
+    }
+
+    ,
 
     userName(id) {
       if (!id && id !== 0) return '-';
@@ -450,6 +470,16 @@ export default {
         }
 
         console.log('Save response:', res && res.data ? res.data : res);
+        if (this.isEditing && this.form.booking_id) {
+          const index = this.bookings.findIndex(
+            b => (b.booking_id || b.id) === this.form.booking_id
+          );
+
+          if (index !== -1) {
+            this.bookings[index].updated_at = new Date().toISOString();
+          }
+        }
+
         this.showModal = false;
         // refresh list
         await this.getBookings();
@@ -464,12 +494,9 @@ export default {
     },
     async deleteBookingWithLoading(id) {
       if (this.deletingId) return;
-
       const ok = confirm('Bạn có chắc chắn muốn xóa ?');
       if (!ok) return;
-
       this.deletingId = id;
-
       try {
         await api.delete(`/bookings/${id}`);
 
@@ -484,8 +511,6 @@ export default {
         this.deletingId = null;
       }
     },
-
-
   },
   computed: {
     // Hall options filtered by current booking's restaurant
