@@ -60,6 +60,12 @@ const routes = [
         props: true,
       },
 
+      //Quản lý yêu cầu hỗ trợ
+      {
+        path: '/support-tickets',
+        name: 'support-tickets',
+        component: SupportTickets,
+      },
       // 👉 DỊCH VỤ
       {
         path: "/dich-vu",
@@ -355,12 +361,6 @@ const routes = [
     name: 'support',
     component: SupportCustomer,
     meta: { requiresAuth: true } // Nếu cần đăng nhập mới được gửi
-  },
-  //Quản lý yêu cầu hỗ trợ
-  {
-    path: '/support-tickets',
-    name: 'support-tickets',
-    component: SupportTickets,
   },
   // Giới thiệu dịch vụ tiệc cưới
   {
