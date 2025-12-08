@@ -18,9 +18,9 @@
 
               <!-- Username -->
               <b-form-group label="Tên tài khoản" label-class="form-label">
-                <b-form-input 
-                  v-model="form.username" 
-                  type="text" 
+                <b-form-input
+                  v-model="form.username"
+                  type="text"
                   class="minimal-input"
                   :class="{ 'is-invalid-custom': errors.username }"
                   placeholder="Chỉ chữ, số và dấu gạch dưới"
@@ -34,9 +34,9 @@
 
               <!-- Email -->
               <b-form-group label="Email" label-class="form-label" class="mt-4">
-                <b-form-input 
-                  v-model="form.email" 
-                  type="email" 
+                <b-form-input
+                  v-model="form.email"
+                  type="email"
                   class="minimal-input"
                   :class="{ 'is-invalid-custom': errors.email }"
                   placeholder="example@email.com"
@@ -54,10 +54,10 @@
                   <b-input-group-prepend class="minimal-prepend">
                     <b-input-group-text>+84</b-input-group-text>
                   </b-input-group-prepend>
-                  <b-form-input 
-                    v-model="form.phone" 
-                    type="tel" 
-                    placeholder="0123456789" 
+                  <b-form-input
+                    v-model="form.phone"
+                    type="tel"
+                    placeholder="0123456789"
                     class="minimal-input"
                     :class="{ 'is-invalid-custom': errors.phone }"
                     maxlength="11"
@@ -76,8 +76,8 @@
               <!-- Password -->
               <b-form-group label="Mật khẩu" label-class="form-label" class="mt-4">
                 <div class="position-relative">
-                  <b-form-input 
-                    v-model="form.password" 
+                  <b-form-input
+                    v-model="form.password"
                     :type="showPassword ? 'text' : 'password'"
                     class="minimal-input pe-5"
                     :class="{ 'is-invalid-custom': errors.password }"
@@ -85,8 +85,8 @@
                     @input="validatePassword"
                     @blur="validatePassword">
                   </b-form-input>
-                  <i class="fas" 
-                    :class="showPassword ? 'fa-eye-slash' : 'fa-eye'" 
+                  <i class="fas"
+                    :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"
                     @click="togglePassword"
                     style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;">
                   </i>
@@ -99,8 +99,8 @@
               <!-- Password Confirmation -->
               <b-form-group label="Xác nhận mật khẩu" label-class="form-label" class="mt-4">
                 <div class="position-relative">
-                  <b-form-input 
-                    v-model="form.password_confirmation" 
+                  <b-form-input
+                    v-model="form.password_confirmation"
                     :type="showPasswordConfirm ? 'text' : 'password'"
                     class="minimal-input pe-5"
                     :class="{ 'is-invalid-custom': errors.password_confirmation }"
@@ -108,8 +108,8 @@
                     @input="validatePasswordConfirmation"
                     @blur="validatePasswordConfirmation">
                   </b-form-input>
-                  <i class="fas" 
-                    :class="showPasswordConfirm ? 'fa-eye-slash' : 'fa-eye'" 
+                  <i class="fas"
+                    :class="showPasswordConfirm ? 'fa-eye-slash' : 'fa-eye'"
                     @click="togglePasswordConfirm"
                     style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;">
                   </i>
@@ -119,9 +119,9 @@
                 </small>
               </b-form-group>
 
-              <b-button 
-                type="submit" 
-                class="minimal-button w-100 mt-4" 
+              <b-button
+                type="submit"
+                class="minimal-button w-100 mt-4"
                 :disabled="isLoading || !isFormValid">
                 <span v-if="isLoading">
                   <b-spinner small class="me-2"></b-spinner>
@@ -216,7 +216,7 @@ export default {
     // Validation methods
     validateUsername() {
       const username = this.form.username;
-      
+
       if (!username) {
         this.errors.username = 'Tên tài khoản là bắt buộc';
       } else if (username.length < 3) {
@@ -235,7 +235,7 @@ export default {
     validateEmail() {
       const email = this.form.email;
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      
+
       if (!email) {
         this.errors.email = 'Email là bắt buộc';
       } else if (!emailRegex.test(email)) {
@@ -252,9 +252,9 @@ export default {
     validatePhone() {
       // Chỉ cho phép nhập số, xóa tất cả ký tự khác
       this.form.phone = this.form.phone.replace(/[^0-9]/g, '');
-      
+
       const phone = this.form.phone;
-      
+
       if (!phone) {
         this.errors.phone = 'Số điện thoại là bắt buộc';
       } else if (phone.length < 9) {
@@ -268,7 +268,7 @@ export default {
 
     validatePassword() {
       const password = this.form.password;
-      
+
       if (!password) {
         this.errors.password = 'Mật khẩu là bắt buộc';
       } else if (password.length < 8) {
@@ -300,7 +300,7 @@ export default {
     showSuccessToast(message, countdown = 2) {
       let timeLeft = countdown;
       const toastId = `success-toast-${Date.now()}`;
-      
+
       const showToast = () => {
         this.$bvToast.toast(`${message} Chuyển hướng sau ${timeLeft}s...`, {
           id: toastId,
@@ -355,11 +355,11 @@ export default {
       axios.post(`${apiUrl}/api/register`, this.form)
         .then(response => {
           this.isLoading = false;
-          
+
           // ✅ THAY ĐỔI: Kiểm tra response.data.success hoặc response.data.user
           if (response.data.success || response.data.user) {
             this.showSuccessToast('Đăng ký thành công! Đang chuyển đến trang đăng nhập...');
-            
+
             setTimeout(() => {
               this.$router.push('/login');
             }, 2000);
@@ -367,10 +367,10 @@ export default {
         })
         .catch(error => {
           this.isLoading = false;
-          
+
           if (error.response && error.response.status === 422) {
             const serverErrors = error.response.data.errors;
-            
+
             // Hiển thị lỗi từ server
             for (let field in serverErrors) {
               if (Array.isArray(serverErrors[field])) {
@@ -383,7 +383,7 @@ export default {
           } else {
             this.showErrorToast('Không thể kết nối đến server');
           }
-          
+
           console.error('Lỗi đăng ký:', error);
         });
     }

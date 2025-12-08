@@ -2,7 +2,7 @@
   <div class="container mt-5">
     <h2 class="mb-4 text-primary">🍽 Sửa Món Ăn</h2>
 
-    <!-- Spinner chỉ hiển thị trong form -->
+    <!-- Spinner -->
     <div v-if="loading" class="form-loading">
       <div class="custom-spinner"></div>
       <span class="loading-text">Đang xử lý...</span>
@@ -96,7 +96,7 @@
 import api from "@/api";
 
 export default {
-  data: function() {
+  data() {
     return {
       loading: false,
       form: {
@@ -107,7 +107,8 @@ export default {
         food_type_id: null,
         restaurant_id: null,
         image_url: null,
-        newImage: null
+        newImage: null,
+        version: 0
       },
       previewImage: null,
       foodTypes: [],
@@ -115,190 +116,156 @@ export default {
     };
   },
 
-  mounted: function() {
-    // gọi đồng thời 3 api
-    var self = this;
+  mounted() {
     Promise.all([
       this.fetchFoodTypes(),
       this.fetchRestaurants(),
       this.loadFood()
-    ]).catch(function(err) {
-      // lỗi nào đó thì log
-      console.error(err);
-    });
+    ]).catch(function(err) { console.error(err); });
   },
 
   methods: {
-    // Lấy loại món
+    getImageUrl(url) {
+      if (!url) return "/images/default.png"; // fallback image
+      if (typeof url === "string" && url.indexOf("http") === 0) return url;
+      return "http://127.0.0.1:8088/" + String(url).replace(/^\/+/, "");
+    },
+
+    handleImageUpload(e) {
+      var file = e.target.files[0];
+      if (file) {
+        if (!file.type.startsWith("image/")) {
+          alert("File phải là ảnh (jpg, png, webp...)");
+          e.target.value = null;
+          return;
+        }
+        this.form.newImage = file;
+        this.previewImage = URL.createObjectURL(file);
+      }
+    },
+
     fetchFoodTypes: async function() {
       try {
         var res = await api.get("/food-types");
         var list = [];
-
-        if (Array.isArray(res.data)) {
-          list = res.data;
-        } else if (res.data && res.data.data) {
-          list = res.data.data;
-        } else {
-          list = [];
-        }
+        if (Array.isArray(res.data)) list = res.data;
+        else if (res.data && res.data.data) list = res.data.data;
 
         this.foodTypes = list.map(function(t) {
-          var val = "";
-          if (t.food_type_id) val = String(t.food_type_id);
-          else if (t.id) val = String(t.id);
-          else val = "";
-          return {
-            value: val,
-            text: t.name
-          };
+          var val = t.food_type_id ? String(t.food_type_id) : (t.id ? String(t.id) : "");
+          return { value: val, text: t.name };
         });
       } catch (err) {
         console.error("Lỗi tải loại món:", err);
       }
     },
 
-    // Lấy nhà hàng
     fetchRestaurants: async function() {
       try {
         var res = await api.get("/restaurants");
         var list = [];
-
-        if (Array.isArray(res.data)) {
-          list = res.data;
-        } else if (res.data && res.data.data) {
-          list = res.data.data;
-        } else {
-          list = [];
-        }
+        if (Array.isArray(res.data)) list = res.data;
+        else if (res.data && res.data.data) list = res.data.data;
 
         this.restaurants = list.map(function(r) {
-          var val = "";
-          if (r.restaurant_id) val = String(r.restaurant_id);
-          else if (r.id) val = String(r.id);
-          else val = "";
-          return {
-            value: val,
-            text: r.name
-          };
+          var val = r.restaurant_id ? String(r.restaurant_id) : (r.id ? String(r.id) : "");
+          return { value: val, text: r.name };
         });
       } catch (err) {
         console.error("Lỗi tải nhà hàng:", err);
       }
     },
 
-    // Load món ăn đang sửa
     loadFood: async function() {
       try {
-        var id = this.$route.params.id;
-        var res = await api.get("/foods/" + id);
-        var data = res.data;
+        var id = Number(this.$route.params.id);
+        if (!Number.isInteger(id) || id <= 0) throw new Error("ID không hợp lệ");
 
-        // nếu API trả object chứa data: {...}, hãy lấy data.data nếu cần
-        if (data && data.data && data.data.name) {
-          // trường hợp trả về { data: { name: ... } }
-          data = data.data;
-        }
+        var res = await api.get("/foods/" + id);
+        var data = res.data && res.data.data ? res.data.data : res.data;
+
+        if (!data || !data.name) throw new Error("Không tìm thấy món ăn");
 
         this.form.name = data.name || "";
         this.form.description = data.description || "";
         this.form.unit = data.unit || "";
         this.form.price = Number(data.price) || 0;
-
-        this.form.food_type_id =
-          data.food_type_id != null ? String(data.food_type_id) : null;
-
-        this.form.restaurant_id =
-          data.restaurant_id != null ? String(data.restaurant_id) : null;
-
+        this.form.food_type_id = data.food_type_id != null ? String(data.food_type_id) : null;
+        this.form.restaurant_id = data.restaurant_id != null ? String(data.restaurant_id) : null;
         this.form.image_url = data.image_url || null;
-        this.previewImage = null;
+        this.form.version = data.version || 0;
       } catch (err) {
-        console.error("Lỗi tải món ăn:", err);
-        alert("Không thể tải món ăn!");
+        console.error(err);
+        alert(err.message || "Không thể tải món ăn!");
         this.$router.push("/mon-an");
       }
     },
 
-    getImageUrl: function(url) {
-      if (!url) return null;
-      if (typeof url === "string" && url.indexOf("http") === 0) return url;
-      return "http://127.0.0.1:8088/" + String(url).replace(/^\/+/, "");
-    },
+    validateForm() {
+  const errors = [];
+  const f = this.form;
 
-    handleImageUpload: function(e) {
-      var file = null;
-      if (e && e.target && e.target.files && e.target.files[0]) {
-        file = e.target.files[0];
-      }
-      if (file) {
-        this.form.newImage = file;
-        try {
-          this.previewImage = URL.createObjectURL(file);
-        } catch (err) {
-          this.previewImage = null;
-        }
-      }
-    },
+  // Lấy giá trị hiện tại
+  const name = f.name || '';
+  const description = f.description || '';
+  const unit = f.unit || '';
 
-    // Cập nhật món ăn có spinner + toast
+  // Chuẩn hóa khoảng trắng + loại bỏ HTML
+  f.name = name.replace(/\s+/g, ' ').trim();
+  f.description = description.replace(/<[^>]*>/g, '').trim();
+  f.unit = unit.replace(/\s+/g, ' ').trim();
+
+  // Kiểm tra
+  if (!f.name) errors.push("Tên món ăn không được để trống.");
+  if (f.name.length > 100) errors.push("Tên món ăn không quá 100 ký tự.");
+  if (f.description.length > 255) errors.push("Mô tả không quá 250 ký tự.");
+  if (!f.unit) errors.push("Đơn vị không được để trống.");
+  if (f.unit.length > 50) errors.push("Đơn vị không quá 50 ký tự.");
+
+  // Giá
+  if (f.price == null || isNaN(f.price)) errors.push("Giá không hợp lệ.");
+  if (/[０-９]/.test(String(f.price))) errors.push("Giá không được dùng số full-width.");
+  if (f.price < 0) errors.push("Giá phải >= 0");
+
+  // Loại món & nhà hàng
+  if (!f.food_type_id || !this.foodTypes.some(t => t.value === f.food_type_id))
+    errors.push("Loại món không hợp lệ.");
+  if (!f.restaurant_id || !this.restaurants.some(r => r.value === f.restaurant_id))
+    errors.push("Nhà hàng không hợp lệ.");
+
+  // Ảnh
+  if (f.newImage && !f.newImage.type.startsWith("image/"))
+    errors.push("File tải lên phải là ảnh.");
+
+  return errors;
+},
+
     updateFood: async function() {
+      var errors = this.validateForm();
+      if (errors.length) { alert(errors.join("\n")); return; }
+
       this.loading = true;
       try {
         var id = this.$route.params.id;
         var formData = new FormData();
-
         formData.append("name", this.form.name);
         formData.append("description", this.form.description);
         formData.append("unit", this.form.unit);
         formData.append("price", this.form.price);
         formData.append("food_type_id", this.form.food_type_id);
         formData.append("restaurant_id", this.form.restaurant_id);
-
-        if (this.form.newImage) {
-          formData.append("image", this.form.newImage);
-        }
+        formData.append("version", this.form.version);
+        if (this.form.newImage) formData.append("image", this.form.newImage);
 
         await api.post("/foods/" + id + "?_method=PUT", formData, {
           headers: { "Content-Type": "multipart/form-data" }
         });
 
-        // show toast thành công
-        if (this.$bvToast && typeof this.$bvToast.show === "function") {
-          this.$bvToast.show("toast-success");
-        } else if (this.$bvToast && typeof this.$bvToast.toast === "function") {
-          // fallback
-          this.$bvToast.toast("Cập nhật món ăn thành công!", {
-            title: "✅ Thành công",
-            variant: "success",
-            solid: true,
-            autoHideDelay: 3000
-          });
-        } else {
-          // fallback alert nếu toast không được register
-          alert("Cập nhật món ăn thành công!");
-        }
-
-        // delay nhỏ để người dùng thấy toast rồi chuyển
-        setTimeout(
-          function() {
-            this.$router.push("/mon-an");
-          }.bind(this),
-          900
-        );
+        if (this.$bvToast && this.$bvToast.show) this.$bvToast.show("toast-success");
+        setTimeout(() => this.$router.push("/mon-an"), 900);
       } catch (err) {
-        console.error("Lỗi cập nhật:", err);
-
-        if (this.$bvToast && typeof this.$bvToast.toast === "function") {
-          this.$bvToast.toast("Cập nhật thất bại!", {
-            title: "❌ Lỗi",
-            variant: "danger",
-            solid: true,
-            autoHideDelay: 3000
-          });
-        } else {
-          alert("Cập nhật thất bại!");
-        }
+        console.error(err);
+        alert((err.response && err.response.data && err.response.data.message) || "Cập nhật thất bại!");
       } finally {
         this.loading = false;
       }
@@ -308,58 +275,12 @@ export default {
 </script>
 
 <style scoped>
-.container {
-  max-width: 700px;
-}
-
-/* Ảnh preview */
-.preview-img {
-  width: 160px;
-  height: 160px;
-  border-radius: 10px;
-  object-fit: cover;
-  border: 2px solid #ddd;
-  margin-bottom: 10px;
-  transition: 0.3s;
-}
-
-/* Spinner trong form */
-.form-loading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  margin-bottom: 15px;
-  font-weight: 500;
-}
-
-.custom-spinner {
-  width: 32px;
-  height: 32px;
-  border: 4px solid #e0e0e0;
-  border-top: 4px solid #007bff;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-.loading-text {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-/* animation xoay mượt */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.preview-img:hover {
-  transform: scale(1.05);
-}
-
-h2 {
-  font-weight: 600;
-}
+.container { max-width: 700px; }
+.preview-img { width: 160px; height: 160px; border-radius: 10px; object-fit: cover; border: 2px solid #ddd; margin-bottom: 10px; transition: 0.3s; }
+.preview-img:hover { transform: scale(1.05); }
+.form-loading { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #f8f9fa; border-radius: 12px; margin-bottom: 15px; font-weight: 500; }
+.custom-spinner { width: 32px; height: 32px; border: 4px solid #e0e0e0; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+.loading-text { font-size: 16px; font-weight: 600; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+h2 { font-weight: 600; }
 </style>
