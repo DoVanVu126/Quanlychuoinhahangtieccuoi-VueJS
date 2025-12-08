@@ -14,223 +14,296 @@
 
     <b-card-body>
       <b-table
+        id="booking-table"
         :items="bookings"
         :fields="tableFields"
-        :current-page="currentPage"
-        :per-page="perPage"
-        responsive
+        :busy="isBusy"
+        responsive="sm"
         hover
         show-empty
         empty-text="Bạn chưa có lịch sử đặt tiệc nào."
-        class="booking-table"
+        class="booking-table custom-table-layout"
       >
-        <template #cell(status)="data">
-          <b-badge 
-            :variant="getStatusVariant(data.value)" 
-            class="status-badge"
-          >
-            {{ data.value }}
-          </b-badge>
+        <template #table-busy>
+          <div class="text-center text-primary my-2">
+            <b-spinner class="align-middle"></b-spinner>
+            <strong class="ms-2">Đang tải dữ liệu...</strong>
+          </div>
         </template>
+
+        <template #cell(event_date)="data">
+          <div class="text-nowrap">
+            {{ formatDate(data.value) }}
+          </div>
+        </template>
+
+        <template #cell(event_time)="data">
+            <span class="text-muted">{{ data.value }}</span>
+        </template>
+
+        <template #cell(status)="data">
+  <span>{{ mapStatusText(data.value) }}</span>
+</template>
+
         
         <template #cell(actions)="data">
           <b-button
-            variant="primary"
+            variant="outline-primary"
             size="sm"
-            class="action-button"
-            :to="`/profileUser/booking-history/${data.item.id}`" >
-            Chi tiết
+            class="action-button text-nowrap"
+            :to="`/profileUser/booking-history/${data.item.booking_id}`" 
+          >
+            <i class="fas fa-eye me-1"></i> Chi tiết
           </b-button>
         </template>
 
       </b-table>
       
-      <b-pagination
-        v-if="totalRows > perPage"
-        v-model="currentPage"
-        :total-rows="totalRows"
-        :per-page="perPage"
-        align="center"
-        class="mt-4"
-      ></b-pagination>
+      <div class="d-flex justify-content-center mt-4" v-if="totalRows > perPage">
+        <b-pagination
+          v-model="currentPage"
+          :total-rows="totalRows"
+          :per-page="perPage"
+          aria-controls="booking-table"
+          first-number
+          last-number
+          pills
+        ></b-pagination>
+      </div>
 
     </b-card-body>
   </div>
 </template>
 
 <script>
-// Dịch từ <script setup> (Vue 3) sang Options API (Vue 2)
 import axios from 'axios';
-
-// Dữ liệu mẫu (từ code của bạn)
-const sampleBookings = [
-  { id: 1, time: '10:07 4/10/2025', type: 'Tiệc cưới', status: 'Đã xác nhận' },
-  { id: 2, time: '10:07 4/10/2025', type: 'Tiệc sinh nhật', status: 'Đã hoàn thành' },
-  { id: 3, time: '10:07 4/10/2025', type: 'Hội nghị', status: 'Đã hủy' },
-  { id: 4, time: '10:07 4/10/2025', type: 'Tiệc cưới', status: 'Đã xác nhận' },
-  { id: 5, time: '10:07 4/10/2025', type: 'Tiệc sinh nhật', status: 'Đã hoàn thành' },
-];
 
 export default {
   name: 'BookingHistory',
   data() {
     return {
-      // Dữ liệu cho <b-table>
-      bookings: [], // Sẽ được tải từ API
+      isBusy: false,
+      bookings: [],
       
-      // Cấu hình cột cho <b-table>
+      // Cấu hình cột hiển thị
       tableFields: [
-        { key: 'id', label: 'STT', sortable: true, class: 'text-dark font-weight-bold' },
-        { key: 'time', label: 'Thời gian', sortable: true },
-        { key: 'type', label: 'Loại sự kiện', sortable: true, class: 'text-dark' },
-        { key: 'status', label: 'Trạng thái', sortable: true },
-        { key: 'actions', label: 'Thao tác', class: 'text-center' }
+        { 
+            key: 'booking_id', 
+            label: 'Mã', 
+            sortable: true, 
+            class: 'text-center font-weight-bold align-middle',
+            thStyle: { width: '80px' } 
+        },
+        { 
+            key: 'hall_name', 
+            label: 'Sảnh tiệc', 
+            sortable: true, 
+            class: 'align-middle text-wrap-col', // Cho phép xuống dòng
+            thStyle: { minWidth: '150px' }
+        }, 
+        { 
+            key: 'event_date', 
+            label: 'Ngày tổ chức', 
+            sortable: true,
+            class: 'align-middle',
+            thStyle: { minWidth: '110px' }
+        },
+        { 
+            key: 'event_time', 
+            label: 'Giờ', 
+            sortable: false,
+            class: 'align-middle text-center' 
+        },
+        { 
+            key: 'number_of_tables', 
+            label: 'Bàn', 
+            sortable: true, 
+            class: 'text-center align-middle',
+            thStyle: { width: '70px' }
+        },
+        { 
+            key: 'price', 
+            label: 'Tổng tiền', 
+            sortable: true, 
+            formatter: this.formatCurrency,
+            class: 'text-end align-middle font-weight-bold text-success',
+            thClass: 'text-end', 
+            thStyle: { minWidth: '120px' }
+        },
+        { 
+            key: 'status', 
+            label: 'Trạng thái', 
+            sortable: true, 
+            class: 'text-center align-middle',
+            thStyle: { minWidth: '130px' }
+        },
+        { 
+            key: 'actions', 
+            label: 'Chi tiết', 
+            class: 'text-center align-middle',
+            thStyle: { width: '100px' }
+        }
       ],
 
-      // Dữ liệu cho <b-pagination>
       currentPage: 1,
-      perPage: 5, // Hiển thị 5 mục mỗi trang
+      perPage: 10, 
       totalRows: 0,
       
-      backendUrl: process.env.VUE_APP_API_URL || 'http://localhost:8088'
+      backendUrl: 'http://localhost:8088'
     };
   },
-  computed: {
-    // (Không cần thiết nếu dùng <b-pagination>, nhưng hữu ích)
-    // totalRows() {
-    //   return this.bookings.length;
-    // }
-  },
   methods: {
-    // Dịch hàm `getStatusClass` sang `getStatusVariant` (dùng cho BootstrapVue)
-    getStatusVariant(status) {
-      switch (status) {
-        case 'Đã hoàn thành':
-          return 'primary'; // Màu xanh dương
-        case 'Đã xác nhận':
-          return 'success'; // Màu xanh lá
-        case 'Đã hủy':
-          return 'danger';  // Màu đỏ
-        default:
-          return 'secondary'; // Màu xám
-      }
+    formatCurrency(value) {
+        if (!value) return '0 đ';
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
     },
 
-    // Hàm để tải dữ liệu (thay vì dùng dữ liệu mẫu)
+    formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('vi-VN'); 
+    },
+
+    // Hàm map text hiển thị (Fix lỗi chữ hoa/thường)
+    mapStatusText(status) {
+        if (!status) return 'Chưa cập nhật';
+        const s = String(status).toLowerCase(); // Chuyển về chữ thường
+        
+        const map = {
+            'pending': 'Chờ duyệt',
+            'confirmed': 'Đã xác nhận',
+            'completed': 'Hoàn thành',
+            'cancelled': 'Đã hủy',
+            'deposit_paid': 'Đã cọc'
+        };
+        return map[s] || status;
+    },
+
+    // Hàm chọn màu sắc (Fix lỗi chữ hoa/thường)
+    getStatusVariant(status) {
+      if (!status) return 'secondary';
+      const s = String(status).toLowerCase();
+      
+      if (s === 'completed') return 'primary'; // Xanh dương đậm
+      if (s === 'confirmed' || s === 'deposit_paid') return 'success'; // Xanh lá
+      if (s === 'cancelled') return 'danger'; // Đỏ
+      if (s === 'pending') return 'warning'; // Vàng
+      return 'secondary';
+    },
+
     async fetchBookingHistory() {
+      // Lấy User ID từ localStorage
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+
+      if (!user || !user.user_id) {
+          this.$bvToast.toast('Vui lòng đăng nhập lại.', { title: 'Lỗi', variant: 'danger' });
+          return;
+      }
+
+      this.isBusy = true;
+
       try {
-        // TODO: Thay thế bằng API thật của bạn
-        // const response = await axios.get(`${this.backendUrl}/api/booking-history?page=${this.currentPage}`);
-        // this.bookings = response.data.data;
-        // this.totalRows = response.data.total;
-        // this.perPage = response.data.per_page;
-        
-        // ---- DÙNG DỮ LIỆU MẪU ĐỂ TEST ----
-        this.bookings = sampleBookings;
-        this.totalRows = sampleBookings.length;
-        // --------------------------------
-        
-      } catch (error) {
-        console.error("Lỗi khi tải lịch sử đặt tiệc:", error);
-        this.$bvToast.toast('Không thể tải lịch sử đặt tiệc.', {
-          title: 'Lỗi', variant: 'danger', solid: true
+        const response = await axios.get(`${this.backendUrl}/api/booking-history`, {
+            params: {
+                user_id: user.user_id, 
+                page: this.currentPage 
+            }
         });
+
+        // Xử lý dữ liệu trả về (hỗ trợ cả Array và Pagination Object)
+        if (Array.isArray(response.data)) {
+            this.bookings = response.data;
+            this.totalRows = response.data.length;
+        } else if (response.data.data) {
+            this.bookings = response.data.data;
+            this.totalRows = response.data.total;
+        }
+
+      } catch (error) {
+        console.error("Lỗi tải dữ liệu:", error);
+        this.$bvToast.toast('Không thể tải lịch sử đặt tiệc.', { title: 'Lỗi mạng', variant: 'danger' });
+      } finally {
+        this.isBusy = false;
       }
     }
   },
   created() {
-    // Gọi hàm này khi component được tải
     this.fetchBookingHistory();
   },
   watch: {
-    // Tự động tải lại trang khi người dùng nhấn chuyển trang
     currentPage() {
-      this.fetchBookingHistory();
+      // Nếu backend hỗ trợ phân trang server-side thì gọi lại fetchBookingHistory() tại đây
     }
   }
 };
 </script>
 
 <style scoped>
-/* * KHỐI CSS TÙY CHỈNH
- * (Copy-paste toàn bộ từ file ChangePassword.vue để đồng bộ)
- */
-
-/* Header */
 .profile-title {
   font-family: 'Lora', serif;
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #111827;
 }
 
 .title-decoration {
   height: 4px;
-  width: 64px;
-  background: linear-gradient(to right, #86efac, #60a5fa);
-  border-radius: 9999px;
+  width: 60px;
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  border-radius: 4px;
 }
 
-/* Style cho table */
-.booking-table {
-  border-radius: 0.5rem;
-  overflow: hidden; /* Giúp bo góc */
-}
-
-/* Style cho status badge */
+/* Style Badge */
 .status-badge {
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.35rem 0.75rem;
-  border-radius: 9999px;
+  padding: 0.5em 0.8em;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
 }
 
-/* Style cho nút "Chi tiết" */
+/* Nút Action */
 .action-button {
-  font-weight: 600;
   font-size: 0.75rem;
-  padding: 0.4rem 0.8rem;
-  border-radius: 0.5rem;
+  font-weight: 600;
 }
 </style>
 
 <style>
-/* GHI ĐÈ STYLE CỦA B-TABLE ĐỂ HỢP VỚI GIAO DIỆN "MINIMALIST"
-  (Đây là CSS toàn cục, không "scoped")
-*/
-.booking-table thead th {
-  background-color: #f9fafb !important; /* bg-gray-50 */
-  border-bottom: 2px solid #e5e7eb !important; /* border-b-2 */
-  color: #4b5563 !important; /* text-gray-600 */
-  font-size: 0.8rem !important;
+/* CSS TOÀN CỤC CHO BẢNG */
+
+/* Header bảng */
+.custom-table-layout thead th {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
   text-transform: uppercase;
+  font-size: 0.75rem !important;
   letter-spacing: 0.5px;
-}
-.booking-table td {
-  border-bottom: 1px solid #f3f4f6 !important; /* border-gray-100 */
-  padding-top: 1rem !important;
-  padding-bottom: 1rem !important;
-  vertical-align: middle;
-}
-.booking-table tr:hover td {
-  background-color: #f9fafb !important; /* hover:bg-gray-50 */
+  border-top: none !important;
+  border-bottom: 2px solid #e5e7eb !important;
 }
 
-/* GHI ĐÈ STYLE CỦA B-PAGINATION ĐỂ HỢP VỚI GIAO DIỆN
-*/
-.pagination .page-item .page-link {
-  border-radius: 0.375rem !important;
-  margin: 0 0.2rem;
-  border: none !important;
-  color: #4b5563; /* text-gray-600 */
-  font-weight: 600;
+/* Cell padding */
+.custom-table-layout td, 
+.custom-table-layout th {
+    padding: 0.75rem 0.5rem !important;
+    font-size: 0.9rem;
 }
-.pagination .page-item:hover .page-link {
-  background-color: #f3f4f6; /* bg-gray-100 */
+
+/* Xử lý xuống dòng cho tên Sảnh */
+.text-wrap-col {
+    white-space: normal !important;
+    max-width: 200px; 
 }
-.pagination .page-item.active .page-link {
-  background-color: #60a5fa !important; /* bg-blue-400 (giống nút submit) */
-  color: white;
-  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.3);
+
+/* Giữ các cột khác trên 1 dòng */
+.text-nowrap {
+    white-space: nowrap !important;
+}
+
+/* Hover effect */
+.custom-table-layout tbody tr:hover {
+    background-color: #f9fafb;
 }
 </style>
