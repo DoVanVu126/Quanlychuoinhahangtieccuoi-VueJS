@@ -3,8 +3,8 @@
     <base-header class="pb-6 pb-8 pt-5 pt-md-8 bg-gradient-success">
       <div class="container-fluid">
         <div class="header-body text-white">
-          <h2 class="text-white font-weight-bold">QUẢN LÝ ĐẶT TIỆC</h2>
-          <p class="text-light">Danh sách và quản lý các đơn đặt tiệc</p>
+          <h2 class="text-white font-weight-bold">QUẢN LÝ GÓI GỢI Ý</h2>
+          <p class="text-light">Danh sách và quản lý các gói gợi ý</p>
         </div>
       </div>
     </base-header>
@@ -14,11 +14,12 @@
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-              <h4 class="mb-0">Danh sách đặt tiệc</h4>
-              <small class="text-muted">Quản lý trạng thái, chỉnh sửa và xóa đơn</small>
+              <h4 class="mb-0">Danh sách gói gợi ý</h4>
+              <small class="text-muted">Quản lý trạng thái, chỉnh sửa và xóa gói</small>
             </div>
             <div>
-              <b-button size="sm" variant="primary" @click="openCreateModal"><i class="fas fa-plus"></i> Thêm gói</b-button>
+              <b-button size="sm" variant="primary" @click="openCreateModal"><i class="fas fa-plus"></i> Thêm
+                gói</b-button>
             </div>
           </div>
 
@@ -33,12 +34,27 @@
               <template #cell(description)="row">{{ row.item.description || '-' }}</template>
               <template #cell(created_at)="row">{{ formatDate(row.item.created_at) }}</template>
               <template #cell(actions)="row">
-                <b-button size="sm" variant="warning" @click="openEditModal(row.item)"><i class="fas fa-edit"></i></b-button>
-                <b-button size="sm" variant="danger" @click="deletePackage(row.item.package_id || row.item.id)"><i class="fas fa-trash"></i></b-button>
+                <!-- SỬA -->
+                <b-button size="sm" variant="warning" class="mr-1"
+                  :disabled="loadingEditId === (row.item.package_id || row.item.id)"
+                  @click="openEditModalWithLoading(row.item)">
+                  <i v-if="loadingEditId === (row.item.package_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                  <i v-else class="fas fa-edit"></i>
+                </b-button>
+
+                <!-- XÓA -->
+                <b-button size="sm" variant="danger"
+                  :disabled="loadingDeleteId === (row.item.package_id || row.item.id)"
+                  @click="deletePackageWithLoading(row.item.package_id || row.item.id)">
+                  <i v-if="loadingDeleteId === (row.item.package_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                  <i v-else class="fas fa-trash"></i>
+                </b-button>
               </template>
+
             </b-table>
             <div class="d-flex justify-content-center mt-3">
-              <b-pagination v-model="currentPage" :total-rows="suggestionPackages.length" :per-page="perPage" align="center" />
+              <b-pagination v-model="currentPage" :total-rows="suggestionPackages.length" :per-page="perPage"
+                align="center" />
             </div>
           </div>
 
@@ -55,7 +71,8 @@
                   <b-form-group label="Nhà hàng">
                     <div v-if="isEditing" class="form-control-plaintext">{{ restaurantName(form.restaurant_id) }}</div>
                     <div v-else>
-                      <b-form-select v-model="form.restaurant_id" :options="restaurantOptions" @change="onRestaurantChange" class="w-100"/>
+                      <b-form-select v-model="form.restaurant_id" :options="restaurantOptions"
+                        @change="onRestaurantChange" class="w-100" />
                     </div>
                   </b-form-group>
                 </b-col>
@@ -63,7 +80,7 @@
                   <b-form-group label="Sảnh">
                     <div v-if="isEditing" class="form-control-plaintext">{{ hallName(form.hall_id) }}</div>
                     <div v-else>
-                      <b-form-select v-model="form.hall_id" :options="hallOptionsForForm" class="w-100"/>
+                      <b-form-select v-model="form.hall_id" :options="hallOptionsForForm" class="w-100" />
                     </div>
                   </b-form-group>
                 </b-col>
@@ -88,25 +105,32 @@
 
               <div class="gg-booking-tabs">
                 <div class="gg-tabs-header">
-                  <button type="button" :class="{ active: activeTab === 'sanh' }" @click="activeTab = 'sanh'">SẢNH</button>
-                  <button type="button" :class="{ active: activeTab === 'monan' }" @click="activeTab = 'monan'">MÓN ĂN</button>
-                  <button type="button" :class="{ active: activeTab === 'dichvu' }" @click="activeTab = 'dichvu'">DỊCH VỤ</button>
+                  <button type="button" :class="{ active: activeTab === 'sanh' }"
+                    @click="activeTab = 'sanh'">SẢNH</button>
+                  <button type="button" :class="{ active: activeTab === 'monan' }" @click="activeTab = 'monan'">MÓN
+                    ĂN</button>
+                  <button type="button" :class="{ active: activeTab === 'dichvu' }" @click="activeTab = 'dichvu'">DỊCH
+                    VỤ</button>
                 </div>
 
                 <div class="gg-tab-content">
                   <div v-if="activeTab === 'sanh'" class="gg-hall-list">
                     <div v-if="modalHalls && modalHalls.length" class="gg-grid">
-                      <div v-for="hall in modalHalls" :key="hall.hall_id || hall.id" class="gg-item card" :class="{ selected: hall.selected }" @click="selectHall(hall)">
+                      <div v-for="hall in modalHalls" :key="hall.hall_id || hall.id" class="gg-item card"
+                        :class="{ selected: hall.selected }" @click="selectHall(hall)">
                         <div class="gg-item-img">
                           <img v-if="hall.image_url" :src="hall.image_url" alt="img" />
                           <div v-else class="gg-item-noimg">No image</div>
                         </div>
                         <div class="gg-item-body">
-                          <h6 class="gg-item-title">{{ hall.name || hall.ten || hall.hall_name || ('Sảnh ' + (hall.hall_id || hall.id)) }}</h6>
+                          <h6 class="gg-item-title">{{ hall.name || hall.ten || hall.hall_name || ('Sảnh ' +
+                            (hall.hall_id ||
+                              hall.id)) }}</h6>
                           <p class="gg-item-desc">{{ hall.description || hall.note || '-' }}</p>
                         </div>
                         <div class="gg-item-action">
-                          <button type="button" class="gg-select-btn" :class="{ selected: hall.selected }" @click.stop="selectHall(hall)">{{ hall.selected ? 'Đã chọn' : 'Chọn' }}</button>
+                          <button type="button" class="gg-select-btn" :class="{ selected: hall.selected }"
+                            @click.stop="selectHall(hall)">{{ hall.selected ? 'Đã chọn' : 'Chọn' }}</button>
                         </div>
                       </div>
                     </div>
@@ -116,27 +140,39 @@
                   <div v-if="activeTab === 'monan'" class="gg-food-container">
 
                     <div class="gg-food-type-tabs">
-                      <button type="button" :class="{ active: activeFoodTypeId === 1 }" @click="activeFoodTypeId = 1">Khai vị</button>
-                      <button type="button" :class="{ active: activeFoodTypeId === 2 }" @click="activeFoodTypeId = 2">Món chính</button>
-                      <button type="button" :class="{ active: activeFoodTypeId === 3 }" @click="activeFoodTypeId = 3">Lẩu</button>
-                      <button type="button" :class="{ active: activeFoodTypeId === 4 }" @click="activeFoodTypeId = 4">Tráng miệng</button>
-                      <button type="button" :class="{ active: activeFoodTypeId === 5 }" @click="activeFoodTypeId = 5">Đồ uống</button>
+                      <button type="button" :class="{ active: activeFoodTypeId === 1 }"
+                        @click="activeFoodTypeId = 1">Khai
+                        vị</button>
+                      <button type="button" :class="{ active: activeFoodTypeId === 2 }"
+                        @click="activeFoodTypeId = 2">Món
+                        chính</button>
+                      <button type="button" :class="{ active: activeFoodTypeId === 3 }"
+                        @click="activeFoodTypeId = 3">Lẩu</button>
+                      <button type="button" :class="{ active: activeFoodTypeId === 4 }"
+                        @click="activeFoodTypeId = 4">Tráng
+                        miệng</button>
+                      <button type="button" :class="{ active: activeFoodTypeId === 5 }" @click="activeFoodTypeId = 5">Đồ
+                        uống</button>
                     </div>
 
                     <div class="gg-food-list">
                       <div v-if="filteredFoods && filteredFoods.length" class="gg-grid">
-                        <div v-for="food in filteredFoods" :key="food.food_id || food.id" class="gg-item card" :class="{ selected: food.selected }" @click="selectFood(food)">
-                            <div class="gg-item-img">
-                              <img v-if="food.image_url" :src="food.image_url" alt="img" />
-                              <div v-else class="gg-item-noimg">No image</div>
-                            </div>
-                            <div class="gg-item-body">
-                              <h6 class="gg-item-title">{{ food.name || food.title || food.ten || ('Món ' + (food.food_id || food.id)) }}</h6>
-                              <p class="gg-item-desc">{{ food.description || food.note || '-' }}</p>
-                            </div>
-                            <div class="gg-item-action">
-                              <button type="button" class="gg-select-btn" :class="{ selected: food.selected }" @click.stop="selectFood(food)">{{ food.selected ? 'Đã chọn' : 'Chọn' }}</button>
-                            </div>
+                        <div v-for="food in filteredFoods" :key="food.food_id || food.id" class="gg-item card"
+                          :class="{ selected: food.selected }" @click="selectFood(food)">
+                          <div class="gg-item-img">
+                            <img v-if="food.image_url" :src="food.image_url" alt="img" />
+                            <div v-else class="gg-item-noimg">No image</div>
+                          </div>
+                          <div class="gg-item-body">
+                            <h6 class="gg-item-title">{{ food.name || food.title || food.ten || ('Món ' + (food.food_id
+                              ||
+                              food.id)) }}</h6>
+                            <p class="gg-item-desc">{{ food.description || food.note || '-' }}</p>
+                          </div>
+                          <div class="gg-item-action">
+                            <button type="button" class="gg-select-btn" :class="{ selected: food.selected }"
+                              @click.stop="selectFood(food)">{{ food.selected ? 'Đã chọn' : 'Chọn' }}</button>
+                          </div>
                         </div>
                       </div>
                       <div v-else>Chưa có món ăn nào.</div>
@@ -145,17 +181,20 @@
 
                   <div v-if="activeTab === 'dichvu'" class="gg-service-list">
                     <div v-if="modalServices && modalServices.length" class="gg-grid">
-                      <div v-for="service in modalServices" :key="service.service_id || service.id" class="gg-item card" :class="{ selected: service.selected }" @click="selectService(service)">
+                      <div v-for="service in modalServices" :key="service.service_id || service.id" class="gg-item card"
+                        :class="{ selected: service.selected }" @click="selectService(service)">
                         <div class="gg-item-img">
                           <img v-if="service.image_url" :src="service.image_url" alt="img" />
                           <div v-else class="gg-item-noimg">No image</div>
                         </div>
                         <div class="gg-item-body">
-                          <h6 class="gg-item-title">{{ service.name || service.title || service.ten || ('DV ' + (service.service_id || service.id)) }}</h6>
+                          <h6 class="gg-item-title">{{ service.name || service.title || service.ten || ('DV ' +
+                            (service.service_id || service.id)) }}</h6>
                           <p class="gg-item-desc">{{ service.description || service.note || '-' }}</p>
                         </div>
                         <div class="gg-item-action">
-                          <button type="button" class="gg-select-btn" :class="{ selected: service.selected }" @click.stop="selectService(service)">{{ service.selected ? 'Đã chọn' : 'Chọn' }}</button>
+                          <button type="button" class="gg-select-btn" :class="{ selected: service.selected }"
+                            @click.stop="selectService(service)">{{ service.selected ? 'Đã chọn' : 'Chọn' }}</button>
                         </div>
                       </div>
                     </div>
@@ -192,6 +231,8 @@ export default {
       suggestionPackages: [],
       currentPage: 1,
       perPage: 10,
+      loadingEditId: null,
+      loadingDeleteId: null,
       restaurants: [],
       halls: [],
       foods: [],
@@ -221,6 +262,8 @@ export default {
       activeTab: 'sanh',
       activeFoodTypeId: 1,
     };
+
+
   },
   components: { HallCard, FoodCard, ServiceCard },
   methods: {
@@ -378,6 +421,17 @@ export default {
       const min = String(d.getMinutes()).padStart(2, '0');
       return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
     },
+    async openEditModalWithLoading(item) {
+      const id = item.package_id || item.id;
+      this.loadingEditId = id;
+
+      try {
+        await this.openEditModal(item);
+      } finally {
+        this.loadingEditId = null;
+      }
+    },
+
     async openEditModal(p) {
       const id = p.package_id != null ? p.package_id : p.id;
       this.isEditing = true;
@@ -395,14 +449,14 @@ export default {
             const fRes = await api.get(`/suggestion-packages/${id}/foods`);
             const fData = fRes.data && fRes.data.data ? fRes.data.data : fRes.data;
             suggestionFoods = Array.isArray(fData) ? fData : suggestionFoods;
-          } catch (e) {}
+          } catch (e) { }
         }
         if ((!suggestionServices || suggestionServices.length === 0)) {
           try {
             const sRes = await api.get(`/suggestion-packages/${id}/services`);
             const sData = sRes.data && sRes.data.data ? sRes.data.data : sRes.data;
             suggestionServices = Array.isArray(sData) ? sData : suggestionServices;
-          } catch (e) {}
+          } catch (e) { }
         }
 
         this.form = {
@@ -603,20 +657,28 @@ export default {
     },
     async deleteBooking(id) {
       if (!confirm('Bạn có chắc chắn muốn xóa ?')) return;
+
+      this.loadingDeleteId = id;
+
       try {
         await api.delete(`/suggestion-packages/${id}`);
-        // remove locally so UI updates immediately
+
         const keyFn = p => (p.package_id != null ? p.package_id : p.id);
         this.suggestionPackages = this.suggestionPackages.filter(p => keyFn(p) !== id);
+
       } catch (err) {
         console.error('Lỗi xóa gói gợi ý:', err.response || err.message);
+        alert('Xóa thất bại!');
+      } finally {
+        this.loadingDeleteId = null;
       }
     },
+
     // Compatibility wrapper: table/actions expect `deletePackage`
     deletePackage(id) {
       return this.deleteBooking(id);
     },
-    
+
   },
   computed: {
     // Hall options filtered by current booking's restaurant
@@ -688,79 +750,225 @@ export default {
 .pop-enter-active {
   transition: transform 0.25s ease, opacity 0.25s ease;
 }
+
 .pop-enter-from,
 .pop-leave-to {
   transform: scale(0.8);
   opacity: 0;
 }
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
 }
+
 /* Remove vertical borders on bordered tables but keep horizontal lines */
 :deep(.table.table-bordered) {
   border: none !important;
 }
+
 :deep(.table.table-bordered) td,
 :deep(.table.table-bordered) th {
   border-left: none !important;
   border-right: none !important;
-  border-top: 1px solid #e9ecef !important; /* keep horizontal separators */
+  border-top: 1px solid #e9ecef !important;
+  /* keep horizontal separators */
 }
+
 :deep(.table.table-bordered tbody tr td),
 :deep(.table.table-bordered tbody tr th) {
-  border-bottom: 1px solid #e9ecef !important; /* horizontal line between rows */
+  border-bottom: 1px solid #e9ecef !important;
+  /* horizontal line between rows */
 }
 
 /* Make header bottom border a bit stronger for separation */
 :deep(.table.table-bordered thead th) {
   border-bottom: 2px solid #dee2e6 !important;
 }
+
 /* Namespaced styles for GoiGoiY modal tab UI (prefix gg-) */
-.gg-booking-tabs { padding: 12px 6px; }
-.gg-tabs-header { display:flex; gap:12px; margin-bottom:12px; justify-content:center; }
-.gg-tabs-header button { background:transparent; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; }
-.gg-tabs-header button.active { background:#2b6fef; color:#fff; }
-.gg-tab-content { min-height:180px; display:flex; justify-content:center; }
+.gg-booking-tabs {
+  padding: 12px 6px;
+}
+
+.gg-tabs-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  justify-content: center;
+}
+
+.gg-tabs-header button {
+  background: transparent;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.gg-tabs-header button.active {
+  background: #2b6fef;
+  color: #fff;
+}
+
+.gg-tab-content {
+  min-height: 180px;
+  display: flex;
+  justify-content: center;
+}
 
 /* grid for items: 3 per row on desktop, responsive to 1 column on small screens */
-.gg-grid { width:100%; display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
-.gg-hall-list, .gg-food-list, .gg-service-list { padding:6px; max-height:360px; overflow:auto; }
-.gg-item { cursor:pointer; padding:0; overflow:hidden; position:relative; }
-.gg-item-img { width:100%; height:120px; background:#f5f5f5; display:flex; align-items:center; justify-content:center; }
-.gg-item-img img { width:100%; height:100%; object-fit:cover; display:block; }
-.gg-item-noimg { color:#777; font-size:13px; padding:6px; }
-.gg-item-body { padding:10px; }
-.gg-item-title { margin:0 0 6px 0; font-size:14px; }
-.gg-item-desc { margin:0; font-size:12px; color:#666; max-height:42px; overflow:hidden; text-overflow:ellipsis; }
+.gg-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.gg-hall-list,
+.gg-food-list,
+.gg-service-list {
+  padding: 6px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.gg-item {
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.gg-item-img {
+  width: 100%;
+  height: 120px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gg-item-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gg-item-noimg {
+  color: #777;
+  font-size: 13px;
+  padding: 6px;
+}
+
+.gg-item-body {
+  padding: 10px;
+}
+
+.gg-item-title {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+}
+
+.gg-item-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+  max-height: 42px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* hover/selected visuals */
-.gg-item { transition: box-shadow .15s, transform .12s; border:1px solid #e9ecef; border-radius:6px; }
-.gg-item:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
-.gg-item.selected { border-color:#28a745; box-shadow:0 0 0 3px rgba(40,167,69,0.06); }
+.gg-item {
+  transition: box-shadow .15s, transform .12s;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.gg-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.gg-item.selected {
+  border-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.06);
+}
 
 /* select button overlay */
-.gg-item-action { position:absolute; top:8px; right:8px; z-index:5; }
-.gg-select-btn { font-size:12px; padding:6px 8px; border-radius:4px; border:1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.96); cursor:pointer; transition: all .12s; }
-.gg-select-btn.selected { background:#28a745; color:#fff; border-color:#28a745; }
-.gg-select-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 12px rgba(0,0,0,0.06); }
+.gg-item-action {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+}
 
-.gg-food-container .gg-food-type-tabs { display:flex; gap:10px; margin-bottom:10px; justify-content:center; }
-.gg-food-type-tabs button { background:transparent; border:none; padding:6px 10px; cursor:pointer; border-radius:6px; }
-.gg-food-type-tabs button.active { border-bottom:3px solid #2b6fef; color:#2b6fef; }
+.gg-select-btn {
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  cursor: pointer;
+  transition: all .12s;
+}
+
+.gg-select-btn.selected {
+  background: #28a745;
+  color: #fff;
+  border-color: #28a745;
+}
+
+.gg-select-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
+}
+
+.gg-food-container .gg-food-type-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  justify-content: center;
+}
+
+.gg-food-type-tabs button {
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.gg-food-type-tabs button.active {
+  border-bottom: 3px solid #2b6fef;
+  color: #2b6fef;
+}
 
 /* small screens adjustments */
 @media (max-width: 992px) {
-  .gg-grid { grid-template-columns: repeat(2, 1fr); }
+  .gg-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
+
 @media (max-width: 576px) {
-  .gg-grid { grid-template-columns: 1fr; }
-  .gg-tabs-header { flex-wrap:wrap; }
-  .gg-food-type-tabs { flex-wrap:wrap; }
+  .gg-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gg-tabs-header {
+    flex-wrap: wrap;
+  }
+
+  .gg-food-type-tabs {
+    flex-wrap: wrap;
+  }
 }
 </style>
- 

@@ -16,48 +16,24 @@
       >
         <div class="card-body">
           <!-- Bộ lọc nhanh -->
-          <div class="d-flex gap-2 mb-3">
-            <b-button 
-              :variant="filterType === 'all' ? 'primary' : 'outline-primary'" 
-              size="sm"
-              @click="filterType = 'all'"
-            >
-              Tất cả ({{ total }})
-            </b-button>
-            <b-button 
-              :variant="filterType === 'expired' ? 'danger' : 'outline-danger'" 
-              size="sm"
-              @click="filterType = 'expired'"
-            >
-              🔴 Hết hạn ({{ expiredCount }})
-            </b-button>
-            <b-button 
-              :variant="filterType === 'near-expiry' ? 'warning' : 'outline-warning'" 
-              size="sm"
-              @click="filterType = 'near-expiry'"
-            >
-              ⚠️ Sắp hết ({{ nearExpiryCount }})
-            </b-button>
-            <b-button 
-              :variant="filterType === 'low-stock' ? 'info' : 'outline-info'" 
-              size="sm"
-              @click="filterType = 'low-stock'"
-            >
-              📦 Cần nhập ({{ lowStockCount }})
-            </b-button>
-          </div>
+         
 
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <input
-              v-model="searchQuery"
-              class="form-control w-50"
-              placeholder="Tìm kiếm theo tên mặt hàng..."
-            />
+            <div class="d-flex gap-2 align-items-center w-50">
+              <input
+                v-model="searchQuery"
+                class="form-control"
+                placeholder="Tìm kiếm theo tên mặt hàng..."
+              />
+              <select v-model="selectedRestaurant" class="form-control" @change="loadItems(1)" style="max-width: 220px">
+                <option value="">-- Tất cả nhà hàng --</option>
+                <option v-for="r in restaurantOptions" :key="r.id" :value="r.id">NH-{{ r.id }} {{ r.name ? ' - ' + r.name : '' }}</option>
+              </select>
+              <b-button size="sm" variant="outline-secondary" @click="refreshRestaurants">Làm mới</b-button>
+            </div>
 
             <div class="d-flex gap-2">
               <b-button variant="primary" @click="themHang">+ Thêm Nguyên Liệu</b-button>
-              <b-button variant="info" @click="lichSuKho">Lịch sử kho</b-button>
-              <b-button variant="success" @click="xuatBaoCaoPDF">Xuất Báo Cáo PDF</b-button>
             </div>
           </div>
 
@@ -72,8 +48,6 @@
                   <th>Đơn vị</th>
                   <th>Mức đặt lại</th>
                   <th>Hạn sử dụng</th>
-                  <th>Trạng thái HSD</th>
-                  <th>Trạng thái tồn</th>
                   <th>Thao tác</th>
                 </tr>
               </thead>
@@ -81,7 +55,10 @@
                 <tr v-for="(item, index) in filteredItems" :key="item.id">
                   <td><strong>{{ (currentPage - 1) * perPage + index + 1 }}</strong></td>
                   <td>
-                    <span class="badge badge-info">NH-{{ item.restaurant_id }}</span>
+                    <div>
+                      <span class="badge badge-info">NH-{{ item.restaurant_id }}</span>
+                      <div v-if="item.restaurant_name" class="small text-muted mt-1">{{ item.restaurant_name }}</div>
+                    </div>
                   </td>
                   <td>{{ item.item_name }}</td>
                   <td>
@@ -94,29 +71,14 @@
                     <span class="text-muted">{{ Math.round(item.reorder_level) }}</span>
                   </td>
                   <td>
-                    <small class="text-muted">{{ formatExpiryDate(item.expiry_date) }}</small>
-                  </td>
-                  <td>
-                    <span
-                      :class="{
-                        'badge badge-danger': item.hsdTrangThai === 'Hết hạn',
-                        'badge badge-warning': item.hsdTrangThai === 'Sắp hết',
-                        'badge badge-success': item.hsdTrangThai === 'An toàn',
-                        'badge badge-secondary': item.hsdTrangThai === 'Không có HSD',
-                      }"
-                    >
-                      {{ item.hsdTrangThai }}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      :class="{
-                        'badge badge-success': item.trangThai === 'An toàn',
-                        'badge badge-warning': item.trangThai === 'Cần nhập',
-                      }"
-                    >
-                      {{ item.trangThai }}
-                    </span>
+                    <div>
+                      <small class="text-muted">{{ formatDate(item.expiry_date) }}</small>
+                    </div>
+                    <div class="mt-1">
+                      <span v-if="item.hsdTrangThai === 'Hết hạn'" class="badge badge-danger">Hết hạn</span>
+                      <span v-else-if="item.hsdTrangThai === 'Sắp hết'" class="badge badge-warning">Sắp hết</span>
+                      <span v-else-if="item.hsdTrangThai === 'An toàn'" class="badge badge-success">Có HSD</span>
+                    </div>
                   </td>
                   <td>
                     <b-button size="sm" variant="outline-primary" @click="suaHang(item)">Sửa</b-button>
@@ -206,6 +168,8 @@ export default {
   data() {
     return {
       searchQuery: "",
+      selectedRestaurant: '',
+      restaurantOptions: [],
       chatOpen: false,
       newMessage: "",
       messages: [
@@ -228,6 +192,7 @@ export default {
   },
   mounted() {
     this.loadItems(1);
+    this.loadRestaurantOptions();
   },
   watch: {
     searchQuery(newVal) {
@@ -293,6 +258,11 @@ export default {
         } else if (this.filterType === 'low-stock') {
           url += `&low_stock=1`;
         }
+
+        // Lọc theo nhà hàng nếu có
+        if (this.selectedRestaurant) {
+          url += `&restaurant_id=${encodeURIComponent(this.selectedRestaurant)}`;
+        }
         
         const res = await api.get(url);
         
@@ -330,16 +300,20 @@ export default {
         this.items = dataArray.map(item => ({
           id: item.inventory_id,
           restaurant_id: item.restaurant_id,
+          // Try common shapes for restaurant name if API includes nested restaurant
+          restaurant_name: item.restaurant_name || (item.restaurant && (item.restaurant.name || item.restaurant.restaurant_name)) || '',
           item_name: item.item_name,
-          quantity: item.quantity,
+          // Normalize numeric fields to numbers for consistent comparison
+          quantity: Number(item.quantity) || 0,
           unit: item.unit,
-          reorder_level: item.reorder_level || 20,
-          expiry_date: item.expiry_date,
+          reorder_level: Number(item.reorder_level) || 20,
+          // Try several common expiry field names from different APIs
+          expiry_date: item.expiry_date || item.hsd || item.expiry || item.expiryDate || item.best_before || item.expired_at || null,
           status: item.status,
           created_at: item.created_at,
           updated_at: item.updated_at,
           hsdTrangThai: this.calculateHSDStatus(item.expiry_date),
-          trangThai: this.calculateStockStatus(item.quantity, item.reorder_level || 20)
+          trangThai: this.calculateStockStatus(Number(item.quantity) || 0, Number(item.reorder_level) || 20)
         }));
         
         // Cập nhật thông tin phân trang
@@ -372,14 +346,31 @@ export default {
     // Tính trạng thái HSD
     calculateHSDStatus(expiryDate) {
       if (!expiryDate) return 'Không có HSD';
-      
-      const expiry = new Date(expiryDate);
+
+      // Support numbers (timestamp seconds or ms) and strings
+      let expiry;
+      try {
+        if (typeof expiryDate === 'number') {
+          // If seconds, convert to ms
+          expiry = expiryDate > 1e12 ? new Date(expiryDate) : new Date(expiryDate * 1000);
+        } else if (/^\d+$/.test(String(expiryDate))) {
+          const n = Number(expiryDate);
+          expiry = n > 1e12 ? new Date(n) : new Date(n * 1000);
+        } else {
+          expiry = new Date(expiryDate);
+        }
+      } catch (e) {
+        return 'Không có HSD';
+      }
+
+      if (!expiry || isNaN(expiry.getTime())) return 'Không có HSD';
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       expiry.setHours(0, 0, 0, 0);
-      
+
       const daysUntilExpiry = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
-      
+
       if (daysUntilExpiry < 0) return 'Hết hạn';
       if (daysUntilExpiry <= 7) return 'Sắp hết';
       return 'An toàn';
@@ -387,19 +378,94 @@ export default {
 
     // Tính trạng thái tồn kho
     calculateStockStatus(quantity, reorderLevel = 20) {
-      return quantity < reorderLevel ? 'Cần nhập' : 'An toàn';
+      const q = Number(quantity) || 0;
+      const r = Number(reorderLevel) || 20;
+      return q < r ? 'Cần nhập' : 'An toàn';
+    },
+
+    // Load danh sách nhà hàng (nếu API hỗ trợ)
+    async loadRestaurantOptions() {
+      try {
+        const res = await api.get('/restaurants');
+        if (res && res.data) {
+          // support various response shapes
+          const data = Array.isArray(res.data) ? res.data : (res.data.data || res.data);
+          if (Array.isArray(data)) {
+            this.restaurantOptions = data.map(r => ({ id: r.id || r.restaurant_id, name: r.name || r.restaurant_name || '' }));
+            return;
+          }
+        }
+      } catch (e) {
+        // ignore - fallback to derive from loaded items
+      }
+
+      // Fallback: derive from current items
+      const map = {};
+      this.items.forEach(i => {
+        if (i.restaurant_id && !map[i.restaurant_id]) map[i.restaurant_id] = i.restaurant_name || '';
+      });
+      this.restaurantOptions = Object.keys(map).map(k => ({ id: k, name: map[k] }));
+    },
+
+    refreshRestaurants() {
+      this.loadRestaurantOptions();
+    },
+
+    // Helper: get items a restaurant needs to restock
+    getRestaurantNeeds(restaurantId) {
+      return this.items.filter(i => String(i.restaurant_id) === String(restaurantId) && i.trangThai === 'Cần nhập');
+    },
+
+    // Format item label for chat output, handling array names and numeric formatting
+    formatItemLabel(item, opts = {}) {
+      const { includeRestaurant = false, includeHSD = false } = opts;
+      let name = item.item_name;
+      if (Array.isArray(name)) {
+        // join without spaces to avoid '0 1 2 3' outputs
+        name = name.join('');
+      }
+      if (name == null || name === '') {
+        name = item.name || item.restaurant_name || '(không tên)';
+      }
+      name = String(name).trim();
+
+      const qty = (item.quantity === null || item.quantity === undefined) ? null : Number(item.quantity);
+      const qtyStr = qty === null || Number.isNaN(qty) ? '?' : String(Math.round(qty));
+      const unit = item.unit || '';
+
+      const parts = [];
+      if (includeRestaurant && item.restaurant_id) parts.push(`NH-${item.restaurant_id}`);
+      parts.push(name);
+
+      let suffix = `${qtyStr}${unit ? ' ' + unit : ''}`;
+      if (includeHSD && item.expiry_date) suffix += `, HSD: ${this.formatDate(item.expiry_date)}`;
+
+      return `${parts.join(' - ')} (${suffix})`;
     },
 
     // Format ngày tháng
     formatDate(dateString) {
       if (!dateString) return '-';
-      const date = new Date(dateString);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `${day}/${month}/${year} ${hours}:${minutes}`;
+      try {
+        let d;
+        if (typeof dateString === 'number') {
+          d = dateString > 1e12 ? new Date(dateString) : new Date(dateString * 1000);
+        } else if (/^\d+$/.test(String(dateString))) {
+          const n = Number(dateString);
+          d = n > 1e12 ? new Date(n) : new Date(n * 1000);
+        } else {
+          d = new Date(dateString);
+        }
+        if (!d || isNaN(d.getTime())) return '-';
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+      } catch (e) {
+        return '-';
+      }
     },
 
     // Format ngày hết hạn
@@ -463,10 +529,49 @@ export default {
     },
     generateReply(input) {
       const msg = input.trim();
+      const lower = msg.toLowerCase();
+
+      // Command: "nhà hàng <id>" => show needs for that restaurant
+      const nhMatch = msg.match(/nh(?:à|a) h(?:à|a)ng\s*(\d+)/i) || msg.match(/nh\-?(\d+)/i);
+      if (nhMatch) {
+        const id = nhMatch[1];
+        const needs = this.getRestaurantNeeds(id);
+        if (needs.length === 0) return `✅ Nhà hàng NH-${id} không có mặt hàng cần nhập ngay.`;
+        return `🔸 Nhà hàng NH-${id} cần nhập (${needs.length}):\n` + needs.map(i => `- ${this.formatItemLabel(i)}`).join('\n');
+      }
+
+      // Command: "nhập <id>" or "cần nhập <id>"
+      const needMatch = msg.match(/(?:nhập|cần nhập)\s*(\d+)/i);
+      if (needMatch) {
+        const id = needMatch[1];
+        const needs = this.getRestaurantNeeds(id);
+        if (needs.length === 0) return `✅ Nhà hàng NH-${id} không cần nhập hàng ngay.`;
+        return `📦 Danh sách cần nhập cho NH-${id}:\n` + needs.map(i => `- ${this.formatItemLabel(i)}`).join('\n');
+      }
+
+      // Command: "tìm <term> tại <id>" or "tìm <term>"
+      const findAt = msg.match(/tìm\s+(.+)\s+tại\s+(\d+)/i);
+      if (findAt) {
+        const term = findAt[1].trim().toLowerCase();
+        const id = findAt[2];
+        const results = this.items.filter(i => String(i.restaurant_id) === String(id) && i.item_name && i.item_name.toLowerCase().includes(term));
+        if (!results.length) return `🔍 Không tìm thấy "${term}" tại NH-${id}.`;
+        return `🔍 Kết quả tìm kiếm tại NH-${id}:\n` + results.map(i => `- ${this.formatItemLabel(i)}`).join('\n');
+      }
+
+      // Simple search: "tìm <term>"
+      const find = msg.match(/tìm\s+(.+)/i);
+      if (find) {
+        const term = find[1].trim().toLowerCase();
+        const results = this.items.filter(i => i.item_name && i.item_name.toLowerCase().includes(term));
+        if (!results.length) return `🔍 Không tìm thấy "${term}" trong kho.`;
+        return `🔍 Kết quả tìm kiếm:\n` + results.slice(0, 10).map(i => `- ${this.formatItemLabel(i, { includeRestaurant: true })}`).join('\n');
+      }
+
       if (msg === "1") {
         const canNhap = this.items.filter((i) => i.trangThai === "Cần nhập");
         return canNhap.length
-          ? "🔸 Hàng cần nhập:\n" + canNhap.map((i) => `- ${i.item_name} (${i.quantity} ${i.unit})`).join("\n")
+          ? "🔸 Hàng cần nhập:\n" + canNhap.map((i) => `- ${this.formatItemLabel(i)}`).join("\n")
           : "✅ Tất cả hàng đều an toàn.";
       }
       if (msg === "2") {
@@ -475,12 +580,12 @@ export default {
         let response = "";
         if (hetHan.length > 0) {
           response += `� Hàng đã hết hạn (${hetHan.length}):\n` + 
-                     hetHan.slice(0, 5).map((i) => `- ${i.item_name} (HSD: ${this.formatExpiryDate(i.expiry_date)})`).join("\n");
+                     hetHan.slice(0, 5).map((i) => `- ${this.formatItemLabel(i, { includeHSD: true })}`).join("\n");
         }
         if (sapHet.length > 0) {
           response += (response ? "\n\n" : "") + 
                      `⚠️ Hàng sắp hết hạn (${sapHet.length}):\n` + 
-                     sapHet.slice(0, 5).map((i) => `- ${i.item_name} (HSD: ${this.formatExpiryDate(i.expiry_date)})`).join("\n");
+                     sapHet.slice(0, 5).map((i) => `- ${this.formatItemLabel(i, { includeHSD: true })}`).join("\n");
         }
         return response || "🟢 Không có hàng sắp/hết hạn.";
       }

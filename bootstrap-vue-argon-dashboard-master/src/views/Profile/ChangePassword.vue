@@ -1,6 +1,5 @@
 <template>
     <div class="change-password-container">
-        <!-- Header -->
         <div class="d-flex align-items-center justify-content-between mb-4">
             <h2 class="profile-title mb-0">Đổi mật khẩu</h2>
             <div class="title-decoration"></div>
@@ -8,12 +7,10 @@
 
         <hr class="mb-4" />
 
-        <!-- Form -->
         <b-form @submit.prevent="handleChangePassword" class="password-form">
 
             <h6 class="text-muted mb-4">Bảo mật tài khoản</h6>
 
-            <!-- Mật khẩu cũ -->
             <b-form-group label="Mật khẩu cũ" label-class="profile-label" class="mb-4">
                 <div class="position-relative">
                     <b-form-input v-model="passwordForm.current_password"
@@ -32,7 +29,6 @@
                 </small>
             </b-form-group>
 
-            <!-- Mật khẩu mới -->
             <b-form-group label="Mật khẩu mới" label-class="profile-label" class="mb-4">
                 <div class="position-relative">
                     <b-form-input v-model="passwordForm.new_password" :type="showNewPassword ? 'text' : 'password'"
@@ -49,7 +45,6 @@
                     {{ errors.new_password }}
                 </small>
 
-                <!-- Password strength indicator -->
                 <div v-if="passwordForm.new_password" class="mt-2">
                     <div class="d-flex align-items-center">
                         <small class="text-muted me-2">Độ mạnh:</small>
@@ -66,7 +61,6 @@
                 </div>
             </b-form-group>
 
-            <!-- Xác nhận mật khẩu mới -->
             <b-form-group label="Xác nhận mật khẩu mới" label-class="profile-label" class="mb-4">
                 <div class="position-relative">
                     <b-form-input v-model="passwordForm.new_password_confirmation"
@@ -84,7 +78,6 @@
                     {{ errors.new_password_confirmation }}
                 </small>
 
-                <!-- Password match indicator -->
                 <div v-if="passwordForm.new_password_confirmation" class="mt-2">
                     <small :class="passwordsMatch ? 'text-success' : 'text-danger'">
                         <i class="fas" :class="passwordsMatch ? 'fa-check-circle' : 'fa-times-circle'"></i>
@@ -95,7 +88,6 @@
 
             <hr class="my-4" />
 
-            <!-- Submit Button -->
             <div class="text-left">
                 <b-button type="submit" variant="success" class="profile-btn-primary"
                     :disabled="isUpdating || !isFormValid">
@@ -181,7 +173,6 @@ export default {
 
         validateNewPassword() {
             const password = this.passwordForm.new_password;
-            // Lấy mật khẩu cũ để so sánh
             const current_password = this.passwordForm.current_password;
 
             if (!password) {
@@ -192,18 +183,12 @@ export default {
                 this.errors.new_password = 'Mật khẩu quá dài';
             } else if (/<|>/.test(password)) {
                 this.errors.new_password = 'Mật khẩu không được chứa < hoặc >';
-
-                // === THÊM MỚI: KIỂM TRA TRÙNG MẬT KHẨU (Phía client) ===
             } else if (current_password && password === current_password) {
-                // Chỉ check nếu mật khẩu cũ đã được nhập
                 this.errors.new_password = 'Mật khẩu mới không được trùng với mật khẩu cũ.';
-                // ===================================================
-
             } else {
                 this.errors.new_password = '';
             }
 
-            // Validate confirmation nếu đã nhập
             if (this.passwordForm.new_password_confirmation) {
                 this.validateConfirmPassword();
             }
@@ -232,51 +217,71 @@ export default {
                 return;
             }
 
+            // --- 1. LẤY TOKEN TỪ LOCALSTORAGE (SỬA LỖI 401) ---
+            const token = localStorage.getItem('token');
+            if (!token) {
+                this.showErrorToast('Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.');
+                // Có thể redirect về trang login ở đây: this.$router.push('/login');
+                return;
+            }
+
             this.isUpdating = true;
 
             try {
+                // --- 2. GỬI KÈM TOKEN VÀO HEADER ---
                 const response = await axios.put(
                     this.backendUrl + '/api/changePassword',
-                    this.passwordForm
+                    this.passwordForm,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}` // QUAN TRỌNG
+                        }
+                    }
                 );
+
                 const message = response.data.message || 'Đổi mật khẩu thành công!';
-        this.showSuccessToast(message);
-// Reset form
- this.passwordForm.current_password = '';
- this.passwordForm.new_password = '';
- this.passwordForm.new_password_confirmation = '';
-        this.errors = {};
+                this.showSuccessToast(message);
+
+                // Reset form
+                this.passwordForm.current_password = '';
+                this.passwordForm.new_password = '';
+                this.passwordForm.new_password_confirmation = '';
+                this.errors = {};
 
             } catch (error) {
                 console.error('Lỗi đổi mật khẩu:', error);
-                this.isUpdating = false; // (Thêm dòng này, bạn đã quên)
 
                 if (error.response) {
-                    // Lỗi 422 (Validation) LÀ LỖI CHÍNH
+                    // Lỗi 422 (Validation)
                     if (error.response.status === 422) {
                         const serverErrors = error.response.data.errors;
 
-                        // 1. Cập nhật các lỗi chi tiết (giống code cũ của bạn)
                         for (let field in serverErrors) {
                             if (Array.isArray(serverErrors[field])) {
                                 this.errors[field] = serverErrors[field][0];
                             }
                         }
 
-                        // 2. Ưu tiên hiển thị lỗi "Mật khẩu cũ" nếu có
+                        // Ưu tiên hiển thị lỗi "Mật khẩu cũ"
                         if (serverErrors.current_password) {
-                            this.showErrorToast(serverErrors.current_password[0]); // "Mật khẩu cũ không chính xác."
+                            this.showErrorToast(serverErrors.current_password[0]);
                         } else {
-                            // Nếu không phải lỗi mật khẩu cũ, thì là lỗi validation khác
                             this.showErrorToast('Dữ liệu không hợp lệ. Vui lòng kiểm tra lại');
                         }
 
-                    } else {
-                        // Các lỗi khác (500, 401, 403...)
+                    } 
+                    // Lỗi 401 (Unauthorized - Token sai/hết hạn)
+                    else if (error.response.status === 401) {
+                        this.showErrorToast('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                        // Xóa token cũ để người dùng đăng nhập lại
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        setTimeout(() => this.$router.push('/login'), 2000);
+                    } 
+                    else {
                         this.showErrorToast('Đã xảy ra lỗi. Vui lòng thử lại');
                     }
                 } else {
-                    // Lỗi mạng (không kết nối được server)
                     this.showErrorToast('Không thể kết nối đến server');
                 }
 

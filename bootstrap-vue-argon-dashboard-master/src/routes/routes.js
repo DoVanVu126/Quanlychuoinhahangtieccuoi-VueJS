@@ -9,6 +9,9 @@ import Profile from "@/views/Pages/Profile.vue";
 import Search from "@/views/Pages/Search.vue";
 import UserLayout from "@/views/KM/UserLayout.vue";
 import ProfileLayout from '@/views/Profile/ProfileLayout.vue';
+import SupportCustomer from '@/views/SupportCustomer.vue';
+import WeddingIntro from '@/views/WeddingIntro.vue';
+import SupportTickets from '@/views/SupportTickets.vue';
 const routes = [
   {
     path: "/",
@@ -57,6 +60,12 @@ const routes = [
         props: true,
       },
 
+      //Quản lý yêu cầu hỗ trợ
+      {
+        path: '/support-tickets',
+        name: 'support-tickets',
+        component: SupportTickets,
+      },
       // 👉 DỊCH VỤ
       {
         path: "/dich-vu",
@@ -166,11 +175,11 @@ const routes = [
         component: () => import("../views/kho-hang/LichSuKho.vue"),
       },
       // đánh giá
-       {
-      path: "/reviews",
-      name: "AdminReviews",
-      component: () => import("@/views/Admin/AdminReviewManagement.vue")
-    },
+      {
+        path: "/reviews",
+        name: "AdminReviews",
+        component: () => import("@/views/Admin/AdminReviewManagement.vue")
+      },
 
       // 👉 HỒ SƠ
       {
@@ -215,45 +224,51 @@ const routes = [
     ],
   },
 
-   //Hồ sơ người dùng
+  //Hồ sơ người dùng
   {
-    path: '/profileUser',
+    path: "/profileUser",
     component: ProfileLayout,
+    meta: { requiresAuth: true }, // ← Yêu cầu đăng nhập
     children: [
       {
-        path: '', // Thông tin cá nhân
-        name: 'Profile',
-        component: () => import('@/views/Profile/ProfileInfo.vue'),
+        path: "", // /profileUser → redirect về /profileUser/info
+        redirect: "/profileUser/info"
       },
       {
-        path: 'change-password', //Đổi mật khẩu
-        name: 'ChangePassword',
-        component: () => import('@/views/Profile/ChangePassword.vue'),
+        path: "info", // /profileUser/info
+        name: "ProfileInfo",
+        component: () => import("@/views/Profile/ProfileInfo.vue"),
       },
       {
-        path: 'payment-history', //Lịch sử thanh toán
-        name: 'PaymentHistory',
-        component: () => import('@/views/Profile/PaymentHistory.vue'),
+        path: "change-password", // /profileUser/change-password
+        name: "ChangePassword",
+        component: () => import("@/views/Profile/ChangePassword.vue"),
       },
       {
-        path: 'payment-history/:id', // Chi tiết thanh toán
-        name: 'PaymentDetail',
-        component: () => import('@/views/Profile/PaymentDetail.vue'), // Bạn sẽ cần tạo file này
-        props: true
+        path: "payment-history", // /profileUser/payment-history
+        name: "PaymentHistory",
+        component: () => import("@/views/Profile/PaymentHistory.vue"),
       },
       {
-        path: 'booking-history', //Lịch sử đặt tiệc
-        name: 'BookingHistory',
-        component: () => import('@/views/Profile/BookingHistory.vue'),
+        path: "payment-history/:id", // /profileUser/payment-history/123
+        name: "PaymentDetail",
+        component: () => import("@/views/Profile/PaymentDetail.vue"),
+        props: true,
       },
       {
-        path: 'booking-history/:id', //Chi tiết đặt tiệc
-        name: 'BookingDetail',
-        component: () => import('@/views/Profile/BookingDetail.vue'),
-        props: true
+        path: "booking-history", // /profileUser/booking-history
+        name: "BookingHistory",
+        component: () => import("@/views/Profile/BookingHistory.vue"),
+      },
+      {
+        path: "booking-history/:id", // /profileUser/booking-history/123
+        name: "BookingDetail",
+        component: () => import("@/views/Profile/BookingDetail.vue"),
+        props: true,
       },
     ],
   },
+
 
   {
     path: "/home",
@@ -340,6 +355,19 @@ const routes = [
     meta: { requiresAuth: true }
   },
 
+  //Hỗ trợ khách hàng
+  {
+    path: '/support',
+    name: 'support',
+    component: SupportCustomer,
+    meta: { requiresAuth: true } // Nếu cần đăng nhập mới được gửi
+  },
+  // Giới thiệu dịch vụ tiệc cưới
+  {
+    path: '/gioi-thieu',
+    name: 'intro',
+    component: WeddingIntro,
+  },
 
   // 👉 AUTH LAYOUT (Đăng nhập, đăng ký)
   {
