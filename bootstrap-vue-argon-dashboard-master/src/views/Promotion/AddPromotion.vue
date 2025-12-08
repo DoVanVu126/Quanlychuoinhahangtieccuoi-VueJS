@@ -1,12 +1,11 @@
 <template>
   <div class="container mt-5">
-    <h2>Thêm Khuyến Mãi</h2>
+    <h2 class="text-primary mb-4">Thêm Khuyến Mãi</h2>
 
     <!-- Lỗi tổng -->
     <div v-if="formError" class="alert alert-danger">{{ formError }}</div>
 
     <b-form @submit.prevent="addPromotion" enctype="multipart/form-data">
-
       <!-- Mã khuyến mãi -->
       <b-form-group label="Mã khuyến mãi">
         <b-form-input
@@ -33,7 +32,11 @@
 
       <!-- Mô tả -->
       <b-form-group label="Mô tả">
-        <b-form-textarea v-model.trim="form.description" rows="3" />
+        <b-form-textarea
+          v-model.trim="form.description"
+          rows="3"
+          placeholder="Nhập mô tả"
+        />
       </b-form-group>
 
       <!-- Loại giảm -->
@@ -123,7 +126,7 @@
           <img
             :src="previewImage"
             class="img-thumbnail"
-            style="max-width:200px"
+            style="max-width: 200px"
           />
         </div>
       </b-form-group>
@@ -142,7 +145,6 @@
           ⬅ Quay lại
         </b-button>
       </div>
-
     </b-form>
   </div>
 </template>
@@ -178,17 +180,17 @@ export default {
       previewImage: null,
       errors: {},
       formError: "",
-      loading: false
+      loading: false,
     };
   },
 
   computed: {
     restaurantOptions() {
-      return this.restaurants.map(r => ({
+      return this.restaurants.map((r) => ({
         value: r.restaurant_id,
-        text: r.name
+        text: r.name,
       }));
-    }
+    },
   },
 
   mounted() {
@@ -196,24 +198,45 @@ export default {
   },
 
   methods: {
+    // ---- Lấy danh sách nhà hàng ----
     async fetchRestaurants() {
       try {
         const res = await api.get("/restaurants");
-        this.restaurants = Array.isArray(res.data) ? res.data : res.data.data || [];
+        this.restaurants = Array.isArray(res.data)
+          ? res.data
+          : res.data.data || [];
       } catch (err) {
         console.error("Lỗi tải nhà hàng:", err);
       }
     },
 
+    // ---- Xử lý ảnh ----
     handleImageChange(e) {
       const file = e.target.files[0];
       this.imageFile = file || null;
       this.previewImage = file ? URL.createObjectURL(file) : null;
     },
 
+    // ---- Sanitize text (loại HTML + khoảng trắng) ----
+    sanitizeText(text) {
+      if (!text) return "";
+      const tmp = document.createElement("div");
+      tmp.innerHTML = text;
+      let cleaned = tmp.textContent || tmp.innerText || "";
+      cleaned = cleaned.replace(/\u3000/g, " "); // full-width space -> normal
+      cleaned = cleaned.replace(/\s+/g, " ").trim(); // collapse space & trim
+      return cleaned;
+    },
+
+    // ---- Validate form ----
     validateForm() {
       this.errors = {};
       let ok = true;
+
+      // Làm sạch dữ liệu
+      this.form.promotion_code = this.sanitizeText(this.form.promotion_code);
+      this.form.title = this.sanitizeText(this.form.title);
+      this.form.description = this.sanitizeText(this.form.description);
 
       if (!this.form.promotion_code) {
         this.errors.promotion_code = "Mã khuyến mãi bắt buộc";
@@ -231,7 +254,10 @@ export default {
         this.errors.discount_value = "Giá trị giảm phải > 0";
         ok = false;
       }
-      if (this.form.discount_type === "percent" && this.form.discount_value > 100) {
+      if (
+        this.form.discount_type === "percent" &&
+        this.form.discount_value > 100
+      ) {
         this.errors.discount_value = "Không quá 100%";
         ok = false;
       }
@@ -255,11 +281,16 @@ export default {
         this.errors.image = "File không phải ảnh";
         ok = false;
       }
+      if (!this.statusOptions.some((o) => o.value === this.form.status)) {
+        this.errors.status = "Trạng thái không hợp lệ";
+        ok = false;
+      }
 
       if (!ok) this.formError = "Vui lòng kiểm tra dữ liệu!";
       return ok;
     },
 
+    // ---- Thêm khuyến mãi ----
     async addPromotion() {
       if (!this.validateForm()) return;
 
@@ -277,20 +308,18 @@ export default {
         }
 
         await api.post("/promotions", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: { "Content-Type": "multipart/form-data" },
         });
 
-        // ✅ Toast thành công
         this.$bvToast.toast("Thêm khuyến mãi thành công ✅", {
           title: "Thành công",
           variant: "success",
-          solid: true
+          solid: true,
         });
 
         setTimeout(() => {
           this.$router.push("/promotions");
         }, 1000);
-
       } catch (err) {
         if (err.response && err.response.status === 422) {
           const backendErrors = err.response.data.errors || {};
@@ -306,8 +335,8 @@ export default {
       } finally {
         this.loading = false;
       }
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -317,7 +346,7 @@ export default {
 }
 .img-thumbnail {
   border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 .is-invalid {
   border-color: #dc3545;

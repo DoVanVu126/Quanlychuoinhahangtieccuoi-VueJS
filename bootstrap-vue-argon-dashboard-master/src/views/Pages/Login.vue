@@ -19,9 +19,9 @@
 
                             <!-- Login Field -->
                             <b-form-group label="Tên tài khoản hoặc Email" label-class="form-label">
-                                <b-form-input 
-                                    v-model="form.login" 
-                                    type="text" 
+                                <b-form-input
+                                    v-model="form.login"
+                                    type="text"
                                     class="minimal-input"
                                     :class="{ 'is-invalid-custom': errors.login }"
                                     :state="errors.login ? false : null"
@@ -37,8 +37,8 @@
                             <!-- Password Field -->
                             <b-form-group label="Mật khẩu" label-class="form-label" class="mt-4">
                                 <div class="position-relative">
-                                    <b-form-input 
-                                        v-model="form.password" 
+                                    <b-form-input
+                                        v-model="form.password"
                                         :type="showPassword ? 'text' : 'password'"
                                         class="minimal-input pe-5"
                                         :class="{ 'is-invalid-custom': errors.password }"
@@ -47,7 +47,7 @@
                                         @blur="validatePassword">
                                     </b-form-input>
 
-                                    <i class="fas" 
+                                    <i class="fas"
                                         :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"
                                         @click="togglePassword"
                                         style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;">
@@ -68,9 +68,9 @@
                                 </router-link>
                             </div>
 
-                            <b-button 
-                                type="submit" 
-                                class="minimal-button w-100 mt-4" 
+                            <b-button
+                                type="submit"
+                                class="minimal-button w-100 mt-4"
                                 :disabled="isLoading || !isFormValid">
                                 <span v-if="isLoading">
                                     <b-spinner small class="me-2"></b-spinner>
@@ -136,7 +136,7 @@ export default {
 
         validateLogin() {
             const login = this.form.login;
-            
+
             if (!login) {
                 this.errors.login = 'Tên tài khoản hoặc email là bắt buộc';
             } else if (login.length > 255) {
@@ -150,7 +150,7 @@ export default {
 
         validatePassword() {
             const password = this.form.password;
-            
+
             if (!password) {
                 this.errors.password = 'Mật khẩu là bắt buộc';
             } else if (password.length > 255) {
@@ -243,14 +243,14 @@ export default {
                         if (user.role === 'admin' || user.role === 'staff') {
                             this.$router.push('/dashboard');
                         } else {
-                            this.$router.push('/home'); 
+                            this.$router.push('/home');
                         }
                     }, 1000);
                 }
             })
             .catch(error => {
                 this.isLoading = false;
-                
+
                 if (error.response) {
                     const status = error.response.status;
                     const errorData = error.response.data;

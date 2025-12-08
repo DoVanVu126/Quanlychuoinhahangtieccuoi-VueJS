@@ -133,10 +133,12 @@
 
       <!-- Nút thao tác -->
       <div class="d-flex gap-2 mt-3">
-        <b-button type="submit" variant="warning">💾 Cập nhật</b-button>
-        <b-button variant="secondary" @click="$router.push('/promotions')"
-          >Hủy</b-button
-        >
+        <b-button type="submit" variant="warning" :disabled="loading">
+          {{ loading ? 'Đang lưu...' : '💾 Cập nhật' }}
+        </b-button>
+        <b-button variant="secondary" @click="$router.push('/promotions')">
+          Hủy
+        </b-button>
       </div>
     </b-form>
   </div>
@@ -148,7 +150,7 @@ import api from "@/api";
 export default {
   data() {
     return {
-      loading: false, // ✅ thêm loading
+      loading: false,
       form: {
         promotion_code: "",
         title: "",
@@ -159,13 +161,13 @@ export default {
         start_date: "",
         end_date: "",
         status: "active",
-        currentImage: null, // Ảnh cũ
-        newImage: null, // Ảnh mới
+        currentImage: null,
+        newImage: null,
       },
       previewImage: null,
       restaurants: [],
-      errors: {},
       formError: "",
+      errors: {},
     };
   },
   computed: {
@@ -206,7 +208,7 @@ export default {
           discount_value: data.discount_value || 0,
           start_date: data.start_date ? data.start_date.slice(0, 10) : "",
           end_date: data.end_date ? data.end_date.slice(0, 10) : "",
-          status: data.status || "active",
+          status: ["active","expired","upcoming"].includes(data.status) ? data.status : "active",
           currentImage: data.image_url || data.image || null,
           newImage: null,
         };
@@ -220,6 +222,11 @@ export default {
     handleImageUpload(e) {
       const file = e.target.files[0];
       if (file) {
+        if (!file.type.startsWith("image/")) {
+          alert("File phải là ảnh (jpg, png, webp...)");
+          e.target.value = null;
+          return;
+        }
         this.form.newImage = file;
         this.previewImage = URL.createObjectURL(file);
       } else {
@@ -234,21 +241,52 @@ export default {
       return `http://127.0.0.1:8088/${url.replace(/^\/+/, "")}`;
     },
 
+    validateForm() {
+      const f = this.form;
+      const errors = [];
+
+      // Chuẩn hóa khoảng trắng + loại bỏ HTML
+      f.promotion_code = (f.promotion_code || "").replace(/\s+/g, " ").trim();
+      f.title = (f.title || "").replace(/\s+/g, " ").trim();
+      f.description = (f.description || "").replace(/<[^>]*>/g, "").trim();
+
+      // Kiểm tra các trường bắt buộc
+      if (!f.restaurant_id) errors.push("Nhà hàng không được để trống.");
+      if (!f.promotion_code) errors.push("Mã khuyến mãi không được để trống.");
+      if (!f.title) errors.push("Tiêu đề không được để trống.");
+      if (f.promotion_code.length > 50) errors.push("Mã khuyến mãi không quá 50 ký tự.");
+      if (f.title.length > 100) errors.push("Tiêu đề không quá 100 ký tự.");
+      if (f.description.length > 255) errors.push("Mô tả không quá 500 ký tự.");
+
+      // Giá trị giảm
+      if (f.discount_value == null || isNaN(f.discount_value)) errors.push("Giá trị giảm không hợp lệ.");
+      if (f.discount_value < 0) errors.push("Giá trị giảm phải >= 0");
+
+      // Status hợp lệ
+      if (!["active","expired","upcoming"].includes(f.status)) errors.push("Trạng thái không hợp lệ.");
+
+      // Ảnh
+      if (f.newImage && !f.newImage.type.startsWith("image/")) errors.push("File tải lên phải là ảnh.");
+
+      return errors;
+    },
+
     async updatePromotion() {
       this.errors = {};
       this.formError = "";
-      this.loading = true;
-
-      if (
-        !this.form.restaurant_id ||
-        !this.form.promotion_code ||
-        !this.form.title
-      ) {
-        this.formError = "Vui lòng điền đầy đủ các trường bắt buộc!";
-        this.loading = false;
+      const errors = this.validateForm();
+      if (errors.length) {
+        this.formError = "❌ " + errors.join("\n");
+        this.$bvToast.toast(this.formError, {
+          title: "❌ Lỗi",
+          variant: "danger",
+          solid: true,
+          autoHideDelay: 4000,
+        });
         return;
       }
 
+      this.loading = true;
       try {
         const id = this.$route.params.id;
         const formData = new FormData();
@@ -263,19 +301,14 @@ export default {
           "start_date",
           "end_date",
           "status",
-        ].forEach((key) => {
-          formData.append(key, this.form[key]);
-        });
+        ].forEach((key) => formData.append(key, this.form[key]));
 
-        if (this.form.newImage) {
-          formData.append("image", this.form.newImage);
-        }
+        if (this.form.newImage) formData.append("image", this.form.newImage);
 
         const res = await api.post(`/promotions/${id}`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 
-        // ✅ Toast thành công
         this.$bvToast.toast(res.data.message || "Cập nhật thành công!", {
           title: "✅ Thành công",
           variant: "success",
@@ -283,18 +316,13 @@ export default {
           autoHideDelay: 3000,
         });
 
-        setTimeout(() => {
-          this.$router.push("/promotions");
-        }, 1000);
+        setTimeout(() => this.$router.push("/promotions"), 1000);
       } catch (err) {
         let msg = "Lỗi hệ thống";
-
         if (err.response && err.response.data) {
           if (err.response.status === 422) {
             const backendErrors = err.response.data.errors || {};
-            for (let key in backendErrors) {
-              this.errors[key] = backendErrors[key][0];
-            }
+            for (let key in backendErrors) this.errors[key] = backendErrors[key][0];
             msg = "Dữ liệu không hợp lệ, vui lòng kiểm tra lại!";
           } else if (err.response.status === 409 && err.response.data.message) {
             msg = err.response.data.message;
@@ -302,10 +330,7 @@ export default {
             msg = err.response.data.message;
           }
         }
-
         this.formError = "❌ " + msg;
-
-        // ✅ Toast lỗi
         this.$bvToast.toast(this.formError, {
           title: "❌ Thất bại",
           variant: "danger",
@@ -321,19 +346,10 @@ export default {
 </script>
 
 <style scoped>
-.container {
-  max-width: 700px;
-}
-h2 {
-  font-weight: 600;
-}
-.b-form-group {
-  margin-bottom: 1.2rem;
-}
-.img-thumbnail {
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
+.container { max-width: 700px; }
+h2 { font-weight: 600; }
+.b-form-group { margin-bottom: 1.2rem; }
+.img-thumbnail { border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
 
 /* Loading spinner */
 .form-loading {
@@ -345,8 +361,5 @@ h2 {
   border-radius: 12px;
   margin-bottom: 15px;
 }
-.loading-text {
-  font-size: 15px;
-  font-weight: 600;
-}
+.loading-text { font-size: 15px; font-weight: 600; }
 </style>

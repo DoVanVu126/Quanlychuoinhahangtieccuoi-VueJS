@@ -28,15 +28,41 @@
               <template #cell(hall_id)="row">{{ hallName(row.item.hall_id) }}</template>
               <template #cell(event_type)="row">{{ row.item.event_type || '-' }}</template>
               <template #cell(event_date)="row">{{ formatDate(row.item.event_date) }}</template>
+              <template #cell(return_date)="row">
+                {{ formatDate(row.item.return_date) }}
+              </template>
+
               <template #cell(event_time)="row">{{ row.item.event_time || '-' }}</template>
               <template #cell(number_of_tables)="row">{{ row.item.number_of_tables || 0 }}</template>
               <template #cell(price)="row">{{ formatPrice(row.item.price) }} VNĐ</template>
               <template #cell(status)="row">{{ row.item.status || '-' }}</template>
               <template #cell(created_at)="row">{{ formatDate(row.item.created_at) }}</template>
-              <template #cell(actions)="row">
-                <b-button size="sm" variant="warning" @click="openEditModal(row.item)"><i class="fas fa-edit"></i></b-button>
-                <b-button size="sm" variant="danger" @click="deleteBooking(row.item.booking_id || row.item.id)"><i class="fas fa-trash"></i></b-button>
+              <template #cell(edited)="row">
+                <span v-if="isEdited(row.item)" class="badge badge-warning">
+                  Đã chỉnh sửa
+                </span>
+                <span v-else class="text-muted">
+                  Chưa chỉnh sửa
+                </span>
               </template>
+
+              <template #cell(actions)="row">
+                <!-- Nút Sửa -->
+                <b-button size="sm" variant="warning" :disabled="editingId === (row.item.booking_id || row.item.id)"
+                  @click="openEditWithLoading(row.item)">
+                  <i v-if="editingId === (row.item.booking_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                  <i v-else class="fas fa-edit"></i>
+</b-button>
+
+                <!-- Nút Xóa -->
+                <b-button size="sm" variant="danger" class="ml-1"
+                  :disabled="deletingId === (row.item.booking_id || row.item.id)"
+                  @click="deleteBookingWithLoading(row.item.booking_id || row.item.id)">
+                  <i v-if="deletingId === (row.item.booking_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                  <i v-else class="fas fa-trash"></i>
+                </b-button>
+              </template>
+
             </b-table>
             <div class="d-flex justify-content-center mt-3">
               <b-pagination v-model="currentPage" :total-rows="bookings.length" :per-page="perPage" align="center" />
@@ -68,12 +94,15 @@
               <b-row>
                 <b-col md="6">
                   <b-form-group label="Sảnh" label-for="hall_id">
-                    <b-form-select id="hall_id" v-model="form.hall_id" :options="hallOptionsForForm" :placeholder="'- Chọn sảnh -'"/>
+                    <b-form-select id="hall_id" v-model="form.hall_id" :options="hallOptionsForForm"
+                      :placeholder="'- Chọn sảnh -'" />
                   </b-form-group>
                 </b-col>
                 <b-col md="6">
                   <b-form-group label="Loại tiệc" label-for="event_type">
-                    <b-form-select id="event_type" v-model="form.event_type" :options="[{value: 'Đám cưới', text: 'Đám cưới'},{value:'Hội nghị',text:'Hội nghị'},{value:'Tiệc sinh nhật',text:'Tiệc sinh nhật'},{value:'Khác',text:'Khác'}]" :placeholder="'- Chọn loại -'"/>
+                    <b-form-select id="event_type" v-model="form.event_type"
+                      :options="[{ value: 'Đám cưới', text: 'Đám cưới' }, { value: 'Hội nghị', text: 'Hội nghị' }, { value: 'Tiệc sinh nhật', text: 'Tiệc sinh nhật' }, { value: 'Khác', text: 'Khác' }]"
+                      :placeholder="'- Chọn loại -'" />
                   </b-form-group>
                 </b-col>
               </b-row>
@@ -85,13 +114,15 @@
                   </b-form-group>
                 </b-col>
                 <b-col md="4">
-                  <b-form-group label="Ngày trả" label-for="return_date">
+<b-form-group label="Ngày trả" label-for="return_date">
                     <b-form-input id="return_date" type="date" v-model="form.return_date" />
                   </b-form-group>
                 </b-col>
                 <b-col md="4">
                   <b-form-group label="Giờ" label-for="event_time">
-                    <b-form-select id="event_time" v-model="form.event_time" :options="[{value:'09:00:00',text:'09:00'},{value:'16:00:00',text:'16:00'}]" :placeholder="'- Chọn giờ -'"/>
+                    <b-form-select id="event_time" v-model="form.event_time"
+                      :options="[{ value: '09:00:00', text: '09:00' }, { value: '16:00:00', text: '16:00' }]"
+                      :placeholder="'- Chọn giờ -'" />
                   </b-form-group>
                 </b-col>
               </b-row>
@@ -108,9 +139,11 @@
                   </b-form-group>
                 </b-col>
                 <b-col md="4">
-                    <b-form-group label="Trạng thái" label-for="status">
-                      <b-form-select id="status" v-model="form.status" :options="[{value:'pending', text:'pending'},{value:'completed', text:'completed'}]" :placeholder="'- Chọn trạng thái -'" />
-                    </b-form-group>
+                  <b-form-group label="Trạng thái" label-for="status">
+                    <b-form-select id="status" v-model="form.status"
+                      :options="[{ value: 'pending', text: 'pending' }, { value: 'completed', text: 'completed' }]"
+                      :placeholder="'- Chọn trạng thái -'" />
+                  </b-form-group>
                 </b-col>
               </b-row>
 
@@ -154,21 +187,24 @@ export default {
       saving: false,
       fields: [
         { key: 'booking_id', label: 'ID', sortable: true },
-        { key: 'customer_id', label: 'Customer' },
-        { key: 'created_by_user_id', label: 'Created By' },
-        { key: 'restaurant_id', label: 'Restaurant' },
-        { key: 'hall_id', label: 'Hall' },
-        { key: 'event_type', label: 'Loại tiệc' },
-        { key: 'event_date', label: 'Ngày' },
+        { key: 'customer_id', label: 'Khách hàng' },
+        { key: 'created_by_user_id', label: 'Người dùng' },
+        { key: 'restaurant_id', label: 'Nhà hàng' },
+        { key: 'hall_id', label: 'Sảnh' },
+{ key: 'event_type', label: 'Loại tiệc' },
+        { key: 'event_date', label: 'Ngày đặt' },
         { key: 'event_time', label: 'Giờ' },
-        { key: 'return_date', label: 'Return' },
+        { key: 'return_date', label: 'Ngày trả' },
         { key: 'number_of_tables', label: 'Số bàn' },
         { key: 'price', label: 'Giá' },
         { key: 'status', label: 'Trạng thái' },
         { key: 'notes', label: 'Ghi chú' },
         { key: 'created_at', label: 'Tạo lúc' },
+        { key: 'edited', label: 'Chỉnh sửa' },
         { key: 'actions', label: 'Hành động' },
       ],
+      editingId: null,
+      deletingId: null,
     };
   },
   methods: {
@@ -208,6 +244,16 @@ export default {
         console.error('Lỗi tải dữ liệu tham chiếu:', err.response || err.message);
       }
     },
+    isEdited(item) {
+      if (!item.created_at || !item.updated_at) return false;
+
+      const created = new Date(item.created_at).getTime();
+      const updated = new Date(item.updated_at).getTime();
+
+      return updated - created >= 1000; // chênh ít nhất 1 giây
+    }
+
+    ,
 
     userName(id) {
       if (!id && id !== 0) return '-';
@@ -234,7 +280,7 @@ export default {
         const res = await api.get('/bookings');
         // handle different response envelopes
         const data = Array.isArray(res.data) ? res.data : (res.data.data || res.data);
-        this.bookings = data || [];
+this.bookings = data || [];
         this.currentPage = 1;
       } catch (err) {
         console.error('Lỗi tải đặt tiệc:', err.response || err.message);
@@ -294,18 +340,23 @@ export default {
       return total;
     },
     formatPrice(value) {
-      return value ? new Intl.NumberFormat('vi-VN').format(value) : '0';
+return value ? new Intl.NumberFormat('vi-VN').format(value) : '0';
     },
     formatDate(dt) {
       if (!dt) return '-';
+
       const d = new Date(dt);
+      d.setHours(d.getHours() + 7); // Fix UTC -> GMT+7 Việt Nam
+
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
       const hh = String(d.getHours()).padStart(2, '0');
       const min = String(d.getMinutes()).padStart(2, '0');
+
       return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
-    },
+    }
+    ,
     async openEditModal(b) {
       const id = b.booking_id != null ? b.booking_id : b.id;
       this.isEditing = true;
@@ -358,7 +409,7 @@ export default {
           event_date: normalizeDate(booking.event_date),
           return_date: normalizeDate(booking.return_date),
           // ensure number_of_tables field exists
-          number_of_tables: (booking.number_of_tables != null) ? booking.number_of_tables : (booking.tables || 0),
+number_of_tables: (booking.number_of_tables != null) ? booking.number_of_tables : (booking.tables || 0),
           booking_foods: bookingFoods,
           booking_services: bookingServices,
         };
@@ -381,6 +432,18 @@ export default {
         this.showModal = true;
       }
     },
+    async openEditWithLoading(row) {
+      const id = row.booking_id || row.id;
+      if (this.editingId) return;
+
+      this.editingId = id;
+      try {
+        await this.openEditModal(row);
+      } finally {
+        this.editingId = null;
+      }
+    },
+
     async saveBooking() {
       this.saving = true;
       console.log('Saving booking...', this.form);
@@ -407,8 +470,18 @@ export default {
         }
 
         console.log('Save response:', res && res.data ? res.data : res);
+        if (this.isEditing && this.form.booking_id) {
+          const index = this.bookings.findIndex(
+            b => (b.booking_id || b.id) === this.form.booking_id
+          );
+
+          if (index !== -1) {
+            this.bookings[index].updated_at = new Date().toISOString();
+          }
+        }
+
         this.showModal = false;
-        // refresh list
+// refresh list
         await this.getBookings();
         window.alert('Lưu đặt tiệc thành công');
       } catch (err) {
@@ -419,18 +492,25 @@ export default {
         this.saving = false;
       }
     },
-    async deleteBooking(id) {
-      if (!confirm('Bạn có chắc chắn muốn xóa ?')) return;
+    async deleteBookingWithLoading(id) {
+      if (this.deletingId) return;
+      const ok = confirm('Bạn có chắc chắn muốn xóa ?');
+      if (!ok) return;
+      this.deletingId = id;
       try {
         await api.delete(`/bookings/${id}`);
-        // remove locally so UI updates immediately
+
         const keyFn = b => (b.booking_id != null ? b.booking_id : b.id);
         this.bookings = this.bookings.filter(b => keyFn(b) !== id);
+
+        window.alert('Xóa thành công');
       } catch (err) {
         console.error('Lỗi xóa đặt tiệc:', err.response || err.message);
+        window.alert('Xóa thất bại');
+      } finally {
+        this.deletingId = null;
       }
     },
-    
   },
   computed: {
     // Hall options filtered by current booking's restaurant
@@ -470,32 +550,40 @@ export default {
 .pop-enter-active {
   transition: transform 0.25s ease, opacity 0.25s ease;
 }
+
 .pop-enter-from,
 .pop-leave-to {
   transform: scale(0.8);
   opacity: 0;
 }
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
 }
+
 /* Remove vertical borders on bordered tables but keep horizontal lines */
 :deep(.table.table-bordered) {
   border: none !important;
 }
+
 :deep(.table.table-bordered) td,
 :deep(.table.table-bordered) th {
   border-left: none !important;
   border-right: none !important;
-  border-top: 1px solid #e9ecef !important; /* keep horizontal separators */
+  border-top: 1px solid #e9ecef !important;
+  /* keep horizontal separators */
 }
+
 :deep(.table.table-bordered tbody tr td),
 :deep(.table.table-bordered tbody tr th) {
-  border-bottom: 1px solid #e9ecef !important; /* horizontal line between rows */
+  border-bottom: 1px solid #e9ecef !important;
+/* horizontal line between rows */
 }
 
 /* Make header bottom border a bit stronger for separation */
@@ -503,4 +591,3 @@ export default {
   border-bottom: 2px solid #dee2e6 !important;
 }
 </style>
- 
