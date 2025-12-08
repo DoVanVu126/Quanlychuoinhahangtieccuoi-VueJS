@@ -286,6 +286,20 @@ const routes = [
       }
     ]
   },
+  // Public restaurant detail (user-facing)
+  {
+    path: '/thanh-toan',
+    name: 'Payment',
+    component: () => import('@/views/Pages/Payment.vue'),
+    meta: { requiresAuth: false }
+  },
+  // 👉 TRẠNG THÁI THANH TOÁN (Admin view to inspect payment result)
+      {
+        path: "/admin/payment-status",
+        name: "AdminPayment",
+        component: () => import("@/views/Pages/AdminPayment.vue"),
+        props: true,
+      },
 
 
   {

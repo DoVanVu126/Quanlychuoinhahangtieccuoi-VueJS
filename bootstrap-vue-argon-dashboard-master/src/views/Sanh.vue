@@ -173,18 +173,72 @@ export default {
       this.$router.push({ name: "SuaSanh", params: { id: hall.hall_id } });
     },
 
-    async deleteHall(id) {
-      if (!confirm("Bạn có chắc muốn xóa sảnh này không?")) return;
-      this.loading = true;
-      try {
-        await api.delete(`/halls/${id}`);
-        this.getHalls(this.currentPage);
-      } catch (err) {
-        console.error("❌ Lỗi xóa sảnh:", err);
-      } finally {
-        this.loading = false;
+   async deleteHall(id) {
+  // 1) Không cho double click
+  if (this.loading === true) return;
+
+  // 2) Validate ID
+  if (id === null || id === undefined) {
+    alert("❌ ID sảnh không hợp lệ!");
+    return;
+  }
+
+  // 3) ID phải là số nguyên dương
+  let cleanedId = Number(String(id).trim());
+  if (!Number.isInteger(cleanedId) || cleanedId <= 0) {
+    alert("❌ ID không hợp lệ (phải là số nguyên dương).");
+    return;
+  }
+
+  // 4) Check ID có nằm trong danh sách hiển thị
+  let exists = this.halls.data.some(h => h.hall_id === cleanedId);
+  if (!exists) {
+    alert("❌ Sảnh không tồn tại trong danh sách hiện tại.");
+    return;
+  }
+
+  // 5) Confirm xóa
+  if (!confirm("⚠ Bạn có chắc chắn muốn xóa sảnh này không?")) return;
+
+  // 6) Lock bảng
+  this.loading = true;
+
+  try {
+    // 7) Gửi request xóa
+    const res = await api.delete(`/halls/${cleanedId}`);
+
+    // 8) Thông báo rõ ràng
+    alert("✅ " + ((res.data && res.data.message) || "Xóa thành công!"));
+
+    // 9) Tải lại danh sách sảnh tại trang hiện tại
+    this.getHalls(this.currentPage);
+
+  } catch (err) {
+    console.error("Xóa lỗi:", err);
+
+    let msg = "❌ Xóa sảnh thất bại!";
+
+    // Laravel validation or error message
+    if (err.response && err.response.data) {
+      if (err.response.data.errors) {
+        // flatten lỗi Laravel
+        let arr = [];
+        for (let key in err.response.data.errors) {
+          arr.push(`${key}: ${err.response.data.errors[key].join(" | ")}`);
+        }
+        msg = arr.join("\n");
+      } else if (err.response.data.message) {
+        msg = "❌ " + err.response.data.message;
       }
-    },
+    }
+
+    alert(msg);
+
+  } finally {
+    // 10) Mở khóa bảng
+    this.loading = false;
+  }
+},
 
     refreshList() {
       this.searchQuery = "";
