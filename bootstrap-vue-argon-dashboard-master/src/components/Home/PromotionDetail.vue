@@ -187,14 +187,12 @@ export default {
     },
 
     showToast(title, message, variant = "success") {
-      this.toast.title = title;
-      this.toast.message = message;
-      this.toast.variant = variant;
-      this.toast.show = false;
-      this.$nextTick(() => {
-        this.toast.show = true;
-      });
-    }
+  this.toast.title = title;
+  this.toast.message = message;
+  this.toast.variant = variant;
+  this.toast.show = true;
+}
+
   }
 };
 </script>
