@@ -371,7 +371,7 @@ const routes = [
 
   //Hỗ trợ khách hàng
   {
-    path: '/support',
+    path: '/ho-tro',
     name: 'support',
     component: SupportCustomer,
     meta: { requiresAuth: true } // Nếu cần đăng nhập mới được gửi
