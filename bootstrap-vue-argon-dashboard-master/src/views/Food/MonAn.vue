@@ -193,25 +193,71 @@ export default {
     },
 
     async deleteFood(id) {
-      if (!confirm("Bạn có chắc muốn xóa không?")) return;
+  // 1) Không cho double click
+  if (this.loading === true) return;
 
-      this.loading = true;
+  // 2) Validate ID
+  if (id === null || id === undefined) {
+    alert("❌ ID món ăn không hợp lệ!");
+    return;
+  }
 
-      try {
-        const res = await api.delete(`/foods/${id}`);
-        alert("✅ " + res.data.message);
-        this.getFoods(this.currentPage);
-      } catch (err) {
-        alert(
-          "❌ " +
-            (err.response && err.response.data && err.response.data.message
-              ? err.response.data.message
-              : "Xóa thất bại!")
-        );
-      } finally {
-        this.loading = false;
+  // 3) ID phải là số nguyên dương
+  let cleanedId = Number(String(id).trim());
+  if (!Number.isInteger(cleanedId) || cleanedId <= 0) {
+    alert("❌ ID không hợp lệ (phải là số nguyên dương).");
+    return;
+  }
+
+  // 4) Check ID có nằm trong danh sách hiển thị
+  let exists = this.foods.data.some(f => f.food_id === cleanedId);
+  if (!exists) {
+    alert("❌ Món ăn không tồn tại trong danh sách hiện tại.");
+    return;
+  }
+
+  // 5) Confirm xóa
+  if (!confirm("⚠ Bạn có chắc chắn muốn xóa món ăn này không?")) return;
+
+  // 6) Lock form
+  this.loading = true;
+
+  try {
+    // 7) Gửi request
+    const res = await api.delete(`/foods/${cleanedId}`);
+
+    // 8) Thông báo rõ ràng
+    alert("✅ " + ((res.data && res.data.message) || "Xóa thành công!"));
+
+    // 9) Tải lại danh sách tại trang hiện tại
+    this.getFoods(this.currentPage);
+
+  } catch (err) {
+    console.error("Xóa lỗi:", err);
+
+    let msg = "❌ Xóa thất bại!";
+
+    // Laravel validation or error message
+    if (err.response && err.response.data) {
+      if (err.response.data.errors) {
+        // flatten lỗi Laravel
+        let arr = [];
+        for (let key in err.response.data.errors) {
+          arr.push(`${key}: ${err.response.data.errors[key].join(" | ")}`);
+        }
+        msg = arr.join("\n");
+      } else if (err.response.data.message) {
+        msg = "❌ " + err.response.data.message;
       }
-    },
+    }
+
+    alert(msg);
+
+  } finally {
+    // 10) Mở khóa form
+    this.loading = false;
+  }
+},
     refreshList() {
       this.searchQuery = "";
       this.getFoods();

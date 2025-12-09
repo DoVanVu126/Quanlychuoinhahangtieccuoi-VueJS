@@ -12,7 +12,7 @@
     <div class="container-fluid mt--7">
       <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden">
         <div class="card-body">
-          
+
           <div class="mb-4">
             <div class="input-group" style="max-width: 500px;">
               <div class="input-group-prepend">
@@ -44,7 +44,7 @@
               <tbody>
                 <tr v-for="customer in customers" :key="customer.customer_id">
                   <td class="text-center">{{ customer.customer_id }}</td>
-                  
+
                   <td class="font-weight-600">
                     <div class="d-flex align-items-center">
                       <img
@@ -66,13 +66,13 @@
                       </div>
                     </div>
                   </td>
-                  
+
                   <td>{{ customer.email }}</td>
-                  
+
                   <td class="text-center">{{ customer.phone || '-' }}</td>
-                  
+
                   <td class="text-center">{{ formatDate(customer.created_at) }}</td>
-                  
+
                   <td class="text-center">
                     <button
                       class="btn btn-sm btn-primary px-3 shadow-sm"
@@ -103,11 +103,11 @@
                 <li class="page-item" :class="{ disabled: currentPage === 1 }">
                   <button class="page-link" @click="getCustomers(currentPage - 1)">Trước</button>
                 </li>
-                
-                <li 
-                  v-for="page in visiblePages" 
-                  :key="page" 
-                  class="page-item" 
+
+                <li
+                  v-for="page in visiblePages"
+                  :key="page"
+                  class="page-item"
                   :class="{ active: page === currentPage }"
                 >
                   <button class="page-link" @click="getCustomers(page)">{{ page }}</button>
@@ -123,7 +123,7 @@
         </div>
       </div>
     </div>
-    
+
     </div>
 </template>
 
@@ -170,9 +170,9 @@ export default {
           per_page: this.perPage,
           search: this.searchQuery.trim(),
         };
-        
+
         const res = await api.get(`/customers`, { params });
-        
+
         // Map dữ liệu trả về
         this.customers = res.data.data.map((c) => ({
           customer_id: c.customer_id,
@@ -182,9 +182,9 @@ export default {
           email: c.email || "",
           phone: c.phone || "",
           image_url: c.image_url || "",
-          created_at: c.created_at, 
+          created_at: c.created_at,
         }));
-        
+
         this.currentPage = res.data.current_page;
         this.lastPage = res.data.last_page;
         this.totalItems = res.data.total;
@@ -195,7 +195,7 @@ export default {
         });
       }
     },
-    
+
     // 2. Tìm kiếm (Debounce)
     handleSearch() {
       clearTimeout(this.searchTimeout);
@@ -203,7 +203,7 @@ export default {
         this.getCustomers(1);
       }, 500);
     },
-    
+
     // 3. Chuyển trang chi tiết (Logic Mới)
     goToCustomerDetail(customerId) {
       this.$router.push(`/customers-chitiet/${customerId}`);
@@ -214,24 +214,24 @@ export default {
       if (!date) return "";
       return new Date(date).toLocaleDateString('vi-VN');
     },
-    
+
     fixImageUrl(url) {
       if (!url) return null;
       if (url.startsWith("http")) return url;
       // Dùng biến backendUrl để linh hoạt hơn
       return `${this.backendUrl}/${url.replace(/^\/+/, "")}`;
     },
-    
+
     handleImageError(e) {
       e.target.src = "https://via.placeholder.com/150x150?text=No+Image";
     },
-    
+
     getInitials(name) {
       if (!name) return "?";
       return name.substring(0, 2).toUpperCase();
     },
   },
-  
+
   mounted() {
     this.getCustomers();
   },

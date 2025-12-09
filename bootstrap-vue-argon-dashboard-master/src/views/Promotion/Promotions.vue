@@ -198,21 +198,69 @@ export default {
       this.$router.push({ name: "EditPromotion", params: { id: promo.promotion_id } });
     },
 
-    async deletePromotion(id) {
-  if (!confirm("Bạn có chắc muốn xóa khuyến mãi này không?")) return;
+   async deletePromotion(id) {
+  // 1) Không cho double click
+  if (this.loading === true) return;
 
+  // 2) Validate ID
+  if (id === null || id === undefined) {
+    alert("❌ ID khuyến mãi không hợp lệ!");
+    return;
+  }
+
+  // 3) ID phải là số nguyên dương
+  let cleanedId = Number(String(id).trim());
+  if (!Number.isInteger(cleanedId) || cleanedId <= 0) {
+    alert("❌ ID không hợp lệ (phải là số nguyên dương).");
+    return;
+  }
+
+  // 4) Check ID có nằm trong danh sách hiện tại
+  let exists = this.promotions.some(p => p.promotion_id === cleanedId);
+  if (!exists) {
+    alert("❌ Khuyến mãi không tồn tại trong danh sách hiện tại.");
+    return;
+  }
+
+  // 5) Confirm xóa
+  if (!confirm("⚠ Bạn có chắc chắn muốn xóa khuyến mãi này không?")) return;
+
+  // 6) Lock form / overlay
   this.loading = true;
+
   try {
-    const res = await api.delete(`/promotions/${id}`);
-    alert("✅ " + res.data.message);
+    // 7) Gửi request xóa
+    const res = await api.delete(`/promotions/${cleanedId}`);
+
+    // 8) Thông báo thành công
+    alert("✅ " + ((res.data && res.data.message) || "Xóa thành công!"));
+
+    // 9) Tải lại danh sách hiện tại
     await this.getPromotions(this.currentPage);
+
   } catch (err) {
-    let msg = "Xóa thất bại!";
-    if (err.response && err.response.data && err.response.data.message) {
-      msg = err.response.data.message;
+    console.error("Xóa lỗi:", err);
+
+    let msg = "❌ Xóa thất bại!";
+
+    // Lấy thông báo lỗi từ backend nếu có
+    if (err.response && err.response.data) {
+      if (err.response.data.errors) {
+        // flatten lỗi Laravel
+        let arr = [];
+        for (let key in err.response.data.errors) {
+          arr.push(`${key}: ${err.response.data.errors[key].join(" | ")}`);
+        }
+        msg = arr.join("\n");
+      } else if (err.response.data.message) {
+        msg = "❌ " + err.response.data.message;
+      }
     }
-    alert("❌ " + msg);
+
+    alert(msg);
+
   } finally {
+    // 10) Mở khóa form
     this.loading = false;
   }
 },

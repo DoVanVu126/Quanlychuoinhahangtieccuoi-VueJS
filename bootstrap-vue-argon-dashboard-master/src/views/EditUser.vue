@@ -144,9 +144,9 @@ export default {
         newImage: null,
         password: "",
       },
-      errors: {},
-      formError: "",
       previewImage: null,
+      formError: "",
+      errors: {},
       loading: false,
     };
   },
@@ -168,12 +168,8 @@ export default {
           password: "",
         };
       } catch (err) {
-        if (err.response && err.response.status === 404) {
-          alert("❌ Không tìm thấy user này");
-          this.$router.push("/users");
-        } else {
-          alert("❌ Lỗi khi tải dữ liệu");
-        }
+        alert("❌ Lỗi khi tải dữ liệu người dùng!");
+        this.$router.push("/users");
       }
     },
 
@@ -188,6 +184,7 @@ export default {
       if (file) {
         if (!file.type.startsWith("image/")) {
           this.errors.image = "Chỉ được chọn file ảnh";
+          e.target.value = null;
           return;
         }
         this.errors.image = "";
@@ -200,91 +197,86 @@ export default {
     },
 
     validateForm() {
-      this.errors = {};
-      let isValid = true;
+      const f = this.form;
+      const errors = [];
 
-      // Username
-      if (!this.form.username) {
-        this.errors.username = "Tên đăng nhập bắt buộc";
-        isValid = false;
-      } else if (this.form.username.length < 3) {
-        this.errors.username = "Tên đăng nhập ít nhất 3 ký tự";
-        isValid = false;
-      }
+      f.username = (f.username || "").trim();
+      f.email = (f.email || "").trim();
+      f.phone = (f.phone || "").trim();
+      f.address = (f.address || "").trim();
 
-      // Email
-      if (!this.form.email) {
-        this.errors.email = "Email bắt buộc";
-        isValid = false;
-      } else if (!/\S+@\S+\.\S+/.test(this.form.email)) {
-        this.errors.email = "Email không hợp lệ";
-        isValid = false;
-      }
+      if (!f.username) errors.push("Tên đăng nhập không được để trống.");
+      else if (f.username.length < 3) errors.push("Tên đăng nhập ít nhất 3 ký tự.");
 
-      // Phone
-      if (this.form.phone && !/^\d{10,12}$/.test(this.form.phone)) {
-        this.errors.phone = "Số điện thoại không hợp lệ (10-12 chữ số)";
-        isValid = false;
-      }
+      if (!f.email) errors.push("Email không được để trống.");
+      else if (!/\S+@\S+\.\S+/.test(f.email)) errors.push("Email không hợp lệ.");
 
-      // Address
-      if (!this.form.address) {
-        this.errors.address = "Địa chỉ bắt buộc";
-        isValid = false;
-      }
+      if (f.phone && !/^\d{10,12}$/.test(f.phone)) errors.push("Số điện thoại không hợp lệ (10-12 chữ số).");
 
-      // Role
-      if (!this.form.role) {
-        this.errors.role = "Chọn vai trò";
-        isValid = false;
-      }
+      if (!f.address) errors.push("Địa chỉ không được để trống.");
 
-      // Password mới
-      if (this.form.password && this.form.password.length < 6) {
-        this.errors.password = "Mật khẩu mới phải ít nhất 6 ký tự";
-        isValid = false;
-      }
+      if (!f.role) errors.push("Chọn vai trò.");
 
-      // Ảnh mới
-      if (this.form.newImage && !this.form.newImage.type.startsWith("image/")) {
-        this.errors.image = "Chỉ được chọn file ảnh";
-        isValid = false;
-      }
+      if (f.password && f.password.length < 6) errors.push("Mật khẩu mới phải ít nhất 6 ký tự.");
 
-      if (!isValid) this.formError = "Vui lòng sửa các lỗi trước khi lưu";
+      if (f.newImage && !f.newImage.type.startsWith("image/")) errors.push("File tải lên phải là ảnh.");
 
-      return isValid;
+      return errors;
     },
 
     async updateUser() {
-      if (!this.validateForm()) return;
-
+      this.errors = {};
       this.formError = "";
-      this.loading = true;
+      const errors = this.validateForm();
 
+      if (errors.length) {
+        this.formError = "❌ " + errors.join("\n");
+        this.$bvToast.toast(this.formError, {
+          title: "❌ Lỗi",
+          variant: "danger",
+          solid: true,
+          autoHideDelay: 4000,
+        });
+        return;
+      }
+
+      this.loading = true;
       try {
         const formData = new FormData();
-        formData.append("username", this.form.username);
-        formData.append("email", this.form.email);
-        formData.append("role", this.form.role);
-        formData.append("phone", this.form.phone);
-        formData.append("address", this.form.address);
-
+        ["username","email","phone","address","role"].forEach(key => formData.append(key, this.form[key]));
         if (this.form.password) formData.append("password", this.form.password);
         if (this.form.newImage) formData.append("image", this.form.newImage);
 
-        await api.post(`/users/${this.$route.params.id}?_method=PUT`, formData, {
+        const res = await api.post(`/users/${this.$route.params.id}?_method=PUT`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 
-        alert("✅ Cập nhật người dùng thành công!");
-        this.$router.push("/users");
+        this.$bvToast.toast(res.data.message || "Cập nhật thành công!", {
+          title: "✅ Thành công",
+          variant: "success",
+          solid: true,
+          autoHideDelay: 3000,
+        });
+
+        setTimeout(() => this.$router.push("/users"), 1000);
       } catch (err) {
-        console.error(
-          "❌ Lỗi cập nhật:",
-          err.response && err.response.data ? err.response.data : err
-        );
-        this.formError = "Cập nhật thất bại!";
+        let msg = "Lỗi hệ thống";
+        if (err.response && err.response.data) {
+          if (err.response.status === 422 && err.response.data.errors) {
+            const backendErrors = err.response.data.errors;
+            for (let key in backendErrors) this.errors[key] = backendErrors[key][0];
+            msg = "Dữ liệu không hợp lệ, vui lòng kiểm tra lại!";
+          } else if (err.response.data.message) {
+            msg = err.response.data.message;
+          }
+        }
+        this.formError = "❌ " + msg;
+        this.$bvToast.toast(this.formError, {
+          title: "❌ Thất bại",
+          variant: "danger",
+          solid: true,
+          autoHideDelay: 4000,
+        });
       } finally {
         this.loading = false;
       }

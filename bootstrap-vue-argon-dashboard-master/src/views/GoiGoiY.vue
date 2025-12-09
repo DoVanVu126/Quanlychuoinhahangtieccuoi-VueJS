@@ -3,8 +3,8 @@
     <base-header class="pb-6 pb-8 pt-5 pt-md-8 bg-gradient-success">
       <div class="container-fluid">
         <div class="header-body text-white">
-          <h2 class="text-white font-weight-bold">QUẢN LÝ GÓI GỢI Ý</h2>
-          <p class="text-light">Danh sách và quản lý các gói gợi ý</p>
+          <h2 class="text-white font-weight-bold">QUẢN LÝ ĐẶT TIỆC</h2>
+          <p class="text-light">Danh sách và quản lý các đơn đặt tiệc</p>
         </div>
       </div>
     </base-header>
@@ -14,195 +14,142 @@
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-              <h4 class="mb-0">Danh sách gói gợi ý</h4>
-              <small class="text-muted">Quản lý trạng thái, chỉnh sửa và xóa gói</small>
-            </div>
-            <div>
-              <b-button size="sm" variant="primary" @click="openCreateModal"><i class="fas fa-plus"></i> Thêm
-                gói</b-button>
+              <h4 class="mb-0">Danh sách đặt tiệc</h4>
+              <small class="text-muted">Quản lý trạng thái, chỉnh sửa và xóa đơn</small>
             </div>
           </div>
 
           <div class="table-responsive">
-            <b-table :items="paginatedSuggestionPackages" :fields="fields" responsive hover bordered>
-              <template #cell(package_id)="row">{{ row.item.package_id || row.item.id }}</template>
-              <template #cell(name)="row">{{ row.item.name || '-' }}</template>
+            <b-table :items="paginatedBookings" :fields="fields" responsive hover bordered>
+              <template #cell(booking_id)="row">{{ row.item.booking_id || row.item.id }}</template>
+              <template #cell(customer_id)="row">{{ userName(row.item.customer_id) }}</template>
+              <template #cell(created_by_user_id)="row">{{ userName(row.item.created_by_user_id) }}</template>
               <template #cell(restaurant_id)="row">{{ restaurantName(row.item.restaurant_id) }}</template>
               <template #cell(hall_id)="row">{{ hallName(row.item.hall_id) }}</template>
               <template #cell(event_type)="row">{{ row.item.event_type || '-' }}</template>
+              <template #cell(event_date)="row">{{ formatDate(row.item.event_date) }}</template>
+              <template #cell(return_date)="row">
+                {{ formatDate(row.item.return_date) }}
+              </template>
+
+              <template #cell(event_time)="row">{{ row.item.event_time || '-' }}</template>
               <template #cell(number_of_tables)="row">{{ row.item.number_of_tables || 0 }}</template>
-              <template #cell(description)="row">{{ row.item.description || '-' }}</template>
+              <template #cell(price)="row">{{ formatPrice(row.item.price) }} VNĐ</template>
+              <template #cell(status)="row">{{ row.item.status || '-' }}</template>
               <template #cell(created_at)="row">{{ formatDate(row.item.created_at) }}</template>
+              <template #cell(edited)="row">
+                <span v-if="isEdited(row.item)" class="badge badge-warning">
+                  Đã chỉnh sửa
+                </span>
+                <span v-else class="text-muted">
+                  Chưa chỉnh sửa
+                </span>
+              </template>
+
               <template #cell(actions)="row">
-                <!-- SỬA -->
-                <b-button size="sm" variant="warning" class="mr-1"
-                  :disabled="loadingEditId === (row.item.package_id || row.item.id)"
-                  @click="openEditModalWithLoading(row.item)">
-                  <i v-if="loadingEditId === (row.item.package_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                <!-- Nút Sửa -->
+                <b-button size="sm" variant="warning" :disabled="editingId === (row.item.booking_id || row.item.id)"
+                  @click="openEditWithLoading(row.item)">
+                  <i v-if="editingId === (row.item.booking_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
                   <i v-else class="fas fa-edit"></i>
                 </b-button>
 
-                <!-- XÓA -->
-                <b-button size="sm" variant="danger"
-                  :disabled="loadingDeleteId === (row.item.package_id || row.item.id)"
-                  @click="deletePackageWithLoading(row.item.package_id || row.item.id)">
-                  <i v-if="loadingDeleteId === (row.item.package_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                <!-- Nút Xóa -->
+                <b-button size="sm" variant="danger" class="ml-1"
+                  :disabled="deletingId === (row.item.booking_id || row.item.id)"
+                  @click="deleteBookingWithLoading(row.item.booking_id || row.item.id)">
+                  <i v-if="deletingId === (row.item.booking_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
                   <i v-else class="fas fa-trash"></i>
                 </b-button>
               </template>
 
             </b-table>
             <div class="d-flex justify-content-center mt-3">
-              <b-pagination v-model="currentPage" :total-rows="suggestionPackages.length" :per-page="perPage"
-                align="center" />
+              <b-pagination v-model="currentPage" :total-rows="bookings.length" :per-page="perPage" align="center" />
             </div>
           </div>
 
-          <!-- Edit Suggestion Package Modal -->
-          <b-modal v-model="showModal" title="Chỉnh sửa gói gợi ý" hide-footer size="lg">
-            <b-form @submit.stop.prevent="savePackage">
+          <!-- Edit Booking Modal -->
+          <b-modal v-model="showModal" title="Chỉnh sửa đặt tiệc" hide-footer size="lg">
+            <b-form @submit.stop.prevent="saveBooking">
+              <!-- Display only: Customer, Created By, Restaurant -->
               <b-row>
                 <b-col md="4">
-                  <b-form-group label="Tên gói" label-for="name">
-                    <b-form-input id="name" v-model="form.name" />
+                  <b-form-group label="Khách hàng">
+                    <div class="form-control-plaintext">{{ userName(form.customer_id) }}</div>
+                  </b-form-group>
+                </b-col>
+                <b-col md="4">
+                  <b-form-group label="Người tạo">
+                    <div class="form-control-plaintext">{{ userName(form.created_by_user_id) }}</div>
                   </b-form-group>
                 </b-col>
                 <b-col md="4">
                   <b-form-group label="Nhà hàng">
-                    <div v-if="isEditing" class="form-control-plaintext">{{ restaurantName(form.restaurant_id) }}</div>
-                    <div v-else>
-                      <b-form-select v-model="form.restaurant_id" :options="restaurantOptions"
-                        @change="onRestaurantChange" class="w-100" />
-                    </div>
-                  </b-form-group>
-                </b-col>
-                <b-col md="4">
-                  <b-form-group label="Sảnh">
-                    <div v-if="isEditing" class="form-control-plaintext">{{ hallName(form.hall_id) }}</div>
-                    <div v-else>
-                      <b-form-select v-model="form.hall_id" :options="hallOptionsForForm" class="w-100" />
-                    </div>
+                    <div class="form-control-plaintext">{{ restaurantName(form.restaurant_id) }}</div>
                   </b-form-group>
                 </b-col>
               </b-row>
 
               <b-row>
                 <b-col md="6">
-                  <b-form-group label="Loại sự kiện" label-for="event_type">
-                    <b-form-input id="event_type" v-model="form.event_type" />
+                  <b-form-group label="Sảnh" label-for="hall_id">
+                    <b-form-select id="hall_id" v-model="form.hall_id" :options="hallOptionsForForm"
+                      :placeholder="'- Chọn sảnh -'" />
                   </b-form-group>
                 </b-col>
                 <b-col md="6">
-                  <b-form-group label="Số bàn" label-for="number_of_tables">
-                    <b-form-input id="number_of_tables" type="number" v-model.number="form.number_of_tables" min="0" />
+                  <b-form-group label="Loại tiệc" label-for="event_type">
+                    <b-form-select id="event_type" v-model="form.event_type"
+                      :options="[{ value: 'Đám cưới', text: 'Đám cưới' }, { value: 'Hội nghị', text: 'Hội nghị' }, { value: 'Tiệc sinh nhật', text: 'Tiệc sinh nhật' }, { value: 'Khác', text: 'Khác' }]"
+                      :placeholder="'- Chọn loại -'" />
                   </b-form-group>
                 </b-col>
               </b-row>
 
-              <b-form-group label="Mô tả" label-for="description">
-                <b-form-textarea id="description" v-model="form.description" rows="3" />
+              <b-row>
+                <b-col md="4">
+                  <b-form-group label="Ngày tổ chức" label-for="event_date">
+                    <b-form-input id="event_date" type="date" v-model="form.event_date" />
+                  </b-form-group>
+                </b-col>
+                <b-col md="4">
+                  <b-form-group label="Ngày trả" label-for="return_date">
+                    <b-form-input id="return_date" type="date" v-model="form.return_date" />
+                  </b-form-group>
+                </b-col>
+                <b-col md="4">
+                  <b-form-group label="Giờ" label-for="event_time">
+                    <b-form-select id="event_time" v-model="form.event_time"
+                      :options="[{ value: '09:00:00', text: '09:00' }, { value: '16:00:00', text: '16:00' }]"
+                      :placeholder="'- Chọn giờ -'" />
+                  </b-form-group>
+                </b-col>
+              </b-row>
+
+              <b-row>
+                <b-col md="4">
+                  <b-form-group label="Số bàn" label-for="number_of_tables">
+                    <b-form-input id="number_of_tables" type="number" v-model.number="form.number_of_tables" min="0" />
+                  </b-form-group>
+                </b-col>
+                <b-col md="4">
+                  <b-form-group label="Giá" label-for="price">
+                    <div class="form-control-plaintext">{{ formatPrice(form.price) }} VNĐ</div>
+                  </b-form-group>
+                </b-col>
+                <b-col md="4">
+                  <b-form-group label="Trạng thái" label-for="status">
+                    <b-form-select id="status" v-model="form.status"
+                      :options="[{ value: 'pending', text: 'pending' }, { value: 'completed', text: 'completed' }]"
+                      :placeholder="'- Chọn trạng thái -'" />
+                  </b-form-group>
+                </b-col>
+              </b-row>
+
+              <b-form-group label="Ghi chú" label-for="notes">
+                <b-form-textarea id="notes" v-model="form.notes" rows="3" />
               </b-form-group>
-
-              <div class="gg-booking-tabs">
-                <div class="gg-tabs-header">
-                  <button type="button" :class="{ active: activeTab === 'sanh' }"
-                    @click="activeTab = 'sanh'">SẢNH</button>
-                  <button type="button" :class="{ active: activeTab === 'monan' }" @click="activeTab = 'monan'">MÓN
-                    ĂN</button>
-                  <button type="button" :class="{ active: activeTab === 'dichvu' }" @click="activeTab = 'dichvu'">DỊCH
-                    VỤ</button>
-                </div>
-
-                <div class="gg-tab-content">
-                  <div v-if="activeTab === 'sanh'" class="gg-hall-list">
-                    <div v-if="modalHalls && modalHalls.length" class="gg-grid">
-                      <div v-for="hall in modalHalls" :key="hall.hall_id || hall.id" class="gg-item card"
-                        :class="{ selected: hall.selected }" @click="selectHall(hall)">
-                        <div class="gg-item-img">
-                          <img v-if="hall.image_url" :src="hall.image_url" alt="img" />
-                          <div v-else class="gg-item-noimg">No image</div>
-                        </div>
-                        <div class="gg-item-body">
-                          <h6 class="gg-item-title">{{ hall.name || hall.ten || hall.hall_name || ('Sảnh ' +
-                            (hall.hall_id ||
-                              hall.id)) }}</h6>
-                          <p class="gg-item-desc">{{ hall.description || hall.note || '-' }}</p>
-                        </div>
-                        <div class="gg-item-action">
-                          <button type="button" class="gg-select-btn" :class="{ selected: hall.selected }"
-                            @click.stop="selectHall(hall)">{{ hall.selected ? 'Đã chọn' : 'Chọn' }}</button>
-                        </div>
-                      </div>
-                    </div>
-                    <div v-else>Chưa có sảnh nào.</div>
-                  </div>
-
-                  <div v-if="activeTab === 'monan'" class="gg-food-container">
-
-                    <div class="gg-food-type-tabs">
-                      <button type="button" :class="{ active: activeFoodTypeId === 1 }"
-                        @click="activeFoodTypeId = 1">Khai
-                        vị</button>
-                      <button type="button" :class="{ active: activeFoodTypeId === 2 }"
-                        @click="activeFoodTypeId = 2">Món
-                        chính</button>
-                      <button type="button" :class="{ active: activeFoodTypeId === 3 }"
-                        @click="activeFoodTypeId = 3">Lẩu</button>
-                      <button type="button" :class="{ active: activeFoodTypeId === 4 }"
-                        @click="activeFoodTypeId = 4">Tráng
-                        miệng</button>
-                      <button type="button" :class="{ active: activeFoodTypeId === 5 }" @click="activeFoodTypeId = 5">Đồ
-                        uống</button>
-                    </div>
-
-                    <div class="gg-food-list">
-                      <div v-if="filteredFoods && filteredFoods.length" class="gg-grid">
-                        <div v-for="food in filteredFoods" :key="food.food_id || food.id" class="gg-item card"
-                          :class="{ selected: food.selected }" @click="selectFood(food)">
-                          <div class="gg-item-img">
-                            <img v-if="food.image_url" :src="food.image_url" alt="img" />
-                            <div v-else class="gg-item-noimg">No image</div>
-                          </div>
-                          <div class="gg-item-body">
-                            <h6 class="gg-item-title">{{ food.name || food.title || food.ten || ('Món ' + (food.food_id
-                              ||
-                              food.id)) }}</h6>
-                            <p class="gg-item-desc">{{ food.description || food.note || '-' }}</p>
-                          </div>
-                          <div class="gg-item-action">
-                            <button type="button" class="gg-select-btn" :class="{ selected: food.selected }"
-                              @click.stop="selectFood(food)">{{ food.selected ? 'Đã chọn' : 'Chọn' }}</button>
-                          </div>
-                        </div>
-                      </div>
-                      <div v-else>Chưa có món ăn nào.</div>
-                    </div>
-                  </div>
-
-                  <div v-if="activeTab === 'dichvu'" class="gg-service-list">
-                    <div v-if="modalServices && modalServices.length" class="gg-grid">
-                      <div v-for="service in modalServices" :key="service.service_id || service.id" class="gg-item card"
-                        :class="{ selected: service.selected }" @click="selectService(service)">
-                        <div class="gg-item-img">
-                          <img v-if="service.image_url" :src="service.image_url" alt="img" />
-                          <div v-else class="gg-item-noimg">No image</div>
-                        </div>
-                        <div class="gg-item-body">
-                          <h6 class="gg-item-title">{{ service.name || service.title || service.ten || ('DV ' +
-                            (service.service_id || service.id)) }}</h6>
-                          <p class="gg-item-desc">{{ service.description || service.note || '-' }}</p>
-                        </div>
-                        <div class="gg-item-action">
-                          <button type="button" class="gg-select-btn" :class="{ selected: service.selected }"
-                            @click.stop="selectService(service)">{{ service.selected ? 'Đã chọn' : 'Chọn' }}</button>
-                        </div>
-                      </div>
-                    </div>
-                    <div v-else>Chưa có dịch vụ nào.</div>
-                  </div>
-
-                </div>
-              </div>
 
               <div class="text-right">
                 <b-button variant="secondary" @click="showModal = false">Hủy</b-button>
@@ -221,75 +168,65 @@
 
 <script>
 import api from '@/api';
-import HallCard from '@/components/booking/HallCard.vue';
-import FoodCard from '@/components/booking/FoodCard.vue';
-import ServiceCard from '@/components/booking/ServiceCard.vue';
 
 export default {
   data() {
     return {
-      suggestionPackages: [],
+      bookings: [],
       currentPage: 1,
       perPage: 10,
-      loadingEditId: null,
-      loadingDeleteId: null,
+      users: [],
       restaurants: [],
       halls: [],
-      foods: [],
-      services: [],
+      usersById: {},
       restaurantsById: {},
       hallsById: {},
-      foodsById: {},
-      servicesById: {},
       form: {},
       showModal: false,
       isEditing: false,
       saving: false,
-      modalHallsList: null,
-      modalFoodsList: null,
-      modalServicesList: null,
       fields: [
-        { key: 'package_id', label: 'ID', sortable: true },
-        { key: 'name', label: 'Tên gói' },
+        { key: 'booking_id', label: 'ID', sortable: true },
+        { key: 'customer_id', label: 'Khách hàng' },
+        { key: 'created_by_user_id', label: 'Người dùng' },
         { key: 'restaurant_id', label: 'Nhà hàng' },
         { key: 'hall_id', label: 'Sảnh' },
-        { key: 'event_type', label: 'Loại' },
+        { key: 'event_type', label: 'Loại tiệc' },
+        { key: 'event_date', label: 'Ngày đặt' },
+        { key: 'event_time', label: 'Giờ' },
+        { key: 'return_date', label: 'Ngày trả' },
         { key: 'number_of_tables', label: 'Số bàn' },
-        { key: 'description', label: 'Mô tả' },
+        { key: 'price', label: 'Giá' },
+        { key: 'status', label: 'Trạng thái' },
+        { key: 'notes', label: 'Ghi chú' },
         { key: 'created_at', label: 'Tạo lúc' },
+        { key: 'edited', label: 'Chỉnh sửa' },
         { key: 'actions', label: 'Hành động' },
       ],
-      activeTab: 'sanh',
-      activeFoodTypeId: 1,
+      editingId: null,
+      deletingId: null,
     };
-
-
   },
-  components: { HallCard, FoodCard, ServiceCard },
   methods: {
     async loadRefs() {
       try {
-        const [rRes, hRes, fRes, sRes] = await Promise.all([
+        const [rRes, hRes, uRes] = await Promise.all([
           api.get('/restaurants'),
           api.get('/halls'),
-          api.get('/foods'),
-          api.get('/services'),
+          api.get('/users'),
         ]);
 
         const restaurants = Array.isArray(rRes.data) ? rRes.data : (rRes.data.data || rRes.data);
         const halls = Array.isArray(hRes.data) ? hRes.data : (hRes.data.data || hRes.data);
-        const foods = Array.isArray(fRes.data) ? fRes.data : (fRes.data.data || fRes.data);
-        const services = Array.isArray(sRes.data) ? sRes.data : (sRes.data.data || sRes.data);
+        const users = Array.isArray(uRes.data) ? uRes.data : (uRes.data.data || uRes.data);
 
         this.restaurants = restaurants || [];
         this.halls = halls || [];
-        this.foods = foods || [];
-        this.services = services || [];
+        this.users = users || [];
 
         this.restaurantsById = {};
         this.hallsById = {};
-        this.foodsById = {};
-        this.servicesById = {};
+        this.usersById = {};
 
         this.restaurants.forEach(r => {
           const id = r.id || r.restaurant_id;
@@ -299,18 +236,24 @@ export default {
           const id = h.id || h.hall_id;
           if (id != null) this.hallsById[id] = h;
         });
-        this.foods.forEach(f => {
-          const id = f.id || f.food_id;
-          if (id != null) this.foodsById[id] = f;
-        });
-        this.services.forEach(s => {
-          const id = s.id || s.service_id;
-          if (id != null) this.servicesById[id] = s;
+        this.users.forEach(u => {
+          const id = u.id || u.user_id || u.customer_id;
+          if (id != null) this.usersById[id] = u;
         });
       } catch (err) {
         console.error('Lỗi tải dữ liệu tham chiếu:', err.response || err.message);
       }
     },
+    isEdited(item) {
+      if (!item.created_at || !item.updated_at) return false;
+
+      const created = new Date(item.created_at).getTime();
+      const updated = new Date(item.updated_at).getTime();
+
+      return updated - created >= 1000; // chênh ít nhất 1 giây
+    }
+
+    ,
 
     userName(id) {
       if (!id && id !== 0) return '-';
@@ -332,27 +275,15 @@ export default {
       if (!h) return id || '-';
       return h.name || h.ten || h.hall_name || String(id);
     },
-    foodName(id) {
-      if (!id && id !== 0) return '-';
-      const f = this.foodsById[id];
-      if (!f) return id || '-';
-      return f.name || f.title || f.ten || f.food_name || String(id);
-    },
-    serviceName(id) {
-      if (!id && id !== 0) return '-';
-      const s = this.servicesById[id];
-      if (!s) return id || '-';
-      return s.name || s.title || s.ten || s.service_name || String(id);
-    },
-    async getSuggestionPackages() {
+    async getBookings() {
       try {
-        const res = await api.get('/suggestion-packages');
+        const res = await api.get('/bookings');
         // handle different response envelopes
         const data = Array.isArray(res.data) ? res.data : (res.data.data || res.data);
-        this.suggestionPackages = data || [];
+        this.bookings = data || [];
         this.currentPage = 1;
       } catch (err) {
-        console.error('Lỗi tải gói gợi ý:', err.response || err.message);
+        console.error('Lỗi tải đặt tiệc:', err.response || err.message);
       }
     },
     // compute total price of booking foods (price * quantity)
@@ -413,272 +344,173 @@ export default {
     },
     formatDate(dt) {
       if (!dt) return '-';
+
       const d = new Date(dt);
+      d.setHours(d.getHours() + 7); // Fix UTC -> GMT+7 Việt Nam
+
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
       const hh = String(d.getHours()).padStart(2, '0');
       const min = String(d.getMinutes()).padStart(2, '0');
+
       return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
-    },
-    async openEditModalWithLoading(item) {
-      const id = item.package_id || item.id;
-      this.loadingEditId = id;
-
-      try {
-        await this.openEditModal(item);
-      } finally {
-        this.loadingEditId = null;
-      }
-    },
-
-    async openEditModal(p) {
-      const id = p.package_id != null ? p.package_id : p.id;
+    }
+    ,
+    async openEditModal(b) {
+      const id = b.booking_id != null ? b.booking_id : b.id;
       this.isEditing = true;
       try {
-        const res = await api.get(`/suggestion-packages/${id}`);
+        const res = await api.get(`/bookings/${id}`);
+        // support envelope { data: {...} } or direct object
         const data = res.data && res.data.data ? res.data.data : res.data;
-        const pkg = data || res.data || p;
+        const booking = data || res.data || b;
 
-        // prepare suggestion_foods / suggestion_services if present
-        let suggestionFoods = pkg.suggestion_foods || pkg.foods || [];
-        let suggestionServices = pkg.suggestion_services || pkg.services || [];
-
-        if ((!suggestionFoods || suggestionFoods.length === 0)) {
-          try {
-            const fRes = await api.get(`/suggestion-packages/${id}/foods`);
-            const fData = fRes.data && fRes.data.data ? fRes.data.data : fRes.data;
-            suggestionFoods = Array.isArray(fData) ? fData : suggestionFoods;
-          } catch (e) { }
-        }
-        if ((!suggestionServices || suggestionServices.length === 0)) {
-          try {
-            const sRes = await api.get(`/suggestion-packages/${id}/services`);
-            const sData = sRes.data && sRes.data.data ? sRes.data.data : sRes.data;
-            suggestionServices = Array.isArray(sData) ? sData : suggestionServices;
-          } catch (e) { }
-        }
-
-        this.form = {
-          ...pkg,
-          number_of_tables: (pkg.number_of_tables != null) ? pkg.number_of_tables : 0,
-          suggestion_foods: suggestionFoods,
-          suggestion_services: suggestionServices,
+        // normalize form and date fields to YYYY-MM-DD for date inputs
+        const normalizeDate = (v) => {
+          if (!v) return v;
+          // if contains time, take the date part
+          if (typeof v === 'string' && v.indexOf(' ') !== -1) return v.split(' ')[0];
+          // if ISO-like with T
+          if (typeof v === 'string' && v.indexOf('T') !== -1) return v.split('T')[0];
+          // otherwise return as-is
+          return v;
         };
 
-        // load items for the package's restaurant (prefer backend per-restaurant endpoints)
-        const restId = this.form.restaurant_id || this.form.restaurant || null;
-        if (restId) {
+        // prepare booking_foods / booking_services if present
+        let bookingFoods = booking.booking_foods || booking.bookingFoods || booking.foods || [];
+        let bookingServices = booking.booking_services || booking.bookingServices || booking.services || [];
+
+        // if arrays empty, try fetching via auxiliary endpoints (if backend provides them)
+        if ((!bookingFoods || bookingFoods.length === 0)) {
           try {
-            const [hRes, fRes, sRes] = await Promise.all([
-              api.get(`/restaurants/${restId}/halls`),
-              api.get(`/restaurants/${restId}/foods`),
-              api.get(`/restaurants/${restId}/services`),
-            ]);
-            const mh = Array.isArray(hRes.data) ? hRes.data : (hRes.data.data || hRes.data);
-            const mf = Array.isArray(fRes.data) ? fRes.data : (fRes.data.data || fRes.data);
-            const ms = Array.isArray(sRes.data) ? sRes.data : (sRes.data.data || sRes.data);
-            this.modalHallsList = mh || [];
-            this.modalFoodsList = mf || [];
-            this.modalServicesList = ms || [];
+            const fRes = await api.get(`/bookings/${id}/foods`);
+            const fData = fRes.data && fRes.data.data ? fRes.data.data : fRes.data;
+            bookingFoods = Array.isArray(fData) ? fData : bookingFoods;
           } catch (e) {
-            // fallback: filter existing lists
-            this.modalHallsList = (this.halls || []).filter(h => (h.restaurant_id || h.restaurant) == restId);
-            this.modalFoodsList = (this.foods || []).filter(f => (f.restaurant_id || f.restaurant) == restId);
-            this.modalServicesList = (this.services || []).filter(s => (s.restaurant_id || s.restaurant) == restId);
+            // ignore if not available
           }
-        } else {
-          // if no restaurant set, clear modal lists so the UI shows nothing until restaurant selected
-          this.modalHallsList = [];
-          this.modalFoodsList = [];
-          this.modalServicesList = [];
+        }
+        if ((!bookingServices || bookingServices.length === 0)) {
+          try {
+            const sRes = await api.get(`/bookings/${id}/services`);
+            const sData = sRes.data && sRes.data.data ? sRes.data.data : sRes.data;
+            bookingServices = Array.isArray(sData) ? sData : bookingServices;
+          } catch (e) {
+            // ignore if not available
+          }
         }
 
-        // mark selected flags based on package relations
-        const foodIds = (this.form.suggestion_foods || []).map(f => f.food_id || f.foodId || f.id);
-        const serviceIds = (this.form.suggestion_services || []).map(s => s.service_id || s.serviceId || s.id);
-        if (this.modalHallsList) this.modalHallsList.forEach(h => { h.selected = ((this.form.hall_id || this.form.hall) == (h.hall_id || h.id)); });
-        if (this.modalFoodsList) this.modalFoodsList.forEach(f => { f.selected = foodIds.indexOf(f.food_id || f.id) !== -1; });
-        if (this.modalServicesList) this.modalServicesList.forEach(s => { s.selected = serviceIds.indexOf(s.service_id || s.id) !== -1; });
+        // debug: log what foods/services we received for this booking
+        console.debug('openEditModal: booking id=', id, { bookingFoods, bookingServices, booking });
 
+        this.form = {
+          ...booking,
+          event_date: normalizeDate(booking.event_date),
+          return_date: normalizeDate(booking.return_date),
+          // ensure number_of_tables field exists
+          number_of_tables: (booking.number_of_tables != null) ? booking.number_of_tables : (booking.tables || 0),
+          booking_foods: bookingFoods,
+          booking_services: bookingServices,
+        };
+
+        // compute price after loading booking details
+        this.$nextTick(() => this.computePrice());
         this.showModal = true;
       } catch (err) {
-        console.error('Lỗi tải chi tiết gói gợi ý:', err.response || err.message);
-        this.form = { ...p };
-        this.form.suggestion_foods = this.form.suggestion_foods || [];
-        this.form.suggestion_services = this.form.suggestion_services || [];
+        // fallback to using provided row data
+        console.error('Lỗi tải chi tiết đặt tiệc:', err.response || err.message);
+        this.form = { ...b };
+        // try to normalize if possible
+        if (this.form.event_date && typeof this.form.event_date === 'string') this.form.event_date = this.form.event_date.split('T')[0].split(' ')[0];
+        if (this.form.return_date && typeof this.form.return_date === 'string') this.form.return_date = this.form.return_date.split('T')[0].split(' ')[0];
+        // ensure booking_foods/booking_services exist for fallback
+        this.form.booking_foods = this.form.booking_foods || this.form.bookingFoods || [];
+        this.form.booking_services = this.form.booking_services || this.form.bookingServices || [];
+        // compute price from fallback data
+        this.$nextTick(() => this.computePrice());
         this.showModal = true;
       }
     },
-    openCreateModal() {
-      this.isEditing = false;
-      this.form = {
-        name: null,
-        restaurant_id: null,
-        hall_id: null,
-        event_type: null,
-        number_of_tables: 0,
-        description: null,
-        image_url: null,
-        suggestion_foods: [],
-        suggestion_services: [],
-      };
-      this.modalHallsList = [];
-      this.modalFoodsList = [];
-      this.modalServicesList = [];
-      this.activeTab = 'sanh';
-      this.activeFoodTypeId = 1;
-      this.showModal = true;
-    },
-    async onRestaurantChange(restId) {
-      // load items for the restaurant or fallback to filtered refs
-      const id = restId || this.form.restaurant_id;
-      if (!id) {
-        this.modalHallsList = [];
-        this.modalFoodsList = [];
-        this.modalServicesList = [];
-        return;
-      }
+    async openEditWithLoading(row) {
+      const id = row.booking_id || row.id;
+      if (this.editingId) return;
+
+      this.editingId = id;
       try {
-        const [hRes, fRes, sRes] = await Promise.all([
-          api.get(`/restaurants/${id}/halls`),
-          api.get(`/restaurants/${id}/foods`),
-          api.get(`/restaurants/${id}/services`),
-        ]);
-        const mh = Array.isArray(hRes.data) ? hRes.data : (hRes.data.data || hRes.data);
-        const mf = Array.isArray(fRes.data) ? fRes.data : (fRes.data.data || fRes.data);
-        const ms = Array.isArray(sRes.data) ? sRes.data : (sRes.data.data || sRes.data);
-        this.modalHallsList = (mh || []).map(h => ({ ...h, selected: false }));
-        this.modalFoodsList = (mf || []).map(f => ({ ...f, selected: false }));
-        this.modalServicesList = (ms || []).map(s => ({ ...s, selected: false }));
-        // clear any previously selected suggestion items when restaurant changes
-        this.form.suggestion_foods = [];
-        this.form.suggestion_services = [];
-        this.form.hall_id = null;
-      } catch (e) {
-        this.modalHallsList = (this.halls || []).filter(h => (h.restaurant_id || h.restaurant) == id).map(h => ({ ...h, selected: false }));
-        this.modalFoodsList = (this.foods || []).filter(f => (f.restaurant_id || f.restaurant) == id).map(f => ({ ...f, selected: false }));
-        this.modalServicesList = (this.services || []).filter(s => (s.restaurant_id || s.restaurant) == id).map(s => ({ ...s, selected: false }));
-        this.form.suggestion_foods = [];
-        this.form.suggestion_services = [];
-        this.form.hall_id = null;
+        await this.openEditModal(row);
+      } finally {
+        this.editingId = null;
       }
     },
-    // Handlers used by the modal's tab UI
-    selectHall(clickedHall) {
-      const list = this.modalHallsList && this.modalHallsList.length ? this.modalHallsList : this.halls;
-      const idx = list.findIndex((h) => (h.hall_id || h.id) === (clickedHall.hall_id || clickedHall.id));
-      if (idx === -1) return;
-      const currentlySelectedIdx = list.findIndex((h) => h.selected);
 
-      // If clicking the currently selected hall -> deselect
-      if (currentlySelectedIdx === idx) {
-        const newObj = Object.assign({}, list[idx], { selected: false });
-        this.$set(list, idx, newObj);
-        this.form.hall_id = null;
-        return;
-      }
-
-      // If another hall already selected -> switch
-      list.forEach((h, i) => {
-        if (i === idx) this.$set(list, i, Object.assign({}, h, { selected: true }));
-        else this.$set(list, i, Object.assign({}, h, { selected: false }));
-      });
-      this.form.hall_id = list[idx].hall_id || list[idx].id;
-      this.computePrice();
-    },
-    selectFood(selectedFood) {
-      const fid = selectedFood.food_id || selectedFood.id;
-      if (!fid) return;
-      const list = this.modalFoodsList && this.modalFoodsList.length ? this.modalFoodsList : this.foods;
-      const idx = list.findIndex((f) => String(f.food_id || f.id) === String(fid));
-      if (idx === -1) return;
-      const newObj = Object.assign({}, list[idx], { selected: !Boolean(list[idx].selected) });
-      this.$set(list, idx, newObj);
-
-      // toggle membership in form.suggestion_foods
-      this.form.suggestion_foods = this.form.suggestion_foods || [];
-      const existing = this.form.suggestion_foods.findIndex(f => (f.food_id || f.foodId || f.id) === fid);
-      if (existing !== -1) this.form.suggestion_foods.splice(existing, 1);
-      else this.form.suggestion_foods.push({ food_id: fid });
-    },
-    selectService(selectedService) {
-      const sid = selectedService.service_id || selectedService.id;
-      if (!sid) return;
-      const list = this.modalServicesList && this.modalServicesList.length ? this.modalServicesList : this.services;
-      const idx = list.findIndex((s) => String(s.service_id || s.id) === String(sid));
-      if (idx === -1) return;
-      const newObj = Object.assign({}, list[idx], { selected: !Boolean(list[idx].selected) });
-      this.$set(list, idx, newObj);
-
-      this.form.suggestion_services = this.form.suggestion_services || [];
-      const existing = this.form.suggestion_services.findIndex(s => (s.service_id || s.serviceId || s.id) === sid);
-      if (existing !== -1) this.form.suggestion_services.splice(existing, 1);
-      else this.form.suggestion_services.push({ service_id: sid });
-    },
     async saveBooking() {
       this.saving = true;
       console.log('Saving booking...', this.form);
       try {
         const payload = {
-          name: this.form.name || null,
+          customer_id: this.form.customer_id || null,
+          created_by_user_id: this.form.created_by_user_id || null,
           restaurant_id: this.form.restaurant_id || null,
           hall_id: this.form.hall_id || null,
           event_type: this.form.event_type || null,
+          event_time: this.form.event_time || null,
+          event_date: this.form.event_date || null,
+          return_date: this.form.return_date || null,
           number_of_tables: this.form.number_of_tables || 0,
-          description: this.form.description || null,
-          image_url: this.form.image_url || null,
-          suggestion_foods: this.form.suggestion_foods || [],
-          suggestion_services: this.form.suggestion_services || [],
+          price: this.form.price || 0,
+          status: this.form.status || null,
+          notes: this.form.notes || null,
         };
         let res;
-        if (this.isEditing && this.form.package_id) {
-          res = await api.post(`/suggestion-packages/${this.form.package_id}?_method=PUT`, payload);
+        if (this.isEditing && this.form.booking_id) {
+          res = await api.post(`/bookings/${this.form.booking_id}?_method=PUT`, payload);
         } else {
-          res = await api.post('/suggestion-packages', payload);
+          res = await api.post('/bookings', payload);
         }
 
         console.log('Save response:', res && res.data ? res.data : res);
+        if (this.isEditing && this.form.booking_id) {
+          const index = this.bookings.findIndex(
+            b => (b.booking_id || b.id) === this.form.booking_id
+          );
+
+          if (index !== -1) {
+            this.bookings[index].updated_at = new Date().toISOString();
+          }
+        }
+
         this.showModal = false;
         // refresh list
-        await this.getSuggestionPackages();
-        window.alert('Lưu gói gợi ý thành công');
+        await this.getBookings();
+        window.alert('Lưu đặt tiệc thành công');
       } catch (err) {
-        console.error('Lỗi lưu gói gợi ý:', err);
+        console.error('Lỗi lưu đặt tiệc:', err);
         const msg = (err && err.response && err.response.data && (err.response.data.message || JSON.stringify(err.response.data))) || err.message || String(err);
         window.alert('Lỗi khi lưu: ' + msg);
       } finally {
         this.saving = false;
       }
     },
-    // Compatibility wrapper: form expects `savePackage`
-    savePackage() {
-      return this.saveBooking();
-    },
-    async deleteBooking(id) {
-      if (!confirm('Bạn có chắc chắn muốn xóa ?')) return;
-
-      this.loadingDeleteId = id;
-
+    async deleteBookingWithLoading(id) {
+      if (this.deletingId) return;
+      const ok = confirm('Bạn có chắc chắn muốn xóa ?');
+      if (!ok) return;
+      this.deletingId = id;
       try {
-        await api.delete(`/suggestion-packages/${id}`);
+        await api.delete(`/bookings/${id}`);
 
-        const keyFn = p => (p.package_id != null ? p.package_id : p.id);
-        this.suggestionPackages = this.suggestionPackages.filter(p => keyFn(p) !== id);
+        const keyFn = b => (b.booking_id != null ? b.booking_id : b.id);
+        this.bookings = this.bookings.filter(b => keyFn(b) !== id);
 
+        window.alert('Xóa thành công');
       } catch (err) {
-        console.error('Lỗi xóa gói gợi ý:', err.response || err.message);
-        alert('Xóa thất bại!');
+        console.error('Lỗi xóa đặt tiệc:', err.response || err.message);
+        window.alert('Xóa thất bại');
       } finally {
-        this.loadingDeleteId = null;
+        this.deletingId = null;
       }
     },
-
-    // Compatibility wrapper: table/actions expect `deletePackage`
-    deletePackage(id) {
-      return this.deleteBooking(id);
-    },
-
   },
   computed: {
     // Hall options filtered by current booking's restaurant
@@ -692,41 +524,9 @@ export default {
       return filtered.map(h => ({ value: h.id || h.hall_id, text: h.name || h.ten || h.hall_name || String(h.id || h.hall_id) }));
     }
     ,
-    paginatedSuggestionPackages() {
+    paginatedBookings() {
       const start = (this.currentPage - 1) * this.perPage;
-      return (this.suggestionPackages || []).slice(start, start + this.perPage);
-    }
-    ,
-    modalHalls() {
-      if (this.modalHallsList && this.modalHallsList.length) return this.modalHallsList;
-      const restId = this.form && (this.form.restaurant_id || this.form.restaurant);
-      if (!restId) return [];
-      return (this.halls || []).filter(h => (h.restaurant_id || h.restaurant) == restId);
-    },
-    restaurantOptions() {
-      return (this.restaurants || []).map(r => ({ value: r.id || r.restaurant_id, text: r.name || r.title || r.ten || String(r.id || r.restaurant_id) }));
-    },
-    modalFoods() {
-      if (this.modalFoodsList && this.modalFoodsList.length) return this.modalFoodsList;
-      const restId = this.form && (this.form.restaurant_id || this.form.restaurant);
-      if (!restId) return [];
-      return (this.foods || []).filter(f => (f.restaurant_id || f.restaurant) == restId);
-    },
-    modalServices() {
-      if (this.modalServicesList && this.modalServicesList.length) return this.modalServicesList;
-      const restId = this.form && (this.form.restaurant_id || this.form.restaurant);
-      if (!restId) return [];
-      return (this.services || []).filter(s => (s.restaurant_id || s.restaurant) == restId);
-    },
-    filteredFoods() {
-      // If no restaurant selected, don't show any foods
-      const restId = this.form && (this.form.restaurant_id || this.form.restaurant);
-      if (!restId) return [];
-
-      const list = (this.modalFoods && this.modalFoods.length) ? this.modalFoods : (this.foods || []);
-      // coerce types to Number to handle string IDs coming from API
-      const activeType = Number(this.activeFoodTypeId || 0);
-      return list.filter(food => Number(food.food_type_id || food.type_id || 0) === activeType);
+      return (this.bookings || []).slice(start, start + this.perPage);
     }
   },
   watch: {
@@ -738,10 +538,10 @@ export default {
     }
   },
   mounted() {
-    console.log('GoiGoiY mounted');
+    console.log('Bookings mounted');
     this.loadRefs()
-      .then(() => this.getSuggestionPackages())
-      .catch(() => this.getSuggestionPackages());
+      .then(() => this.getBookings())
+      .catch(() => this.getBookings());
   },
 };
 </script>
@@ -789,186 +589,5 @@ export default {
 /* Make header bottom border a bit stronger for separation */
 :deep(.table.table-bordered thead th) {
   border-bottom: 2px solid #dee2e6 !important;
-}
-
-/* Namespaced styles for GoiGoiY modal tab UI (prefix gg-) */
-.gg-booking-tabs {
-  padding: 12px 6px;
-}
-
-.gg-tabs-header {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-  justify-content: center;
-}
-
-.gg-tabs-header button {
-  background: transparent;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.gg-tabs-header button.active {
-  background: #2b6fef;
-  color: #fff;
-}
-
-.gg-tab-content {
-  min-height: 180px;
-  display: flex;
-  justify-content: center;
-}
-
-/* grid for items: 3 per row on desktop, responsive to 1 column on small screens */
-.gg-grid {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.gg-hall-list,
-.gg-food-list,
-.gg-service-list {
-  padding: 6px;
-  max-height: 360px;
-  overflow: auto;
-}
-
-.gg-item {
-  cursor: pointer;
-  padding: 0;
-  overflow: hidden;
-  position: relative;
-}
-
-.gg-item-img {
-  width: 100%;
-  height: 120px;
-  background: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.gg-item-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.gg-item-noimg {
-  color: #777;
-  font-size: 13px;
-  padding: 6px;
-}
-
-.gg-item-body {
-  padding: 10px;
-}
-
-.gg-item-title {
-  margin: 0 0 6px 0;
-  font-size: 14px;
-}
-
-.gg-item-desc {
-  margin: 0;
-  font-size: 12px;
-  color: #666;
-  max-height: 42px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* hover/selected visuals */
-.gg-item {
-  transition: box-shadow .15s, transform .12s;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-}
-
-.gg-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-}
-
-.gg-item.selected {
-  border-color: #28a745;
-  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.06);
-}
-
-/* select button overlay */
-.gg-item-action {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 5;
-}
-
-.gg-select-btn {
-  font-size: 12px;
-  padding: 6px 8px;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(255, 255, 255, 0.96);
-  cursor: pointer;
-  transition: all .12s;
-}
-
-.gg-select-btn.selected {
-  background: #28a745;
-  color: #fff;
-  border-color: #28a745;
-}
-
-.gg-select-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
-}
-
-.gg-food-container .gg-food-type-tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  justify-content: center;
-}
-
-.gg-food-type-tabs button {
-  background: transparent;
-  border: none;
-  padding: 6px 10px;
-  cursor: pointer;
-  border-radius: 6px;
-}
-
-.gg-food-type-tabs button.active {
-  border-bottom: 3px solid #2b6fef;
-  color: #2b6fef;
-}
-
-/* small screens adjustments */
-@media (max-width: 992px) {
-  .gg-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 576px) {
-  .gg-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .gg-tabs-header {
-    flex-wrap: wrap;
-  }
-
-  .gg-food-type-tabs {
-    flex-wrap: wrap;
-  }
 }
 </style>

@@ -284,22 +284,34 @@ export default {
     checkout() {
       if (this.cart.length === 0) return alert("Giỏ hàng trống!");
 
+      // Prepare payment info and persist to localStorage so Payment page can read it
+      const paymentId = 'HDW' + Math.floor(Math.random() * 1000000);
+      const paymentTotal = this.finalTotal;
+      try {
+        localStorage.setItem('payment_id', paymentId);
+        localStorage.setItem('payment_total', String(paymentTotal));
+        // keep the cart in localStorage so Payment.vue can show items if needed
+        this.saveCart();
+      } catch (err) {
+        console.error('Cannot set payment data in localStorage', err);
+      }
+
+      // If a promo was selected, mark it used (but don't clear the cart yet)
       if (this.selectedPromo) {
         const appliedPromo = JSON.parse(this.selectedPromo);
         this.usedPromoCodes.push(appliedPromo.promotion_code);
         localStorage.setItem("usedPromoCodes", JSON.stringify(this.usedPromoCodes));
-        alert(`Thanh toán thành công! Mã ${appliedPromo.promotion_code} đã được áp dụng và không thể dùng lại.`);
+        alert(`Đang chuyển tới trang thanh toán. Mã ${appliedPromo.promotion_code} sẽ được áp dụng.`);
       } else {
-        alert("Thanh toán thành công!");
+        // Navigate to payment page
+        // Use named route or path as defined in routes.js
+        // keep cart intact so user can return
+        // show a short message then navigate
+        // no immediate success message here
       }
 
-      this.cart = [];
-      this.saveCart();
-      this.selectedPromo = "";
-      this.promoInput = "";
-      this.discountAmount = 0;
-      this.promoPercent = 0;
-      this.loadUserPromotions();
+      // Navigate to the payment page to let user complete payment
+      this.$router.push({ path: '/thanh-toan' });
     },
     async cancelBooking(bookingId) {
       if (!confirm("Bạn có chắc chắn muốn hủy đặt tiệc này?")) return;
