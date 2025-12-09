@@ -34,23 +34,17 @@
               <template #cell(description)="row">{{ row.item.description || '-' }}</template>
               <template #cell(created_at)="row">{{ formatDate(row.item.created_at) }}</template>
               <template #cell(actions)="row">
-                <!-- SỬA -->
-                <b-button size="sm" variant="warning" class="mr-1"
-                  :disabled="loadingEditId === (row.item.package_id || row.item.id)"
-                  @click="openEditModalWithLoading(row.item)">
-                  <i v-if="loadingEditId === (row.item.package_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                <b-button size="sm" variant="warning" @click="openEditModal(row.item)"
+                  :disabled="isLoadingEdit === (row.item.package_id || row.item.id)">
+                  <i v-if="isLoadingEdit === (row.item.package_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
                   <i v-else class="fas fa-edit"></i>
                 </b-button>
-
-                <!-- XÓA -->
-                <b-button size="sm" variant="danger"
-                  :disabled="loadingDeleteId === (row.item.package_id || row.item.id)"
-                  @click="deletePackageWithLoading(row.item.package_id || row.item.id)">
-                  <i v-if="loadingDeleteId === (row.item.package_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
+                <b-button size="sm" variant="danger" @click="deletePackage(row.item.package_id || row.item.id)"
+                  :disabled="isDeletingId === (row.item.package_id || row.item.id)">
+                  <i v-if="isDeletingId === (row.item.package_id || row.item.id)" class="fas fa-spinner fa-spin"></i>
                   <i v-else class="fas fa-trash"></i>
                 </b-button>
               </template>
-
             </b-table>
             <div class="d-flex justify-content-center mt-3">
               <b-pagination v-model="currentPage" :total-rows="suggestionPackages.length" :per-page="perPage"
@@ -119,8 +113,7 @@
                       <div v-for="hall in modalHalls" :key="hall.hall_id || hall.id" class="gg-item card"
                         :class="{ selected: hall.selected }" @click="selectHall(hall)">
                         <div class="gg-item-img">
-                          <img v-if="hall.image_url" :src="hall.image_url" alt="img" />
-                          <div v-else class="gg-item-noimg">No image</div>
+                          <img img :src="imgUrl(hall)" alt="img" @error="onImgError" />
                         </div>
                         <div class="gg-item-body">
                           <h6 class="gg-item-title">{{ hall.name || hall.ten || hall.hall_name || ('Sảnh ' +
@@ -160,8 +153,7 @@
                         <div v-for="food in filteredFoods" :key="food.food_id || food.id" class="gg-item card"
                           :class="{ selected: food.selected }" @click="selectFood(food)">
                           <div class="gg-item-img">
-                            <img v-if="food.image_url" :src="food.image_url" alt="img" />
-                            <div v-else class="gg-item-noimg">No image</div>
+                            <img :src="imgUrl(food)" alt="img" @error="onImgError" />
                           </div>
                           <div class="gg-item-body">
                             <h6 class="gg-item-title">{{ food.name || food.title || food.ten || ('Món ' + (food.food_id
@@ -184,8 +176,8 @@
                       <div v-for="service in modalServices" :key="service.service_id || service.id" class="gg-item card"
                         :class="{ selected: service.selected }" @click="selectService(service)">
                         <div class="gg-item-img">
-                          <img v-if="service.image_url" :src="service.image_url" alt="img" />
-                          <div v-else class="gg-item-noimg">No image</div>
+                          <img :src="imgUrl(service)" alt="img" @error="onImgError" />
+
                         </div>
                         <div class="gg-item-body">
                           <h6 class="gg-item-title">{{ service.name || service.title || service.ten || ('DV ' +
@@ -216,6 +208,13 @@
         </div>
       </div>
     </div>
+
+    <!-- Success Toast Notification -->
+    <div v-if="showSuccessMsg" class="booking-toast-wrapper">
+      <div class="booking-toast-content">
+        <i class="fas fa-check-circle"></i> {{ successMsg }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -231,8 +230,6 @@ export default {
       suggestionPackages: [],
       currentPage: 1,
       perPage: 10,
-      loadingEditId: null,
-      loadingDeleteId: null,
       restaurants: [],
       halls: [],
       foods: [],
@@ -245,6 +242,12 @@ export default {
       showModal: false,
       isEditing: false,
       saving: false,
+      // loading states for UI actions
+      isLoadingEdit: null,
+      isDeletingId: null,
+      // toast notification
+      showSuccessMsg: false,
+      successMsg: '',
       modalHallsList: null,
       modalFoodsList: null,
       modalServicesList: null,
@@ -262,11 +265,37 @@ export default {
       activeTab: 'sanh',
       activeFoodTypeId: 1,
     };
-
-
   },
   components: { HallCard, FoodCard, ServiceCard },
   methods: {
+    imgUrl(item) {
+      const DEFAULT = "/images/default.png";
+      if (!item) return DEFAULT;
+
+      const val = String(item.image_url || item.image || "").trim();
+      if (!val) return DEFAULT;
+
+      // Nếu là link tuyệt đối → dùng luôn
+      if (/^(data:|https?:)\/\//i.test(val)) return val;
+      if (/^\/\//.test(val)) return val;
+
+      // Xóa public/ nếu có
+      let clean = val.replace(/^public\//i, "").replace(/^\/+/, "");
+
+      // Nếu chỉ là tên file → mặc định thư mục uploads
+      if (!clean.includes("/")) {
+        clean = "uploads/" + clean;
+      }
+
+      const backend = (process.env.VUE_APP_BACKEND_URL || "http://127.0.0.1:8088")
+        .replace(/\/+$/, "");
+
+      return backend + "/" + clean.replace(/^\/+/, "");
+    },
+
+    onImgError(e) {
+      e.target.src = "/images/default.png";
+    },
     async loadRefs() {
       try {
         const [rRes, hRes, fRes, sRes] = await Promise.all([
@@ -421,19 +450,10 @@ export default {
       const min = String(d.getMinutes()).padStart(2, '0');
       return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
     },
-    async openEditModalWithLoading(item) {
-      const id = item.package_id || item.id;
-      this.loadingEditId = id;
-
-      try {
-        await this.openEditModal(item);
-      } finally {
-        this.loadingEditId = null;
-      }
-    },
-
     async openEditModal(p) {
       const id = p.package_id != null ? p.package_id : p.id;
+      if (this.isLoadingEdit) return;
+      this.isLoadingEdit = id;
       this.isEditing = true;
       try {
         const res = await api.get(`/suggestion-packages/${id}`);
@@ -508,6 +528,8 @@ export default {
         this.form.suggestion_foods = this.form.suggestion_foods || [];
         this.form.suggestion_services = this.form.suggestion_services || [];
         this.showModal = true;
+      } finally {
+        if (this.isLoadingEdit === id) this.isLoadingEdit = null;
       }
     },
     openCreateModal() {
@@ -642,11 +664,15 @@ export default {
         this.showModal = false;
         // refresh list
         await this.getSuggestionPackages();
-        window.alert('Lưu gói gợi ý thành công');
+        this.successMsg = '✅ Lưu gói gợi ý thành công';
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 3000);
       } catch (err) {
         console.error('Lỗi lưu gói gợi ý:', err);
         const msg = (err && err.response && err.response.data && (err.response.data.message || JSON.stringify(err.response.data))) || err.message || String(err);
-        window.alert('Lỗi khi lưu: ' + msg);
+        this.successMsg = '❌ Lưu thất bại: ' + msg;
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 4000);
       } finally {
         this.saving = false;
       }
@@ -657,23 +683,26 @@ export default {
     },
     async deleteBooking(id) {
       if (!confirm('Bạn có chắc chắn muốn xóa ?')) return;
-
-      this.loadingDeleteId = id;
-
+      if (this.isDeletingId) return;
+      this.isDeletingId = id;
       try {
         await api.delete(`/suggestion-packages/${id}`);
-
+        // remove locally so UI updates immediately
         const keyFn = p => (p.package_id != null ? p.package_id : p.id);
         this.suggestionPackages = this.suggestionPackages.filter(p => keyFn(p) !== id);
-
+        this.successMsg = '✅ Xóa gói gợi ý thành công';
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 3000);
       } catch (err) {
         console.error('Lỗi xóa gói gợi ý:', err.response || err.message);
-        alert('Xóa thất bại!');
+        const errMsg = (err.response && err.response.data && err.response.data.message) || err.message || String(err);
+        this.successMsg = '❌ Xóa thất bại: ' + errMsg;
+        this.showSuccessMsg = true;
+        setTimeout(() => { this.showSuccessMsg = false; }, 4000);
       } finally {
-        this.loadingDeleteId = null;
+        this.isDeletingId = null;
       }
     },
-
     // Compatibility wrapper: table/actions expect `deletePackage`
     deletePackage(id) {
       return this.deleteBooking(id);
@@ -969,6 +998,44 @@ export default {
 
   .gg-food-type-tabs {
     flex-wrap: wrap;
+  }
+}
+
+/* Toast notification styles (same as Bookings.vue) */
+.booking-toast-wrapper {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  animation: slideInRight 0.35s ease;
+}
+
+.booking-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 8px 30px rgba(2, 6, 23, 0.12);
+  font-weight: 600;
+}
+
+.booking-toast-content i {
+  font-size: 18px;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(200px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }
 </style>
